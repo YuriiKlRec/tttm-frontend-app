@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/* Шрифти (font-display: swap у @fontsource за замовчуванням) */
+/* body — Geist */
+@import "@fontsource/geist-sans/400.css";
+@import "@fontsource/geist-sans/700.css";
+/* mono — Anonymous Pro Bold */
+@import "@fontsource/anonymous-pro/700.css";
+/* display — Upheaval Pro (піксельний заголовок), fallback Pixelify Sans */
+@import "@fontsource/pixelify-sans/400.css";
+
+@font-face {
+  font-family: "Upheaval Pro";
+  src: url("../assets/fonts/upheaval.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@theme {
+  /* Кольори */
+  --color-background: #212121;
+  --color-surface: #323232;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #adadad;
+  --color-text-focus: #ef9723;
+  --color-text-success: #46a758;
+  --color-green-400: #54b566;
+  --color-btc: #f7931a;
+
+  /* Бордери */
+  --color-border-solid: rgba(255, 255, 255, 0.15);
+  --color-border-dashed: rgba(255, 255, 255, 0.25);
+
+  /* Шрифти */
+  --font-display: "Upheaval Pro", "Pixelify Sans", "Courier New", monospace;
+  --font-mono: "Anonymous Pro", ui-monospace, monospace;
+  --font-body: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Safe-area: Telegram insets з fallback на env() */
+:root {
+  --app-safe-top: env(safe-area-inset-top, 0px);
+  --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Приховати скролбар, але лишити скрол */
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
