@@ -4,18 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { TopBar } from './TopBar'
 import { StatusLine } from './StatusLine'
 import { BottomNav } from './BottomNav'
+import { PixelGrid } from './PixelGrid'
 import { getTabIndexByPath } from '../../constants/tabs'
-
-/**
- * Дрібна піксельна сітка на весь viewport. Лежить на корені колонки як фікс-бекдроп,
- * тож не скролиться разом зі списком ігор у <main>.
- */
-const gridStyle = {
-  backgroundImage:
-    'linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),' +
-    'linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px)',
-  backgroundSize: '7px 7px',
-}
 
 /**
  * Каркас застосунку: фіксовані TopBar + StatusLine зверху, фіксований BottomNav знизу,
@@ -32,11 +22,7 @@ export const AppLayout: FC = () => {
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={gridStyle}
-      />
+      <PixelGrid />
       <TopBar />
       <StatusLine />
 

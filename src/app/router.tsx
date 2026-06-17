@@ -5,6 +5,7 @@ import { AppLayout } from '../components/layout/AppLayout'
 import PredictionsPage from '../pages/PredictionsPage'
 import WaitingPage from '../pages/WaitingPage'
 import ResultsPage from '../pages/ResultsPage'
+import GamePage from '../pages/GamePage'
 
 /** Маршрути застосунку під спільним AppLayout. */
 export const AppRoutes: FC = () => {
@@ -17,6 +18,8 @@ export const AppRoutes: FC = () => {
         <Route path="/waiting" element={<WaitingPage />} />
         <Route path="/results" element={<ResultsPage />} />
       </Route>
+      {/* окремий лайаут гри: без app-топбару, нижньої навігації та slide-переходів */}
+      <Route path="/game/:id" element={<GamePage />} />
     </Routes>
   )
 }
