@@ -25,6 +25,32 @@ export interface Game {
 /** Режим відображення центральної області сторінки гри. */
 export type ViewMode = 'chart' | 'bets' | 'details'
 
+/** Варіант рядка ставки у вигляді «Predictions». */
+export type BetLineVariant = 'default' | 'mine' | 'win'
+
+/** Одна ставка у списку прогнозів. */
+export interface Bet {
+  /** Ранг у списку (1..N). */
+  rank: number
+  /** Нік гравця з @ (напр. "@user"). */
+  user: string
+  /** Спрогнозована ціна (напр. "$57,212.46"). */
+  price: string
+  /** Варіант відображення (своя / виграшна / звичайна). */
+  variant: BetLineVariant
+}
+
+/** Один рядок таблиці деталей гри (label → value). */
+export interface DetailRow {
+  /** Назва параметра ліворуч. */
+  label: string
+  /** Значення параметра праворуч. */
+  value: string
+}
+
+/** Група рядків деталей (між групами — штриховий дивайдер). */
+export type DetailGroup = DetailRow[]
+
 /** Детальна модель гри для окремої сторінки `/game/:id`. */
 export interface GameDetail {
   /** Унікальний ідентифікатор гри. */

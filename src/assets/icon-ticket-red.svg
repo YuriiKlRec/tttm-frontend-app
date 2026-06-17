@@ -1,0 +1,21 @@
+<svg viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Group 173">
+<path id="Subtract" d="M21 6H19V10H21V15H1V10H3V6H1V1H21V6Z" fill="var(--fill-0, #E5484D)"/>
+<g id="Union">
+<path d="M8.5 15H21V16H1V15H7.5V14H8.5V15Z" fill="var(--fill-0, #212121)"/>
+<path d="M1 15H0V11H1V15Z" fill="var(--fill-0, #212121)"/>
+<path d="M22 15H21V11H22V15Z" fill="var(--fill-0, #212121)"/>
+<path d="M8.5 12.5H7.5V8.5H8.5V12.5Z" fill="var(--fill-0, #212121)"/>
+<path d="M3 11H1V10H3V11Z" fill="var(--fill-0, #212121)"/>
+<path d="M21 11H19V10H21V11Z" fill="var(--fill-0, #212121)"/>
+<path d="M4 10H3V6H4V10Z" fill="var(--fill-0, #212121)"/>
+<path d="M19 10H18V6H19V10Z" fill="var(--fill-0, #212121)"/>
+<path d="M8.5 7H7.5V3H8.5V7Z" fill="var(--fill-0, #212121)"/>
+<path d="M3 6H1V5H3V6Z" fill="var(--fill-0, #212121)"/>
+<path d="M21 6H19V5H21V6Z" fill="var(--fill-0, #212121)"/>
+<path d="M1 5H0V1H1V5Z" fill="var(--fill-0, #212121)"/>
+<path d="M22 5H21V1H22V5Z" fill="var(--fill-0, #212121)"/>
+<path d="M21 1H8.5V1.5H7.5V1H1V0H21V1Z" fill="var(--fill-0, #212121)"/>
+</g>
+</g>
+</svg>

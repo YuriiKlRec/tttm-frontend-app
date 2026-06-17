@@ -3,7 +3,14 @@ import { useParams } from 'react-router-dom'
 import { GameLayout } from '../components/layout/GameLayout'
 import { GameHeader } from '../components/games/GameHeader'
 import { BetPanel } from '../components/games/BetPanel'
-import { mockGameDetail } from '../mocks/gameDetail'
+import { GameContent } from '../components/games/GameContent'
+import {
+  mockBets,
+  mockCurrencyPrice,
+  mockGameDetail,
+  mockGameInfo,
+  mockPredictionStats,
+} from '../mocks/gameDetail'
 import type { ViewMode } from '../types/game'
 
 /**
@@ -35,9 +42,13 @@ const GamePage: FC = () => {
         />
       }
     >
-      <p className="flex h-full items-center justify-center font-mono text-[14px] text-text-secondary">
-        {viewMode}
-      </p>
+      <GameContent
+        viewMode={viewMode}
+        bets={mockBets}
+        stats={mockPredictionStats}
+        info={mockGameInfo}
+        price={mockCurrencyPrice}
+      />
     </GameLayout>
   )
 }
