@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react'
 import {
-  includesPrice,
   parsePrice,
-  removePrice,
   resolvePriceStatus,
   sanitizePriceInput,
   type PriceStatus,
 } from '../utils/price'
+import type { BookedCart } from './useBookedCart'
 
 /** Вхідні дані хука керування панеллю ставки. */
 interface UseBetPanelArgs {
@@ -14,6 +13,8 @@ interface UseBetPanelArgs {
   takenByOthers: number[]
   /** Ціни квитків поточного користувача. */
   yourTickets: number[]
+  /** Корзина заброньованих цін (спільний стан зі сторінкою). */
+  cart: BookedCart
   /** Емітується ТІЛЬКИ при діях користувача над полем (ввід/степери). */
   onPriceChange?: (price: number) => void
 }
@@ -22,8 +23,6 @@ interface UseBetPanelArgs {
 interface UseBetPanelResult {
   /** Сире значення поля вводу. */
   input: string
-  /** Накопичені заброньовані ціни. */
-  bookedPrices: number[]
   /** Статус поточної введеної ціни. */
   status: PriceStatus
   /** Зміна тексту вводу (санітизується). */
@@ -45,15 +44,15 @@ interface UseBetPanelResult {
 export const useBetPanel = ({
   takenByOthers,
   yourTickets,
+  cart,
   onPriceChange,
 }: UseBetPanelArgs): UseBetPanelResult => {
   const [input, setInputState] = useState('')
-  const [bookedPrices, setBookedPrices] = useState<number[]>([])
 
   const price = parsePrice(input)
   const status = useMemo(
-    () => resolvePriceStatus(price, takenByOthers, yourTickets, bookedPrices),
-    [price, takenByOthers, yourTickets, bookedPrices],
+    () => resolvePriceStatus(price, takenByOthers, yourTickets, cart.prices),
+    [price, takenByOthers, yourTickets, cart.prices],
   )
 
   // Емітує ціну назовні (синк з графіком) лише для валідних чисел.
@@ -89,9 +88,11 @@ export const useBetPanel = ({
     if (!Number.isFinite(price) || price <= 0) {
       return
     }
-    setBookedPrices((prev) =>
-      includesPrice(prev, price) ? removePrice(prev, price) : [...prev, price],
-    )
+    if (cart.has(price)) {
+      cart.remove(price)
+    } else {
+      cart.add(price)
+    }
   }
 
   // Синк зовнішнього значення (графік→поле) БЕЗ зворотної емісії — глушить цикл.
@@ -106,7 +107,6 @@ export const useBetPanel = ({
 
   return {
     input,
-    bookedPrices,
     status,
     setInput,
     decrement,

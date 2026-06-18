@@ -18,6 +18,14 @@ export const parsePrice = (input: string): number => {
 /** Ключ для стабільного порівняння цін (уникає похибок float). */
 const priceKey = (value: number): string => value.toFixed(2)
 
+/** Сума корзини у TON: кількість квитків × ціна квитка (напр. "0.3 TON"). */
+export const totalTon = (count: number, ticketPrice: string): string =>
+  `${(count * Number(ticketPrice)).toFixed(1)} TON`
+
+/** Форматує число-ціну у вигляд "$65,000.00". */
+export const formatUsd = (value: number): string =>
+  `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
 /** Чи містить список ціну (порівняння через toFixed(2)). */
 export const includesPrice = (list: number[], value: number): boolean => {
   const key = priceKey(value)

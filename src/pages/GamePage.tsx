@@ -4,7 +4,9 @@ import { GameLayout } from '../components/layout/GameLayout'
 import { GameHeader } from '../components/games/GameHeader'
 import { BetPanel } from '../components/games/BetPanel'
 import { GameContent } from '../components/games/GameContent'
+import { CartPanel } from '../components/games/cart/CartPanel'
 import { useChartData } from '../hooks/useChartData'
+import { useBookedCart } from '../hooks/useBookedCart'
 import type { Timeframe } from '../services/binance'
 import {
   mockBets,
@@ -33,8 +35,23 @@ const GamePage: FC = () => {
   const [mineOnly, setMineOnly] = useState(false)
   // Єдине джерело правди для вибраної ціни: і графік, і поле читають/пишуть сюди.
   const [selectedPrice, setSelectedPrice] = useState<number | undefined>(undefined)
+  // Корзина заброньованих ставок + чи відкрита панель Booked (замість графіка).
+  const cart = useBookedCart()
+  const [cartOpen, setCartOpen] = useState(false)
 
   const { candles, currentPrice } = useChartData(SYMBOL, timeframe)
+
+  // «Edit»: повертає ціну в поле вводу та прибирає її з корзини (панель лишається).
+  const handleEditBooked = (price: number): void => {
+    cart.remove(price)
+    setSelectedPrice(price)
+  }
+
+  // «Clear all»: очищає корзину та згортає панель на графік.
+  const handleClearAll = (): void => {
+    cart.clear()
+    setCartOpen(false)
+  }
 
   return (
     <GameLayout
@@ -54,12 +71,24 @@ const GamePage: FC = () => {
           betCloseTime={game.betCloseTime}
           takenByOthers={game.takenByOthers}
           yourTickets={game.yourTickets}
+          cart={cart}
+          onOpenCart={() => setCartOpen(true)}
           presetPrice={selectedPrice}
           onPriceChange={setSelectedPrice}
         />
       }
     >
-      <GameContent
+      {cartOpen ? (
+        <CartPanel
+          prices={cart.prices}
+          ticketPrice={game.ticketPrice}
+          onClose={() => setCartOpen(false)}
+          onClearAll={handleClearAll}
+          onEdit={handleEditBooked}
+          onRemove={cart.remove}
+        />
+      ) : (
+        <GameContent
         viewMode={viewMode}
         mineOnly={mineOnly}
         bets={mockBets}
@@ -81,6 +110,7 @@ const GamePage: FC = () => {
         onPriceSelect={setSelectedPrice}
         externalPrice={selectedPrice}
       />
+      )}
     </GameLayout>
   )
 }

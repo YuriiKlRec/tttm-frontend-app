@@ -6,6 +6,8 @@ import { PredictionButton } from '../ui/PredictionButton'
 import { useBetPanel } from '../../hooks/useBetPanel'
 import { useNow } from '../../hooks/useNow'
 import { formatCountdown } from '../../utils/time'
+import { totalTon } from '../../utils/price'
+import type { BookedCart } from '../../hooks/useBookedCart'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import btcIcon from '../../assets/icon-btc.svg'
 
@@ -19,6 +21,10 @@ interface BetPanelProps {
   takenByOthers: number[]
   /** Ціни квитків поточного користувача. */
   yourTickets: number[]
+  /** Корзина заброньованих цін (спільний стан зі сторінкою). */
+  cart: BookedCart
+  /** Відкрити панель Booked (доступно лише за наявності ставок). */
+  onOpenCart: () => void
   /** Попередньо вибрана ціна (з Y-контролера графіка) — заповнює поле. */
   presetPrice?: number
   /** Емітується при діях користувача над полем (синк → контролер графіка). */
@@ -48,19 +54,13 @@ export const BetPanel: FC<BetPanelProps> = ({
   betCloseTime,
   takenByOthers,
   yourTickets,
+  cart,
+  onOpenCart,
   presetPrice,
   onPriceChange,
 }) => {
-  const {
-    input,
-    bookedPrices,
-    status,
-    setInput,
-    decrement,
-    increment,
-    toggleBooking,
-    applyExternal,
-  } = useBetPanel({ takenByOthers, yourTickets, onPriceChange })
+  const { input, status, setInput, decrement, increment, toggleBooking, applyExternal } =
+    useBetPanel({ takenByOthers, yourTickets, cart, onPriceChange })
   const now = useNow()
 
   // Y-контролер графіка заповнює поле ціни (силент: applyExternal НЕ емітить
@@ -73,7 +73,7 @@ export const BetPanel: FC<BetPanelProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetPrice])
 
-  const bookedCount = bookedPrices.length
+  const bookedCount = cart.prices.length
   const countdown = formatCountdown(betCloseTime - now)
 
   return (
@@ -82,16 +82,23 @@ export const BetPanel: FC<BetPanelProps> = ({
       style={{ paddingBottom: 'calc(var(--app-safe-bottom) + 16px)' }}
     >
       <div className="flex flex-col gap-4 px-7">
-        <p className="flex items-center justify-center gap-2">
-          <img src={ticketIcon} alt="" aria-hidden="true" className="w-6" />
-          {bookedCount === 0 ? (
+        {bookedCount === 0 ? (
+          <p className="flex items-center justify-center gap-2">
+            <img src={ticketIcon} alt="" aria-hidden="true" className="w-6" />
             <span className="font-mono text-[15px] text-text-primary">= {ticketPrice} TON</span>
-          ) : (
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenCart}
+            className="flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            <img src={ticketIcon} alt="" aria-hidden="true" className="w-6" />
             <span className="font-mono text-[15px] text-text-focus">
-              Booked: {bookedCount} | {ticketPrice} TON
+              Booked: {bookedCount} | {totalTon(bookedCount, ticketPrice)}
             </span>
-          )}
-        </p>
+          </button>
+        )}
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3 pr-2">
