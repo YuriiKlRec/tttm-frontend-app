@@ -22,6 +22,8 @@ interface PredictionsStats {
 interface GameContentProps {
   /** Поточний вид. */
   viewMode: ViewMode
+  /** Фільтр «лише мої ставки» для вигляду «Predictions». */
+  mineOnly: boolean
   /** Ставки для вигляду «Predictions». */
   bets: Bet[]
   /** Статистика для вигляду «Predictions». */
@@ -56,6 +58,7 @@ interface GameContentProps {
  */
 export const GameContent: FC<GameContentProps> = ({
   viewMode,
+  mineOnly,
   bets,
   stats,
   info,
@@ -71,7 +74,7 @@ export const GameContent: FC<GameContentProps> = ({
   externalPrice,
 }) => {
   if (viewMode === 'bets') {
-    return <PredictionsView bets={bets} stats={stats} price={price} />
+    return <PredictionsView bets={bets} stats={stats} price={price} mineOnly={mineOnly} />
   }
 
   if (viewMode === 'details') {

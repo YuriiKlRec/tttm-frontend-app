@@ -15,6 +15,10 @@ interface GameHeaderProps {
   viewMode: ViewMode
   /** Колбек зміни виду. */
   onViewChange: (value: ViewMode) => void
+  /** Чи активний фільтр «лише мої ставки» (для виду Predictions). */
+  mineOnly: boolean
+  /** Перемикання фільтра «лише мої ставки». */
+  onToggleMine: () => void
 }
 
 /**
@@ -22,7 +26,14 @@ interface GameHeaderProps {
  * учасників), справа бокс із живим зворотним відліком до кінця гри та датою.
  * Суцільний темний фон перекриває фонову сітку; враховує safe-area зверху.
  */
-export const GameHeader: FC<GameHeaderProps> = ({ name, endTime, viewMode, onViewChange }) => {
+export const GameHeader: FC<GameHeaderProps> = ({
+  name,
+  endTime,
+  viewMode,
+  onViewChange,
+  mineOnly,
+  onToggleMine,
+}) => {
   const now = useNow()
   const countdown = formatCountdown(endTime - now)
 
@@ -35,13 +46,21 @@ export const GameHeader: FC<GameHeaderProps> = ({ name, endTime, viewMode, onVie
         <h1 className="font-body text-[18px] font-bold text-text-primary">{name}</h1>
         <div className="flex items-start gap-[9px]">
           <ViewSelector value={viewMode} onChange={onViewChange} />
-          <button
-            type="button"
-            aria-label="Participants"
-            className="flex h-7 w-7 items-center justify-center bg-[#ef9723] text-[#323232] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          >
-            <Glyph name="players" className="h-4 w-4" />
-          </button>
+          {viewMode === 'bets' && (
+            <button
+              type="button"
+              aria-label="Show only my tickets"
+              aria-pressed={mineOnly}
+              onClick={onToggleMine}
+              className={`flex h-7 w-7 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+                mineOnly
+                  ? 'bg-[#ef9723] text-[#323232]'
+                  : 'border border-white/50 bg-surface text-text-primary'
+              }`}
+            >
+              <Glyph name="players" className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 

@@ -29,6 +29,8 @@ const GamePage: FC = () => {
   const game = mockGameDetail
   const [viewMode, setViewMode] = useState<ViewMode>('chart')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
+  // Фільтр «лише мої ставки» — керується кнопкою в шапці (вид Predictions).
+  const [mineOnly, setMineOnly] = useState(false)
   // Єдине джерело правди для вибраної ціни: і графік, і поле читають/пишуть сюди.
   const [selectedPrice, setSelectedPrice] = useState<number | undefined>(undefined)
 
@@ -42,6 +44,8 @@ const GamePage: FC = () => {
           endTime={game.endTime}
           viewMode={viewMode}
           onViewChange={setViewMode}
+          mineOnly={mineOnly}
+          onToggleMine={() => setMineOnly((prev) => !prev)}
         />
       }
       footer={
@@ -57,6 +61,7 @@ const GamePage: FC = () => {
     >
       <GameContent
         viewMode={viewMode}
+        mineOnly={mineOnly}
         bets={mockBets}
         stats={mockPredictionStats}
         info={mockGameInfo}

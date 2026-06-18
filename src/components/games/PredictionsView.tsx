@@ -1,4 +1,4 @@
-import { useMemo, useState, type FC } from 'react'
+import { useMemo, type FC } from 'react'
 import type { Bet } from '../../types/game'
 import { PredictionStats } from './PredictionStats'
 import { BetLine } from './BetLine'
@@ -25,22 +25,19 @@ interface PredictionsViewProps {
   stats: PredictionsStatsData
   /** Поточна ціна для плашки курсу. */
   price: string
+  /** Показувати лише власні ставки (variant === 'mine'). */
+  mineOnly: boolean
 }
 
-/** Активний фільтр списку ставок. */
-type Filter = 'all' | 'mine'
-
 /**
- * Вигляд «Predictions»: фіксований верх (статистика + заголовок із фільтром),
- * скрол-список ставок та прикріплена внизу плашка курсу.
- * Фільтр перемикає показ усіх ставок або лише власних (variant === 'mine').
+ * Вигляд «Predictions»: фіксований верх (статистика + заголовок зі стрілками
+ * сортування), скрол-список ставок та прикріплена внизу плашка курсу.
+ * Фільтр «лише мої» керується кнопкою в шапці через проп `mineOnly`.
  */
-export const PredictionsView: FC<PredictionsViewProps> = ({ bets, stats, price }) => {
-  const [filter, setFilter] = useState<Filter>('all')
-
+export const PredictionsView: FC<PredictionsViewProps> = ({ bets, stats, price, mineOnly }) => {
   const visibleBets = useMemo(
-    () => (filter === 'mine' ? bets.filter((bet) => bet.variant === 'mine') : bets),
-    [bets, filter],
+    () => (mineOnly ? bets.filter((bet) => bet.variant === 'mine') : bets),
+    [bets, mineOnly],
   )
 
   return (
@@ -50,14 +47,12 @@ export const PredictionsView: FC<PredictionsViewProps> = ({ bets, stats, price }
 
         <div className="flex items-center justify-between px-6">
           <h2 className="font-body text-[15px] font-bold text-text-primary">Tickets</h2>
+          {/* Стрілки сортування — placeholder; функція з'явиться з підключенням API. */}
           <button
             type="button"
-            aria-label="Filter tickets"
-            aria-pressed={filter === 'mine'}
-            onClick={() => setFilter((prev) => (prev === 'all' ? 'mine' : 'all'))}
-            className={`flex h-7 w-7 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
-              filter === 'mine' ? 'border border-text-focus bg-[rgba(239,151,35,0.15)]' : ''
-            }`}
+            aria-label="Sort tickets"
+            disabled
+            className="flex h-7 w-7 items-center justify-center opacity-40"
           >
             <img src={sortIcon} alt="" aria-hidden="true" className="h-4 w-4" />
           </button>
