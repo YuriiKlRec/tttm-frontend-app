@@ -45,7 +45,7 @@ export const GameHeader: FC<GameHeaderProps> = ({ name, endTime, viewMode, onVie
         </div>
       </div>
 
-      <div className="flex flex-col items-center justify-center border border-white/50 bg-surface px-3 py-2">
+      <div className="relative top-[14px] right-[-10px] flex flex-col items-center justify-center border border-white/50 bg-surface px-3 py-2">
         <span className="font-mono text-[16px] font-bold text-text-primary">{countdown}</span>
         <span className="font-mono text-[13px] text-text-secondary">{formatDateTime(endTime)}</span>
       </div>

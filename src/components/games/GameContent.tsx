@@ -1,7 +1,10 @@
 import type { FC } from 'react'
 import type { Bet, DetailGroup, ViewMode } from '../../types/game'
+import type { Candle, Timeframe } from '../../services/binance'
+import type { ChartBet, ChartGame } from './chart/chartTypes'
 import { PredictionsView } from './PredictionsView'
 import { DetailsView } from './DetailsView'
+import { PriceChart } from './chart/PriceChart'
 
 /** Статистика гри для вигляду «Predictions». */
 interface PredictionsStats {
@@ -27,13 +30,46 @@ interface GameContentProps {
   info: DetailGroup[]
   /** Поточна ціна для плашки курсу. */
   price: string
+  /** Свічки історії для графіка. */
+  candles: Candle[]
+  /** Жива ціна BTC або null. */
+  currentPrice: number | null
+  /** Поточний таймфрейм графіка. */
+  timeframe: Timeframe
+  /** Зміна таймфрейму (горизонтальний свайп). */
+  onTimeframeChange: (tf: Timeframe) => void
+  /** Геймовий контекст для колонок графіка. */
+  game: ChartGame
+  /** Ставки для маркерів графіка. */
+  chartBets: ChartBet[]
+  /** Виграшний пул (напр. "2.4 TON"). */
+  winningPool: string
+  /** Вибір ціни Y-контролером графіка. */
+  onPriceSelect: (price: number) => void
+  /** Зовнішня ціна (з поля ставки) — рухає Y-контролер графіка. */
+  externalPrice?: number
 }
 
 /**
  * Перемикач центральної області сторінки гри за `viewMode`:
- * chart → плейсхолдер, bets → Predictions, details → Details.
+ * chart → інтерактивний графік, bets → Predictions, details → Details.
  */
-export const GameContent: FC<GameContentProps> = ({ viewMode, bets, stats, info, price }) => {
+export const GameContent: FC<GameContentProps> = ({
+  viewMode,
+  bets,
+  stats,
+  info,
+  price,
+  candles,
+  currentPrice,
+  timeframe,
+  onTimeframeChange,
+  game,
+  chartBets,
+  winningPool,
+  onPriceSelect,
+  externalPrice,
+}) => {
   if (viewMode === 'bets') {
     return <PredictionsView bets={bets} stats={stats} price={price} />
   }
@@ -43,8 +79,16 @@ export const GameContent: FC<GameContentProps> = ({ viewMode, bets, stats, info,
   }
 
   return (
-    <p className="flex h-full items-center justify-center font-mono text-[14px] text-text-secondary">
-      {viewMode}
-    </p>
+    <PriceChart
+      candles={candles}
+      currentPrice={currentPrice}
+      timeframe={timeframe}
+      onTimeframeChange={onTimeframeChange}
+      game={game}
+      bets={chartBets}
+      winningPool={winningPool}
+      onPriceSelect={onPriceSelect}
+      externalPrice={externalPrice}
+    />
   )
 }

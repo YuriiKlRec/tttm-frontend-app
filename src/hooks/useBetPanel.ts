@@ -14,6 +14,8 @@ interface UseBetPanelArgs {
   takenByOthers: number[]
   /** Ціни квитків поточного користувача. */
   yourTickets: number[]
+  /** Емітується ТІЛЬКИ при діях користувача над полем (ввід/степери). */
+  onPriceChange?: (price: number) => void
 }
 
 /** Публічний стан і дії панелі ставки. */
@@ -32,6 +34,8 @@ interface UseBetPanelResult {
   increment: () => void
   /** Перемикає бронювання поточної ціни (додає/прибирає). */
   toggleBooking: () => void
+  /** Встановлює поле із зовнішнього джерела (графік) БЕЗ емісії onPriceChange. */
+  applyExternal: (price: number) => void
 }
 
 /**
@@ -41,6 +45,7 @@ interface UseBetPanelResult {
 export const useBetPanel = ({
   takenByOthers,
   yourTickets,
+  onPriceChange,
 }: UseBetPanelArgs): UseBetPanelResult => {
   const [input, setInputState] = useState('')
   const [bookedPrices, setBookedPrices] = useState<number[]>([])
@@ -51,12 +56,23 @@ export const useBetPanel = ({
     [price, takenByOthers, yourTickets, bookedPrices],
   )
 
+  // Емітує ціну назовні (синк з графіком) лише для валідних чисел.
+  const emit = (value: number): void => {
+    if (onPriceChange && Number.isFinite(value)) {
+      onPriceChange(value)
+    }
+  }
+
   const setInput = (raw: string): void => {
-    setInputState(sanitizePriceInput(raw))
+    const sanitized = sanitizePriceInput(raw)
+    setInputState(sanitized)
+    emit(parsePrice(sanitized))
   }
 
   const stepTo = (next: number): void => {
-    setInputState(Math.max(0, next).toFixed(2))
+    const clamped = Math.max(0, next)
+    setInputState(clamped.toFixed(2))
+    emit(clamped)
   }
 
   const decrement = (): void => {
@@ -78,5 +94,24 @@ export const useBetPanel = ({
     )
   }
 
-  return { input, bookedPrices, status, setInput, decrement, increment, toggleBooking }
+  // Синк зовнішнього значення (графік→поле) БЕЗ зворотної емісії — глушить цикл.
+  // Не переписує поле, якщо воно вже відповідає ціні — інакше ламало б ввід
+  // користувача (відлуння через presetPrice переформатовувало б кожен символ).
+  const applyExternal = (value: number): void => {
+    if (Number.isFinite(price) && Math.abs(price - value) < 0.005) {
+      return
+    }
+    setInputState(value.toFixed(2))
+  }
+
+  return {
+    input,
+    bookedPrices,
+    status,
+    setInput,
+    decrement,
+    increment,
+    toggleBooking,
+    applyExternal,
+  }
 }

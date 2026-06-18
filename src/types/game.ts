@@ -59,6 +59,10 @@ export interface GameDetail {
   name: string
   /** Ціна одного квитка в TON (напр. "0.1"). */
   ticketPrice: string
+  /** Початок гри (epoch ms) — точка старту таймлайну графіка. */
+  startTime: number
+  /** Час відкриття прийому ставок (epoch ms) — ліва межа жовтої колонки. */
+  betOpenTime: number
   /** Час закриття прийому ставок (epoch ms). */
   betCloseTime: number
   /** Кінець гри (epoch ms) — для зворотного відліку в шапці. */

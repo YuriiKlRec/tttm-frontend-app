@@ -17,11 +17,29 @@ export const mockGameDetail: GameDetail = {
   id: 'btc-70k',
   name: 'BTC above 70k?',
   ticketPrice: '0.1',
-  betCloseTime: now + 1 * HOUR,
-  endTime: now + 10 * HOUR,
+  // startTime — глибока історія для діапазону/кривої (не впливає на колонки).
+  startTime: now - 5 * 24 * HOUR,
+  // Сценарій «прийом ставок ось-ось закриється»:
+  // відкрито 25 хв тому, закриється за 6 хв, фіналізація за 30 хв.
+  betOpenTime: now - 25 * MINUTE,
+  betCloseTime: now + 6 * MINUTE,
+  endTime: now + 30 * MINUTE,
   takenByOthers: [64311.98, 70000.0, 59000.0],
   yourTickets: [62002.0, 65500.5],
 }
+
+/**
+ * Ставки для маркерів на графіку (на правій межі betClose).
+ * `mine` — свої (оранжеві), інакше — чужі (червоні).
+ */
+// Ціни маркерів — близько до живої ціни BTC (~64k), щоб були у видимому діапазоні.
+export const mockChartBets: { price: number; mine: boolean }[] = [
+  { price: 64150.0, mine: true },
+  { price: 63900.0, mine: true },
+  { price: 64350.0, mine: false },
+  { price: 64050.0, mine: false },
+  { price: 63750.0, mine: false },
+]
 
 /** Поточна ціна пари BTC/USDT для плашки курсу. */
 export const mockCurrencyPrice = '$62,542.47'

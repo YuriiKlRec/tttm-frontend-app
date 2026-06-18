@@ -1,4 +1,4 @@
-import type { FC } from 'react'
+import { useEffect, type FC } from 'react'
 import { PriceInput } from './PriceInput'
 import { BetActionButton } from './BetActionButton'
 import { BetHint } from './BetHint'
@@ -19,6 +19,10 @@ interface BetPanelProps {
   takenByOthers: number[]
   /** Ціни квитків поточного користувача. */
   yourTickets: number[]
+  /** Попередньо вибрана ціна (з Y-контролера графіка) — заповнює поле. */
+  presetPrice?: number
+  /** Емітується при діях користувача над полем (синк → контролер графіка). */
+  onPriceChange?: (price: number) => void
 }
 
 /** Варіант action-кнопки за статусом ціни. */
@@ -44,10 +48,30 @@ export const BetPanel: FC<BetPanelProps> = ({
   betCloseTime,
   takenByOthers,
   yourTickets,
+  presetPrice,
+  onPriceChange,
 }) => {
-  const { input, bookedPrices, status, setInput, decrement, increment, toggleBooking } =
-    useBetPanel({ takenByOthers, yourTickets })
+  const {
+    input,
+    bookedPrices,
+    status,
+    setInput,
+    decrement,
+    increment,
+    toggleBooking,
+    applyExternal,
+  } = useBetPanel({ takenByOthers, yourTickets, onPriceChange })
   const now = useNow()
+
+  // Y-контролер графіка заповнює поле ціни (силент: applyExternal НЕ емітить
+  // onPriceChange, тому синк графік→поле не повертається назад у контролер).
+  useEffect(() => {
+    if (presetPrice !== undefined && Number.isFinite(presetPrice) && presetPrice > 0) {
+      applyExternal(presetPrice)
+    }
+    // applyExternal стабільний у межах рендера; реагуємо лише на presetPrice
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presetPrice])
 
   const bookedCount = bookedPrices.length
   const countdown = formatCountdown(betCloseTime - now)
