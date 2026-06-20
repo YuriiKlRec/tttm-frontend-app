@@ -7,7 +7,7 @@ import { useBetPanel } from '../../hooks/useBetPanel'
 import { useNow } from '../../hooks/useNow'
 import { formatCountdown } from '../../utils/time'
 import { totalTon } from '../../utils/price'
-import type { BookedCart } from '../../hooks/useBookedCart'
+import type { BookedCart } from '../../context/BookedCartProvider'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import btcIcon from '../../assets/icon-btc.svg'
 
@@ -130,7 +130,7 @@ export const BetPanel: FC<BetPanelProps> = ({
             Make prediction | {countdown}
           </p>
         ) : (
-          <PredictionButton label={`Buy tickets | ${countdown}`} />
+          <PredictionButton label={`Buy tickets | ${countdown}`} to="/buy" />
         )}
       </div>
     </footer>

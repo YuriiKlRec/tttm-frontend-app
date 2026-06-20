@@ -5,7 +5,7 @@ import {
   sanitizePriceInput,
   type PriceStatus,
 } from '../utils/price'
-import type { BookedCart } from './useBookedCart'
+import type { BookedCart } from '../context/BookedCartProvider'
 
 /** Вхідні дані хука керування панеллю ставки. */
 interface UseBetPanelArgs {

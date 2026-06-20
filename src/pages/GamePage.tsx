@@ -6,7 +6,7 @@ import { BetPanel } from '../components/games/BetPanel'
 import { GameContent } from '../components/games/GameContent'
 import { CartPanel } from '../components/games/cart/CartPanel'
 import { useChartData } from '../hooks/useChartData'
-import { useBookedCart } from '../hooks/useBookedCart'
+import { useBookedCart } from '../context/BookedCartProvider'
 import type { Timeframe } from '../services/binance'
 import {
   mockBets,

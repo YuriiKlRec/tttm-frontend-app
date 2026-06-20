@@ -18,9 +18,9 @@ interface PredictionButtonProps {
   disabled?: boolean
 }
 
-/** Базові класи незалежно від варіанта: розмір, типографіка, focus-visible. */
+/** Базові класи незалежно від варіанта: розмір, типографіка. */
 const baseClass =
-  'relative flex h-11 w-full items-center justify-center font-mono text-[16px] font-bold text-[#323232] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white'
+  'relative flex h-11 w-full items-center justify-center font-mono text-[16px] font-bold text-[#323232] outline-none'
 
 /** Класи кольору/тіні за варіантом (фон + glow). */
 const variantClass: Record<PredictionButtonVariant, string> = {

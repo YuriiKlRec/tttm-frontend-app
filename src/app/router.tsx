@@ -9,6 +9,7 @@ import GamePage from '../pages/GamePage'
 import WelcomePage from '../pages/WelcomePage'
 import TermsPage from '../pages/TermsPage'
 import ProfilePage from '../pages/ProfilePage'
+import BuyTicketsPage from '../pages/BuyTicketsPage'
 
 /** Маршрути застосунку під спільним AppLayout. */
 export const AppRoutes: FC = () => {
@@ -23,6 +24,8 @@ export const AppRoutes: FC = () => {
       </Route>
       {/* окремий лайаут гри: без app-топбару, нижньої навігації та slide-переходів */}
       <Route path="/game/:id" element={<GamePage />} />
+      {/* сторінка оплати заброньованих ставок (fullscreen) */}
+      <Route path="/buy" element={<BuyTicketsPage />} />
       {/* онбординг: окремі fullscreen-екрани поза AppLayout */}
       <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/terms" element={<TermsPage />} />

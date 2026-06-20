@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { TonConnectUIProvider } from '@tonconnect/ui-react'
 import { BrowserRouter } from 'react-router-dom'
 import { AppRoutes } from './router'
+import { BookedCartProvider } from '../context/BookedCartProvider'
 import { useSafeArea } from '../hooks/useSafeArea'
 
 const MANIFEST_URL = 'https://dns.ton.org/tonconnect-manifest.json'
@@ -12,9 +13,11 @@ const App: FC = () => {
 
   return (
     <TonConnectUIProvider manifestUrl={MANIFEST_URL}>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <BookedCartProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </BookedCartProvider>
     </TonConnectUIProvider>
   )
 }
