@@ -3,6 +3,7 @@ import type { ChartIcons } from './chartTypes'
 import btcIcon from '../../../assets/icon-btc.svg'
 import ticketIcon from '../../../assets/icon-ticket.svg'
 import ticketRedIcon from '../../../assets/icon-ticket-red.svg'
+import ticketWhiteIcon from '../../../assets/icon-ticket-white.svg'
 
 /** Завантажує одне зображення, повертає Promise з елементом (або null при помилці). */
 const loadImage = (src: string): Promise<HTMLImageElement | null> =>
@@ -22,13 +23,16 @@ export const useChartIcons = (): ChartIcons | null => {
 
   useEffect(() => {
     let alive = true
-    Promise.all([loadImage(btcIcon), loadImage(ticketIcon), loadImage(ticketRedIcon)]).then(
-      ([btc, ticket, ticketRed]) => {
-        if (alive) {
-          setIcons({ btc, ticket, ticketRed })
-        }
-      },
-    )
+    Promise.all([
+      loadImage(btcIcon),
+      loadImage(ticketIcon),
+      loadImage(ticketRedIcon),
+      loadImage(ticketWhiteIcon),
+    ]).then(([btc, ticket, ticketRed, ticketWhite]) => {
+      if (alive) {
+        setIcons({ btc, ticket, ticketRed, ticketWhite })
+      }
+    })
     return () => {
       alive = false
     }

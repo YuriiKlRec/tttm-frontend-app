@@ -18,6 +18,8 @@ export interface ChartBet {
   price: number
   /** Чи це ставка поточного користувача (оранжева), інакше — чужа (червона). */
   mine: boolean
+  /** Заброньована, але ще не оплачена ставка — маркер на білому фоні. */
+  booked?: boolean
 }
 
 /** Режим відображення графіка. */
@@ -85,6 +87,8 @@ export interface ChartIcons {
   ticket: HTMLImageElement | null
   /** Чужа ставка (червона). */
   ticketRed: HTMLImageElement | null
+  /** Заброньована (неоплачена) ставка — біла. */
+  ticketWhite: HTMLImageElement | null
 }
 
 /**

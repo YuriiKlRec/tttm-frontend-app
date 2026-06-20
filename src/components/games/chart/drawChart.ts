@@ -341,11 +341,12 @@ const drawBetMarkers = (
     if (y < top || y > bottom) {
       continue
     }
-    const icon = bet.mine ? icons?.ticket : icons?.ticketRed
+    // booked (неоплачена) — біла іконка; своя — оранжева; чужа — червона.
+    const icon = bet.booked ? icons?.ticketWhite : bet.mine ? icons?.ticket : icons?.ticketRed
     if (icon) {
       ctx.drawImage(icon, right - size / 2, y - size / 2, size, size)
     } else {
-      ctx.fillStyle = bet.mine ? COLORS.focus : COLORS.down
+      ctx.fillStyle = bet.booked ? COLORS.controller : bet.mine ? COLORS.focus : COLORS.down
       ctx.beginPath()
       ctx.arc(right, y, size / 3, 0, Math.PI * 2)
       ctx.fill()

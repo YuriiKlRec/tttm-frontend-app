@@ -1,4 +1,4 @@
-import { useState, type FC } from 'react'
+import { useMemo, useState, type FC } from 'react'
 import { useParams } from 'react-router-dom'
 import { GameLayout } from '../components/layout/GameLayout'
 import { GameHeader } from '../components/games/GameHeader'
@@ -40,6 +40,16 @@ const GamePage: FC = () => {
   const [cartOpen, setCartOpen] = useState(false)
 
   const { candles, currentPrice } = useChartData(SYMBOL, timeframe)
+
+  // Маркери графіка: мокові (оплачені свої/чужі) + заброньовані з корзини
+  // (свої неоплачені — малюються на білому фоні).
+  const chartBets = useMemo(
+    () => [
+      ...mockChartBets,
+      ...cart.prices.map((price) => ({ price, mine: true, booked: true })),
+    ],
+    [cart.prices],
+  )
 
   // «Edit»: повертає ціну в поле вводу та прибирає її з корзини (панель лишається).
   const handleEditBooked = (price: number): void => {
@@ -105,7 +115,7 @@ const GamePage: FC = () => {
           betCloseTime: game.betCloseTime,
           endTime: game.endTime,
         }}
-        chartBets={mockChartBets}
+        chartBets={chartBets}
         winningPool={mockPredictionStats.reward}
         onPriceSelect={setSelectedPrice}
         externalPrice={selectedPrice}
