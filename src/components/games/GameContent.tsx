@@ -50,6 +50,10 @@ interface GameContentProps {
   onPriceSelect: (price: number) => void
   /** Зовнішня ціна (з поля ставки) — рухає Y-контролер графіка. */
   externalPrice?: number
+  /** Інтерактивний графік: false для завершеної гри. */
+  interactive?: boolean
+  /** Показувати плашку курсу у Predictions (приховано для завершеної гри). */
+  showCurrencyPlate?: boolean
 }
 
 /**
@@ -72,13 +76,23 @@ export const GameContent: FC<GameContentProps> = ({
   winningPool,
   onPriceSelect,
   externalPrice,
+  interactive = true,
+  showCurrencyPlate = true,
 }) => {
   if (viewMode === 'bets') {
-    return <PredictionsView bets={bets} stats={stats} price={price} mineOnly={mineOnly} />
+    return (
+      <PredictionsView
+        bets={bets}
+        stats={stats}
+        price={price}
+        mineOnly={mineOnly}
+        showPrice={showCurrencyPlate}
+      />
+    )
   }
 
   if (viewMode === 'details') {
-    return <DetailsView groups={info} price={price} />
+    return <DetailsView groups={info} price={price} showPrice={showCurrencyPlate} />
   }
 
   return (
@@ -92,6 +106,7 @@ export const GameContent: FC<GameContentProps> = ({
       winningPool={winningPool}
       onPriceSelect={onPriceSelect}
       externalPrice={externalPrice}
+      interactive={interactive}
     />
   )
 }

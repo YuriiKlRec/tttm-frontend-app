@@ -8,13 +8,15 @@ interface DetailsViewProps {
   groups: DetailGroup[]
   /** Поточна ціна для плашки курсу. */
   price: string
+  /** Показувати плашку курсу (приховано для завершеної гри). */
+  showPrice?: boolean
 }
 
 /**
  * Вигляд «Details»: фіксований заголовок, скрол-таблиця параметрів гри,
  * розділена на групи штриховими дивайдерами, та плашка курсу внизу.
  */
-export const DetailsView: FC<DetailsViewProps> = ({ groups, price }) => (
+export const DetailsView: FC<DetailsViewProps> = ({ groups, price, showPrice = true }) => (
   <div className="relative flex h-full flex-col">
     <h2 className="bg-background px-6 py-3 font-body text-[15px] font-bold text-text-primary">
       Game information
@@ -42,8 +44,10 @@ export const DetailsView: FC<DetailsViewProps> = ({ groups, price }) => (
       ))}
     </div>
 
-    <div className="absolute inset-x-0 bottom-2 mx-3">
-      <CurrencyPricePlate price={price} />
-    </div>
+    {showPrice ? (
+      <div className="absolute inset-x-0 bottom-2 mx-3">
+        <CurrencyPricePlate price={price} />
+      </div>
+    ) : null}
   </div>
 )

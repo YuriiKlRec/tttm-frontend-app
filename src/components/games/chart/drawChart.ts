@@ -434,7 +434,10 @@ export const drawChart = (ctx: CanvasRenderingContext2D, state: ChartDrawState):
 
   drawBetMarkers(ctx, state, right, top, bottom)
   drawCurrentPrice(ctx, state, left, right, top, bottom)
-  drawController(ctx, state, left, right, top, bottom)
+  // Завершена гра — без Y-контролера вибору ціни.
+  if (state.interactive) {
+    drawController(ctx, state, left, right, top, bottom)
+  }
   drawTimeLabels(ctx, state, leftTime, betCloseX)
   void AXIS_WIDTH
 }

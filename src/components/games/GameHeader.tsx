@@ -4,6 +4,7 @@ import { Glyph } from '../ui/Glyph'
 import { useNow } from '../../hooks/useNow'
 import { formatCountdown, formatDateTime } from '../../utils/time'
 import type { ViewMode } from '../../types/game'
+import btcIcon from '../../assets/icon-btc.svg'
 
 /** Пропси шапки сторінки гри. */
 interface GameHeaderProps {
@@ -19,6 +20,12 @@ interface GameHeaderProps {
   mineOnly: boolean
   /** Перемикання фільтра «лише мої ставки». */
   onToggleMine: () => void
+  /** Доступні види (для завершеної гри — без графіка). */
+  viewOptions?: ViewMode[]
+  /** Гра завершена — бокс показує дату й переможний курс замість відліку. */
+  finished?: boolean
+  /** Переможний (фінальний) курс для завершеної гри (напр. "$57,342.47"). */
+  finalPrice?: string
 }
 
 /**
@@ -33,19 +40,22 @@ export const GameHeader: FC<GameHeaderProps> = ({
   onViewChange,
   mineOnly,
   onToggleMine,
+  viewOptions,
+  finished = false,
+  finalPrice,
 }) => {
   const now = useNow()
   const countdown = formatCountdown(endTime - now)
 
   return (
     <header
-      className="relative z-20 flex items-start justify-between bg-background pr-6 pb-3 pl-6"
+      className="relative z-20 flex items-start justify-between gap-3 bg-background pr-6 pb-3 pl-6"
       style={{ paddingTop: 'calc(var(--app-safe-top) + 12px)' }}
     >
-      <div className="flex flex-col items-start gap-[9px]">
-        <h1 className="font-body text-[18px] font-bold text-text-primary">{name}</h1>
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-[9px]">
+        <h1 className="font-body text-[18px] font-bold break-words text-text-primary">{name}</h1>
         <div className="flex items-start gap-[9px]">
-          <ViewSelector value={viewMode} onChange={onViewChange} />
+          <ViewSelector value={viewMode} onChange={onViewChange} options={viewOptions} />
           {viewMode === 'bets' && (
             <button
               type="button"
@@ -64,9 +74,25 @@ export const GameHeader: FC<GameHeaderProps> = ({
         </div>
       </div>
 
-      <div className="relative top-[14px] right-[-10px] flex flex-col items-center justify-center border border-white/50 bg-surface px-3 py-2">
-        <span className="font-mono text-[16px] font-bold text-text-primary">{countdown}</span>
-        <span className="font-mono text-[13px] text-text-secondary">{formatDateTime(endTime)}</span>
+      <div className="relative top-[14px] right-[-10px] flex shrink-0 flex-col items-center justify-center gap-0.5 border border-white/50 bg-surface px-3 py-2">
+        {finished ? (
+          <>
+            <span className="font-mono text-[13px] text-text-primary">
+              {formatDateTime(endTime)}
+            </span>
+            <span className="flex items-center gap-1.5 font-mono text-[15px] font-bold text-text-focus">
+              <img src={btcIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+              {finalPrice}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="font-mono text-[16px] font-bold text-text-primary">{countdown}</span>
+            <span className="font-mono text-[13px] text-text-secondary">
+              {formatDateTime(endTime)}
+            </span>
+          </>
+        )}
       </div>
     </header>
   )

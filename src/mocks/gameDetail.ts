@@ -44,6 +44,16 @@ export const mockChartBets: { price: number; mine: boolean }[] = [
 /** Поточна ціна пари BTC/USDT для плашки курсу. */
 export const mockCurrencyPrice = '$62,542.47'
 
+/**
+ * Найближчі прогнози для завершеної гри (футер ClosestPredictions).
+ * Користувач не лідер: показуємо переможця та власну ставку.
+ */
+export const mockClosest = {
+  leader: { rank: 1, user: '@User_4', price: '$57,212.46', mine: false },
+  mine: { rank: 24, user: '@User_name', price: '$58,212.46', mine: true },
+  deviationPercent: 0.17,
+}
+
 /** Статистика гри для верхньої панелі вигляду «Predictions». */
 export const mockPredictionStats = {
   reward: '2.4 TON',
@@ -101,4 +111,17 @@ export const mockGameInfo: DetailGroup[] = [
     { label: 'Number of tickets', value: '24' },
   ],
   [{ label: 'Organizer', value: 'User_name' }],
+]
+
+/** Переможний (фінальний) курс пари на момент фіналізації. */
+export const mockFinalPrice = '$57,342.47'
+
+/**
+ * Додаткова група результату для деталей завершеної гри — стає першою групою
+ * над `mockGameInfo` (переможець, фінальний курс, квиток-переможець).
+ */
+export const mockResultInfo: DetailGroup = [
+  { label: 'Winner', value: '@User_1' },
+  { label: 'BTC/USDT price', value: mockFinalPrice },
+  { label: 'Winner ticket', value: '$57,212.46' },
 ]

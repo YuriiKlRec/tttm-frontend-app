@@ -27,6 +27,8 @@ interface PredictionsViewProps {
   price: string
   /** Показувати лише власні ставки (variant === 'mine'). */
   mineOnly: boolean
+  /** Показувати плашку поточного курсу (приховано для завершеної гри). */
+  showPrice?: boolean
 }
 
 /**
@@ -34,7 +36,13 @@ interface PredictionsViewProps {
  * сортування), скрол-список ставок та прикріплена внизу плашка курсу.
  * Фільтр «лише мої» керується кнопкою в шапці через проп `mineOnly`.
  */
-export const PredictionsView: FC<PredictionsViewProps> = ({ bets, stats, price, mineOnly }) => {
+export const PredictionsView: FC<PredictionsViewProps> = ({
+  bets,
+  stats,
+  price,
+  mineOnly,
+  showPrice = true,
+}) => {
   const visibleBets = useMemo(
     () => (mineOnly ? bets.filter((bet) => bet.variant === 'mine') : bets),
     [bets, mineOnly],
@@ -76,9 +84,11 @@ export const PredictionsView: FC<PredictionsViewProps> = ({ bets, stats, price, 
         </ul>
       </div>
 
-      <div className="absolute inset-x-0 bottom-2 mx-3">
-        <CurrencyPricePlate price={price} />
-      </div>
+      {showPrice ? (
+        <div className="absolute inset-x-0 bottom-2 mx-3">
+          <CurrencyPricePlate price={price} />
+        </div>
+      ) : null}
     </div>
   )
 }

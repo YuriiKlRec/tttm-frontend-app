@@ -34,6 +34,8 @@ interface PriceChartProps {
   onPriceSelect: (price: number) => void
   /** Зовнішня ціна (з поля ставки) — рухає контролер. */
   externalPrice?: number
+  /** Інтерактивний режим: false для завершеної гри (без Y-контролера й Choose). */
+  interactive?: boolean
 }
 
 /** Дефолтна кількість видимих свічок (вікно зуму при завантаженні). */
@@ -74,6 +76,7 @@ export const PriceChart: FC<PriceChartProps> = ({
   winningPool,
   onPriceSelect,
   externalPrice,
+  interactive = true,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -158,6 +161,7 @@ export const PriceChart: FC<PriceChartProps> = ({
     candlesLength: candles.length,
     bets,
     size,
+    interactive,
   })
 
   // Малювання у DPR-масштабованому контексті при зміні стану/розміру.
@@ -187,8 +191,9 @@ export const PriceChart: FC<PriceChartProps> = ({
       selectedPrice,
       controllerState,
       icons,
+      interactive,
     })
-  }, [size, candles, visibleCount, currentPrice, priceRange, mode, game, bets, selectedPrice, controllerState, icons])
+  }, [size, candles, visibleCount, currentPrice, priceRange, mode, game, bets, selectedPrice, controllerState, icons, interactive])
 
   const loading = candles.length === 0
 
@@ -209,6 +214,7 @@ export const PriceChart: FC<PriceChartProps> = ({
           controllerState={controllerState}
           priceRange={priceRange}
           size={size}
+          interactive={interactive}
         />
       )}
     </div>

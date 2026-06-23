@@ -5,8 +5,8 @@ import { PixelGrid } from './PixelGrid'
 interface GameLayoutProps {
   /** Фіксована шапка зверху. */
   header: ReactNode
-  /** Фіксований підвал знизу. */
-  footer: ReactNode
+  /** Фіксований підвал знизу (немає для завершеної гри). */
+  footer?: ReactNode
   /** Вміст центральної області (займає весь простір між шапкою і підвалом). */
   children?: ReactNode
 }

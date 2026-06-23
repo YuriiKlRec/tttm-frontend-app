@@ -2,7 +2,7 @@ import type { FC } from 'react'
 import type { BetLineVariant } from '../../types/game'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import ticketRedIcon from '../../assets/icon-ticket-red.svg'
-import trophyIcon from '../../assets/icon-trophy.svg'
+import crownIcon from '../../assets/icon-crown.svg'
 
 /** Пропси одного рядка ставки. */
 interface BetLineProps {
@@ -22,8 +22,8 @@ const textColor = (variant: BetLineVariant): string =>
 
 /**
  * Рядок ставки у списку прогнозів: зліва ранг і @user, справа тікет і ціна.
- * `mine` — оранжевий текст (своя ставка); `win` — оранжевий текст + трофей
- * перед тікетом (заглушка стану переможця).
+ * `mine` — оранжевий текст (своя ставка); `win` — переможець: оранжевий текст
+ * і корона над знаком @.
  */
 export const BetLine: FC<BetLineProps> = ({ rank, user, price, variant }) => {
   const color = textColor(variant)
@@ -34,12 +34,18 @@ export const BetLine: FC<BetLineProps> = ({ rank, user, price, variant }) => {
         <span className="w-5 text-center font-mono text-[15px] font-bold text-text-secondary">
           {rank}
         </span>
-        <span className={`font-body text-[15px] font-bold ${color}`}>{user}</span>
+        <span className="relative">
+          {variant === 'win' ? (
+            <img
+              src={crownIcon}
+              alt="Winner"
+              className="absolute left-[-10px] top-[-4px] h-4 w-4 -rotate-[30deg]"
+            />
+          ) : null}
+          <span className={`font-body text-[15px] font-bold ${color}`}>{user}</span>
+        </span>
       </span>
       <span className="flex items-center gap-2">
-        {variant === 'win' ? (
-          <img src={trophyIcon} alt="Winner" className="h-4 w-4" />
-        ) : null}
         <img
           src={variant === 'default' ? ticketRedIcon : ticketIcon}
           alt=""

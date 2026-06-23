@@ -36,6 +36,8 @@ interface UseChartGesturesArgs {
   bets: ChartBet[]
   /** Поточні розміри області (CSS px). */
   size: { width: number; height: number }
+  /** Інтерактивний режим: false вимикає перетягування Y-контролера (zoom/scroll лишаються). */
+  interactive: boolean
 }
 
 /** Поріг (px) для визначення домінантної осі та активації свайпу. */
@@ -77,6 +79,7 @@ export const useChartGestures = ({
   candlesLength,
   bets,
   size,
+  interactive,
 }: UseChartGesturesArgs): void => {
   // Свіжі значення в ref, щоб слухачі не перевішувались щокадру.
   const state = useRef({
@@ -87,6 +90,7 @@ export const useChartGestures = ({
     candlesLength,
     bets,
     size,
+    interactive,
     onTimeframeChange,
     setPriceRange,
     setSelectedPrice,
@@ -101,6 +105,7 @@ export const useChartGestures = ({
       candlesLength,
       bets,
       size,
+      interactive,
       onTimeframeChange,
       setPriceRange,
       setSelectedPrice,
@@ -136,8 +141,11 @@ export const useChartGestures = ({
       return
     }
 
-    /** Чи близько до лінії контролера за поточної ціни. */
+    /** Чи близько до лінії контролера за поточної ціни (лише в інтерактивному режимі). */
     const nearController = (y: number): boolean => {
+      if (!state.current.interactive) {
+        return false
+      }
       const { width, height } = state.current.size
       const { top, bottom } = getPlotRect(width, height)
       const cy = priceToY(state.current.selectedPrice, state.current.priceRange, top, bottom)
@@ -259,7 +267,9 @@ export const useChartGestures = ({
 
       if (g.kind === 'undecided') {
         if (Math.abs(dx) > AXIS_DOMINANCE || Math.abs(dy) > AXIS_DOMINANCE) {
-          g.kind = Math.abs(dx) > Math.abs(dy) ? 'timeframe' : 'controller'
+          // Вертикальний драг рухає контролер лише в інтерактивному режимі.
+          const vertical = state.current.interactive ? 'controller' : 'none'
+          g.kind = Math.abs(dx) > Math.abs(dy) ? 'timeframe' : vertical
         }
       }
 

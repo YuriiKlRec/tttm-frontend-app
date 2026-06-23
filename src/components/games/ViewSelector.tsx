@@ -8,6 +8,8 @@ interface ViewSelectorProps {
   value: ViewMode
   /** Колбек зміни виду. */
   onChange: (value: ViewMode) => void
+  /** Доступні види (для завершеної гри — без графіка). */
+  options?: ViewMode[]
 }
 
 /** Людиночитні лейбли видів. */
@@ -24,14 +26,14 @@ const ICONS: Record<ViewMode, GlyphName> = {
   details: 'info-circle',
 }
 
-const OPTIONS: ViewMode[] = ['chart', 'bets', 'details']
+const ALL_OPTIONS: ViewMode[] = ['chart', 'bets', 'details']
 
 /**
  * Дропдаун вибору виду (Chart / Predictions / Details) у форматі SmallControl.
  * Кнопка показує іконку+лейбл поточного виду; меню (surface-фон) перелічує види
  * з іконками, активний — оранжевий. Esc та клік поза меню закривають його.
  */
-export const ViewSelector: FC<ViewSelectorProps> = ({ value, onChange }) => {
+export const ViewSelector: FC<ViewSelectorProps> = ({ value, onChange, options = ALL_OPTIONS }) => {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -81,7 +83,7 @@ export const ViewSelector: FC<ViewSelectorProps> = ({ value, onChange }) => {
           role="menu"
           className="absolute left-0 top-[calc(100%+6px)] z-30 flex min-w-[140px] flex-col gap-3 bg-surface p-3"
         >
-          {OPTIONS.map((mode) => (
+          {options.map((mode) => (
             <li key={mode} role="none">
               <button
                 type="button"

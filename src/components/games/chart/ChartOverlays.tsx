@@ -29,6 +29,8 @@ interface ChartOverlaysProps {
   priceRange: PriceRange
   /** Розміри області (CSS px). */
   size: { width: number; height: number }
+  /** Інтерактивний режим: false для завершеної гри (без Choose і боксу контролера). */
+  interactive: boolean
 }
 
 /** Класи боксу значення контролера за станом (фон + текст). */
@@ -38,9 +40,9 @@ const BOX_CLASS: Record<ControllerState, string> = {
   others: 'bg-[#e5484d] text-white',
 }
 
-/** Дані легенди жестів. */
-const HINTS = [
-  { label: 'Choose', overlay: hintChoose },
+/** Дані легенди жестів (Choose — лише в інтерактивному режимі). */
+const HINT_CHOOSE = { label: 'Choose', overlay: hintChoose } as const
+const HINTS_BASE = [
   { label: 'Zoom', overlay: hintZoom },
   { label: 'Scroll', overlay: hintScroll },
 ] as const
@@ -57,7 +59,9 @@ export const ChartOverlays: FC<ChartOverlaysProps> = ({
   controllerState,
   priceRange,
   size,
+  interactive,
 }) => {
+  const hints = interactive ? [HINT_CHOOSE, ...HINTS_BASE] : HINTS_BASE
   const { top, bottom } = getPlotRect(size.width, size.height)
   const controllerY = priceToY(selectedPrice, priceRange, top, bottom)
   // Бокс значення контролера — поверх осі цін (праворуч), як цінник.
@@ -90,7 +94,7 @@ export const ChartOverlays: FC<ChartOverlaysProps> = ({
 
       {/* Легенда жестів */}
       <div className="pointer-events-none absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-8">
-        {HINTS.map((hint) => (
+        {hints.map((hint) => (
           <span key={hint.label} className="flex items-center gap-1.5">
             <HintIcon overlay={hint.overlay} />
             <span className="font-mono text-[13px] font-bold text-text-secondary">
@@ -100,8 +104,8 @@ export const ChartOverlays: FC<ChartOverlaysProps> = ({
         ))}
       </div>
 
-      {/* Бокс значення Y-контролера */}
-      {controllerY >= top && controllerY <= bottom && (
+      {/* Бокс значення Y-контролера (лише в інтерактивному режимі) */}
+      {interactive && controllerY >= top && controllerY <= bottom && (
         <span
           className={`pointer-events-none absolute px-1.5 py-0.5 font-mono text-[11px] font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] ${BOX_CLASS[controllerState]}`}
           style={boxStyle}

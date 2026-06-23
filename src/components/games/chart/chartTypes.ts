@@ -77,6 +77,8 @@ export interface ChartDrawState {
   controllerState: ControllerState
   /** Завантажені іконки (готові до малювання) або null. */
   icons: ChartIcons | null
+  /** Інтерактивний режим: false для завершеної гри (без Y-контролера). */
+  interactive: boolean
 }
 
 /** Передзавантажені растрові іконки для canvas. */
