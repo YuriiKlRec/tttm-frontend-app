@@ -1,4 +1,4 @@
-import { useEffect, type FC } from 'react'
+import { useEffect, useState, type FC } from 'react'
 import { PriceInput } from './PriceInput'
 import { BetActionButton } from './BetActionButton'
 import { BetHint } from './BetHint'
@@ -10,6 +10,7 @@ import { totalTon } from '../../utils/price'
 import type { BookedCart } from '../../context/BookedCartProvider'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import btcIcon from '../../assets/icon-btc.svg'
+import linkIcon from '../../assets/icon-link-orange.svg'
 
 /** Пропси підвалу з формою ставки. */
 interface BetPanelProps {
@@ -75,6 +76,14 @@ export const BetPanel: FC<BetPanelProps> = ({
 
   const bookedCount = cart.prices.length
   const countdown = formatCountdown(betCloseTime - now)
+  const [copied, setCopied] = useState(false)
+
+  // Копіює посилання на гру в буфер обміну з коротким підтвердженням.
+  const handleCopyLink = (): void => {
+    void navigator.clipboard?.writeText(window.location.href)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <footer
@@ -126,9 +135,19 @@ export const BetPanel: FC<BetPanelProps> = ({
 
       <div className="px-7">
         {bookedCount === 0 ? (
-          <p className="text-center font-mono text-[16px] font-bold text-text-primary">
-            Make prediction | {countdown}
-          </p>
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-center font-mono text-[16px] font-bold text-text-primary">
+              Make prediction | {countdown}
+            </p>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="flex items-center gap-2 font-mono text-[16px] font-bold text-text-focus outline-none"
+            >
+              <img src={linkIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+              {copied ? 'Link copied!' : 'Copy game link'}
+            </button>
+          </div>
         ) : (
           <PredictionButton label={`Buy tickets | ${countdown}`} to="/buy" />
         )}
