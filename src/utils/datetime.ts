@@ -1,5 +1,31 @@
 /** Утиліти форматування дати/часу та тривалості для форми створення гри. */
 
+/**
+ * Форматує ISO-рядок (або epoch ms) у локалізований рядок із урахуванням часового поясу.
+ * Якщо tz === null або рядок порожній — використовує локальний TZ браузера.
+ *
+ * @example
+ * formatInTz('2025-01-01T10:00:00Z', 'America/New_York') // "Jan 1, 05:00 AM"
+ * formatInTz('2025-01-01T10:00:00Z', null)               // локальний TZ
+ */
+export function formatInTz(
+  iso: string | number,
+  tz: string | null,
+  opts?: Intl.DateTimeFormatOptions,
+): string {
+  const defaults: Intl.DateTimeFormatOptions = {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }
+  return new Intl.DateTimeFormat('en-US', {
+    ...defaults,
+    ...opts,
+    ...(tz ? { timeZone: tz } : {}),
+  }).format(typeof iso === 'string' ? new Date(iso) : iso)
+}
+
 /** Хвилина у мілісекундах. */
 export const MINUTE_MS = 60_000
 
