@@ -51,6 +51,18 @@ const GamePage: FC = () => {
     [cart.prices],
   )
 
+  // Стабільний геймовий контекст для графіка — інакше новий об'єкт щорендеру
+  // змушував би canvas перемальовуватись зайвий раз.
+  const chartGame = useMemo(
+    () => ({
+      startTime: game.startTime,
+      betOpenTime: game.betOpenTime,
+      betCloseTime: game.betCloseTime,
+      endTime: game.endTime,
+    }),
+    [game.startTime, game.betOpenTime, game.betCloseTime, game.endTime],
+  )
+
   // «Edit»: повертає ціну в поле вводу та прибирає її з корзини (панель лишається).
   const handleEditBooked = (price: number): void => {
     cart.remove(price)
@@ -109,12 +121,7 @@ const GamePage: FC = () => {
         currentPrice={currentPrice}
         timeframe={timeframe}
         onTimeframeChange={setTimeframe}
-        game={{
-          startTime: game.startTime,
-          betOpenTime: game.betOpenTime,
-          betCloseTime: game.betCloseTime,
-          endTime: game.endTime,
-        }}
+        game={chartGame}
         chartBets={chartBets}
         winningPool={mockPredictionStats.reward}
         onPriceSelect={setSelectedPrice}

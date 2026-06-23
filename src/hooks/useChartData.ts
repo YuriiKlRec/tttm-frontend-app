@@ -12,6 +12,9 @@ interface UseChartDataResult {
 /** Кількість свічок історії на запит (запас для горизонтального зуму). */
 const KLINES_LIMIT = 500
 
+/** Період застосування живої ціни (мс): тротлить потік угод Binance. */
+const PRICE_FLUSH_MS = 250
+
 /**
  * Завантажує історію свічок при зміні таймфрейму та підписується на живу
  * ціну через WebSocket. Чистить підписку при розмонтуванні.
@@ -22,6 +25,8 @@ export const useChartData = (symbol: string, timeframe: Timeframe): UseChartData
   const [candles, setCandles] = useState<Candle[]>([])
   const [currentPrice, setCurrentPrice] = useState<number | null>(null)
   const requestId = useRef(0)
+  // Остання отримана ціна (накопичується між тротл-флешами).
+  const latestPrice = useRef<number | null>(null)
 
   // Історія свічок при зміні таймфрейму.
   useEffect(() => {
@@ -42,10 +47,23 @@ export const useChartData = (symbol: string, timeframe: Timeframe): UseChartData
     return () => setCandles([])
   }, [symbol, timeframe])
 
-  // Жива ціна.
+  // Жива ціна: потік угод накопичуємо у ref, а в state застосовуємо лише раз на
+  // PRICE_FLUSH_MS — інакше десятки угод/сек спричиняли б стільки ж
+  // перемальовувань canvas і високе навантаження на CPU.
   useEffect(() => {
-    const unsubscribe = subscribeTradePrice(symbol, setCurrentPrice)
-    return unsubscribe
+    const unsubscribe = subscribeTradePrice(symbol, (price) => {
+      latestPrice.current = price
+    })
+    const flush = window.setInterval(() => {
+      const next = latestPrice.current
+      if (next !== null) {
+        setCurrentPrice((prev) => (prev === next ? prev : next))
+      }
+    }, PRICE_FLUSH_MS)
+    return () => {
+      unsubscribe()
+      window.clearInterval(flush)
+    }
   }, [symbol])
 
   return { candles, currentPrice }
