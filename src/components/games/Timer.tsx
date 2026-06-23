@@ -1,4 +1,5 @@
 import type { FC } from 'react'
+import trophyIcon from '../../assets/icon-trophy.svg'
 
 /** Пропси таймера-таймлайну зворотного відліку. */
 interface TimerProps {
@@ -10,6 +11,8 @@ interface TimerProps {
   time: string
   /** Дата/час кінця гри під часом (напр. "Jan 1, 10:00"). */
   date: string
+  /** Винагорода — якщо задано, показується блоком «🏆 Reward / X» над часом. */
+  reward?: string
 }
 
 const SIZE = 200
@@ -31,7 +34,8 @@ interface Segment {
 const buildSegments = (elapsed: number, betClose: number): Segment[] => {
   const whiteStart = Math.max(elapsed, betClose)
   return [
-    { start: 0, length: elapsed, color: '#adadad' },
+    // пройдений час (основне коло) — темно-сірий; коли час вичерпано, усе коло таке
+    { start: 0, length: elapsed, color: '#474747' },
     { start: elapsed, length: Math.max(0, betClose - elapsed), color: '#ef9723' },
     { start: whiteStart, length: 1 - whiteStart, color: '#ffffff' },
   ]
@@ -42,7 +46,7 @@ const buildSegments = (elapsed: number, betClose: number): Segment[] => {
  * старт зверху, напрямок проти годинникової стрілки. По центру — зворотній
  * відлік до кінця гри та дата кінця.
  */
-export const Timer: FC<TimerProps> = ({ elapsedFrac, betCloseFrac, time, date }) => {
+export const Timer: FC<TimerProps> = ({ elapsedFrac, betCloseFrac, time, date, reward }) => {
   const segments = buildSegments(elapsedFrac, betCloseFrac)
 
   return (
@@ -73,8 +77,24 @@ export const Timer: FC<TimerProps> = ({ elapsedFrac, betCloseFrac, time, date })
         </g>
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-[6px]">
-        <span className="font-mono text-[28px] font-bold text-text-primary">{time}</span>
-        <span className="font-mono text-[18px] text-text-secondary">{date}</span>
+        {reward ? (
+          <span className="mb-1 flex flex-col items-center gap-0.5">
+            <span className="flex items-center gap-1.5">
+              <img src={trophyIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+              <span className="font-mono text-[13px] text-text-secondary">Reward</span>
+            </span>
+            <span className="font-mono text-[16px] font-bold text-text-primary">{reward}</span>
+          </span>
+        ) : null}
+        {/* З винагородою (Wait) центр компактніший: час 18 / дата 15; інакше 28 / 18. */}
+        <span
+          className={`font-mono font-bold text-text-primary ${reward ? 'text-[18px]' : 'text-[28px]'}`}
+        >
+          {time}
+        </span>
+        <span className={`font-mono text-text-secondary ${reward ? 'text-[15px]' : 'text-[18px]'}`}>
+          {date}
+        </span>
       </div>
     </div>
   )
