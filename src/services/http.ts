@@ -1,4 +1,10 @@
 import { env } from '../config/env';
+import {
+  getStoredRefreshToken,
+  storeTokens,
+  clearTokens,
+  type TokenSet,
+} from './token-storage';
 
 /** Клас помилки API з HTTP-статусом. */
 export class ApiError extends Error {
@@ -69,9 +75,41 @@ async function parseError(response: Response): Promise<never> {
   throw new ApiError(response.status, message);
 }
 
+/**
+ * Спроба оновити access-токен через /api/me/refresh.
+ * Повертає новий access-токен або null, якщо refresh-токен відсутній чи запит завершився помилкою.
+ * Не використовує `request()`, щоб уникнути рекурсії.
+ */
+async function tryRefreshToken(): Promise<string | null> {
+  const refreshToken = getStoredRefreshToken();
+  if (!refreshToken) return null;
+
+  try {
+    const response = await fetch(`${env.apiBaseUrl}/api/me/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!response.ok) {
+      clearTokens();
+      return null;
+    }
+
+    const dto = (await response.json()) as TokenSet;
+    storeTokens(dto);
+    setToken(dto.accessToken);
+    return dto.accessToken;
+  } catch {
+    clearTokens();
+    return null;
+  }
+}
+
 async function request<T>(
   path: string,
   init: RequestInit,
+  isRetry = false,
 ): Promise<T> {
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     ...init,
@@ -80,6 +118,16 @@ async function request<T>(
       ...(init.headers as Record<string, string> | undefined),
     },
   });
+
+  // Refresh-on-401: один раз, тільки не для самого refresh-запиту
+  if (response.status === 401 && !isRetry && path !== '/api/me/refresh') {
+    const newToken = await tryRefreshToken();
+    if (newToken) {
+      return request<T>(path, init, true);
+    }
+    // refresh не вдався — кидаємо оригінальний 401
+    throw new ApiError(401, 'Unauthorized');
+  }
 
   if (!response.ok) {
     await parseError(response);
