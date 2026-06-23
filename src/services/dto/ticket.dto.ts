@@ -9,7 +9,7 @@ export interface TicketTonData {
 /** DTO тікета (відповідає полям моделі Ticket на бекенді). */
 export interface TicketDto {
   id: string;
-  /** Ціна тікета у nanoTON (int). */
+  /** BTC прогноз користувача у центах (×100). */
   price: number;
   gameId: string;
   ownerId: string;

@@ -55,8 +55,8 @@ export function derivePhase(
 export function deriveResultState(
   dto: GameDto,
   myUserId: string | null,
+  now: number = Date.now(),
 ): 'won' | 'lost' | 'processing' | 'cancelled' {
-  const now = Date.now();
   const end = Date.parse(dto.endTime);
 
   if (dto.isFinalized && dto.winningTicket !== null) {
@@ -77,21 +77,16 @@ export function deriveResultState(
 /**
  * Перетворює GameDto у модель картки Game.
  *
- * startTime: бекенд не повертає окремого startTime у GameDto —
- * використовуємо ticketDeadlineAt як найраніший відомий орієнтир
- * для таймлайну (тобто startTime = ticketDeadlineAt). Коментар
- * залишений навмисно для майбутнього виправлення, якщо бекенд
- * додасть поле.
+ * startTime: таймлайн починається від створення гри (createdAt).
  */
 export function toGameCard(dto: GameDto, myUserId?: string | null): Game {
-  // startTime: GameDto не має createdAt/startTime → беремо ticketDeadlineAt.
-  // Таймлайн картки починається з того самого моменту що й закривається.
-  const startTime = Date.parse(dto.ticketDeadlineAt);
+  // Таймлайн починається від створення гри
+  const startTime = Date.parse(dto.createdAt);
   const betCloseTime = Date.parse(dto.ticketDeadlineAt);
   const endTime = Date.parse(dto.endTime);
 
-  // Призовий фонд = ціна тікета × кількість тікетів (у nanoTON).
-  const totalNano = dto.ticketAmount * dto.tickets.length;
+  // Призовий фонд = ціна тікета × кількість тікетів (у nanoTON), обчислюється через BigInt для уникнення втрати точності
+  const totalNano = Number(BigInt(dto.ticketAmount) * BigInt(dto.tickets.length));
 
   return {
     id: dto.id,
@@ -99,6 +94,7 @@ export function toGameCard(dto: GameDto, myUserId?: string | null): Game {
     author: `@${dto.owner.nickname}`,
     ticketPrice: nanoToTon(dto.ticketAmount),
     prize: nanoToTon(totalNano),
+    // Кількість тікетів поточного користувача; 0 якщо користувач анонімний (myUserId невизначено)
     ticketsCount: dto.tickets.filter(
       (t) => myUserId !== undefined && myUserId !== null && t.ownerId === myUserId,
     ).length,
@@ -118,17 +114,15 @@ export function toGameCard(dto: GameDto, myUserId?: string | null): Game {
 /**
  * Перетворює GameDto у детальну модель GameDetail.
  *
- * betOpenTime: GameDto не містить поля startTime →
- * встановлюємо betOpenTime = ticketDeadlineAt (ліва межа жовтої колонки
- * збігається з правою, колонка буде нульової ширини).
- * Якщо бекенд додасть startTime — замінити тут.
+ * betOpenTime: таймлайн починається від створення гри (createdAt).
  */
 export function toGameDetail(dto: GameDto, myUserId?: string | null): GameDetail {
+  const createdAtMs = Date.parse(dto.createdAt);
   const ticketDeadlineMs = Date.parse(dto.ticketDeadlineAt);
   const endTimeMs = Date.parse(dto.endTime);
 
-  // betOpenTime: немає окремого поля у DTO → betOpenTime = ticketDeadlineAt.
-  const betOpenTime = ticketDeadlineMs;
+  // betOpenTime: таймлайн починається від створення гри
+  const betOpenTime = createdAtMs;
 
   const myTicketPrices = dto.tickets
     .filter((t) => myUserId !== undefined && myUserId !== null && t.ownerId === myUserId)
@@ -142,7 +136,7 @@ export function toGameDetail(dto: GameDto, myUserId?: string | null): GameDetail
     id: dto.id,
     name: dto.name,
     ticketPrice: nanoToTon(dto.ticketAmount),
-    startTime: betOpenTime, // використовуємо як найраннішу відому точку
+    startTime: createdAtMs,
     betOpenTime,
     betCloseTime: ticketDeadlineMs,
     endTime: endTimeMs,

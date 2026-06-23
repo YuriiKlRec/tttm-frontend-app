@@ -16,6 +16,8 @@ export interface GameDto {
   /** Ціна тікета у nanoTON (int). */
   ticketAmount: number;
   authorPercent: number;
+  /** ISO час створення гри. */
+  createdAt: string;
   /** ISO-рядок часу завершення гри. */
   endTime: string;
   /** ISO-рядок дедлайну прийому ставок. */
