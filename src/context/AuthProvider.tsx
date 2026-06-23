@@ -26,6 +26,7 @@ import {
   isRefreshTokenValid,
 } from '../services/token-storage';
 import type { UserDto } from '../services/dto/user.dto';
+import { useLiveStore } from '../store/liveStore';
 
 /** Контракт контексту автентифікації. */
 export interface AuthContextValue {
@@ -79,6 +80,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
       storeTokens(dto);
       setToken(dto.accessToken);
       setUser(dto.user);
+      // Синхронізуємо myUserId у liveStore для mine/win-логіки real-time подій
+      useLiveStore.getState().setMyUserId(dto.user.id);
     },
     [],
   );
@@ -119,11 +122,14 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
           try {
             const currentUser = await fetchCurrentUser();
             setUser(currentUser);
+            // Синхронізуємо myUserId після відновлення сесії за access-токеном
+            useLiveStore.getState().setMyUserId(currentUser.id);
             return;
           } catch {
             // Токен протух або відкликаний — продовжуємо нижче
             clearTokens();
             setToken(null);
+            useLiveStore.getState().setMyUserId(null);
           }
         }
 
@@ -136,10 +142,13 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
           try {
             const currentUser = await fetchCurrentUser();
             setUser(currentUser);
+            // Синхронізуємо myUserId після відновлення сесії за refresh-токеном
+            useLiveStore.getState().setMyUserId(currentUser.id);
             return;
           } catch {
             // refresh також не вдався — повна реавторизація
             clearTokens();
+            useLiveStore.getState().setMyUserId(null);
           }
         }
 
@@ -148,6 +157,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
       } catch {
         // Автентифікація не вдалась — гостьовий режим
         setUser(null);
+        useLiveStore.getState().setMyUserId(null);
       } finally {
         setReady(true);
       }

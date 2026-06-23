@@ -49,6 +49,11 @@ function subscribeEvents(s: Socket): void {
   s.on('ticket:created', (payload: unknown) => {
     useLiveStore.getState().ingest({ type: 'ticket:created', payload });
   });
+
+  // Логування помилок підключення (токен не виводимо)
+  s.on('connect_error', (err) => {
+    console.warn('[realtime] connect_error:', err.message);
+  });
 }
 
 // ─────────────────────────────────────────
@@ -72,7 +77,8 @@ export function connectRealtime(token: string | null): void {
   }
 
   socket = io(env.wsUrl, {
-    auth: { token: token ?? '' },
+    // Гостьовий режим: не надсилаємо поле token взагалі, щоб сервер міг розрізнити гостей
+    auth: token ? { token } : {},
     transports: ['websocket', 'polling'],
     path: '/socket.io/',
   });

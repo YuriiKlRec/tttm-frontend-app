@@ -28,6 +28,8 @@ export function useGameLive(id: string): { game: GameDetail | null; ready: boole
   const [ready, setReady] = useState(false);
   // Захист від повторного fetch у StrictMode (подвійний mount)
   const fetchedRef = useRef(false);
+  // Захист від подвійного join у StrictMode — окремий ref для socket-операцій
+  const joinedRef = useRef(false);
 
   const setGame = useLiveStore((s) => s.setGame);
   const game = useLiveStore((s) => s.games.get(id) ?? null);
@@ -47,13 +49,18 @@ export function useGameLive(id: string): { game: GameDetail | null; ready: boole
 
     void init();
 
-    // Підключаємо socket і входимо в кімнату гри
-    const token = getStoredAccessToken();
-    connectRealtime(token);
-    joinGame(id);
+    // Підключаємо socket і входимо в кімнату гри (один раз, захист від StrictMode)
+    if (!joinedRef.current) {
+      joinedRef.current = true;
+      const token = getStoredAccessToken();
+      connectRealtime(token);
+      joinGame(id);
+    }
 
     return () => {
       leaveGame(id);
+      // Скидаємо joinedRef, щоб реальний remount міг переприєднатись
+      joinedRef.current = false;
       // Socket залишається відкритим — disconnectRealtime() викликається тільки при логауті
     };
   }, [id, setGame]);

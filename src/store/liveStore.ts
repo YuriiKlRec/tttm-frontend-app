@@ -96,7 +96,7 @@ export interface LiveState {
   ingest: (event: { type: string; payload: unknown }) => void;
 }
 
-export const useLiveStore = create<LiveState>((set, get) => ({
+export const useLiveStore = create<LiveState>((set) => ({
   games: new Map(),
   ticketsByGame: new Map(),
   myUserId: null,
@@ -115,7 +115,7 @@ export const useLiveStore = create<LiveState>((set, get) => ({
     set({ myUserId: id });
   },
 
-  /** Додає масив Bet до кінця списку для gameId (bulk-append). */
+  /** Пакетне завантаження історичних тікетів (F2 infinite scroll); відрізняється від real-time шляху ingest → applyTicketAdded. */
   appendTickets(gameId, bets) {
     set((state) => {
       const existing = state.ticketsByGame.get(gameId) ?? [];
@@ -129,26 +129,29 @@ export const useLiveStore = create<LiveState>((set, get) => ({
    * Диспетчер real-time подій.
    * Підтримувані типи: game:updated, game:finalized, game:claimed,
    *                    game:ticket_added, ticket:created.
+   * Використовуємо функціональну форму set(), щоб уникнути race read-then-set.
    */
   ingest({ type, payload }) {
-    const { myUserId, games, ticketsByGame } = get();
-
     switch (type) {
       case 'game:updated':
       case 'game:finalized':
       case 'game:claimed': {
         const p = payload as GameEventPayload;
-        set({ games: applyGameUpdated(games, p, myUserId) });
+        set((state) => ({ games: applyGameUpdated(state.games, p, state.myUserId) }));
         break;
       }
       case 'game:ticket_added': {
         const p = payload as TicketAddedPayload;
-        set({ ticketsByGame: applyTicketAdded(ticketsByGame, p.ticket, p.gameId, myUserId) });
+        set((state) => ({
+          ticketsByGame: applyTicketAdded(state.ticketsByGame, p.ticket, p.gameId, state.myUserId),
+        }));
         break;
       }
       case 'ticket:created': {
         const p = payload as TicketCreatedPayload;
-        set({ ticketsByGame: applyTicketAdded(ticketsByGame, p.ticket, p.gameId, myUserId) });
+        set((state) => ({
+          ticketsByGame: applyTicketAdded(state.ticketsByGame, p.ticket, p.gameId, state.myUserId),
+        }));
         break;
       }
       default:
