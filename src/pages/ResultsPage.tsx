@@ -1,21 +1,38 @@
-import { useMemo, type FC } from 'react'
+import { useCallback, useMemo, type FC } from 'react'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ResultCard } from '../components/games/ResultCard'
-import { mockResults } from '../mocks/results'
 import { groupByDate } from '../utils/groupByDate'
+import { useInfiniteGames, PER_PAGE } from '../hooks/useInfiniteGames'
+import { useAuth } from '../hooks/useAuth'
+import { listResults } from '../services/gameApi'
 
 /**
- * Вкладка Results: список завершених ігор, ЗГРУПОВАНИЙ за датою фіналізації
- * (заголовок-дата по центру + картки під ним). Без hero та плашки курсу.
- * За відсутності ігор показує порожній стан.
+ * Вкладка Results: список завершених ігор, ЗГРУПОВАНИЙ за датою фіналізації.
+ * Використовує нескінченний скрол із IntersectionObserver-сентинелом.
  */
 const ResultsPage: FC = () => {
-  const groups = useMemo(
-    () => groupByDate(mockResults, (game) => game.finishedAt),
-    [],
+  const { user, ready } = useAuth()
+  const myUserId = user?.id ?? null
+
+  const fetchPage = useCallback(
+    (page: number) => listResults(page, PER_PAGE, myUserId),
+    [myUserId],
   )
 
-  if (groups.length === 0) {
+  const { items, loading, hasMore, sentinelRef } = useInfiniteGames(fetchPage)
+
+  // groupByDate — чиста функція, тому useMemo дає нам оптимізацію при великих списках
+  const groups = useMemo(
+    () => groupByDate(items, (game) => game.finishedAt),
+    [items],
+  )
+
+  // Чекаємо ініціалізації AuthProvider
+  if (!ready) {
+    return <div className="w-full" />
+  }
+
+  if (groups.length === 0 && !loading) {
     return (
       <div className="w-full">
         <EmptyState />
@@ -35,6 +52,8 @@ const ResultsPage: FC = () => {
           </div>
         </section>
       ))}
+      {/* Sentinel для IntersectionObserver — завантажує наступну сторінку при появі у viewport */}
+      {hasMore && <div ref={sentinelRef} className="h-px" />}
     </div>
   )
 }

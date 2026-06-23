@@ -15,6 +15,8 @@
 import type { GameDto } from './dto/game.dto';
 import type { TicketDto } from './dto/ticket.dto';
 import type { Game, GameDetail, Bet } from '../types/game';
+import type { ResultGame, ResultBet } from '../mocks/results';
+import type { WaitGame, WaitBet } from '../mocks/waitGames';
 import { nanoToTon, centsToUsd } from '../utils/units';
 
 // ─────────────────────────────────────────
@@ -181,5 +183,142 @@ export function toBet(ticket: TicketDto, opts: ToBetOpts): Bet {
     user,
     price,
     variant,
+  };
+}
+
+// ─────────────────────────────────────────
+// toResultCard
+// ─────────────────────────────────────────
+
+/**
+ * Перетворює GameDto у картку завершеної гри ResultGame.
+ *
+ * finishedAt: використовується finalizedAt якщо є, інакше endTime.
+ * leader: тікет-переможець (winningTicket) якщо присутній.
+ * mine: перший тікет поточного користувача; rank=0 — позиція невідома до бекенд-лідерборду.
+ */
+export function toResultCard(dto: GameDto, myUserId: string | null): ResultGame {
+  const totalNano = Number(BigInt(dto.ticketAmount) * BigInt(dto.tickets.length));
+  const reward = `${nanoToTon(totalNano)} TON`;
+  const finishedAt = Date.parse(dto.finalizedAt ?? dto.endTime);
+  const status = deriveResultState(dto, myUserId);
+  const finalPrice =
+    dto.oracleFinalPrice !== null ? centsToUsd(dto.oracleFinalPrice) : undefined;
+
+  const ticketsCount = dto.tickets.filter(
+    (t) => myUserId !== null && t.ownerId === myUserId,
+  ).length;
+
+  let leader: ResultBet | undefined;
+  if (dto.winningTicket) {
+    leader = {
+      rank: 1,
+      user: `@${dto.winningTicket.owner.nickname}`,
+      price: centsToUsd(dto.winningTicket.price),
+      mine: dto.winningTicket.ownerId === myUserId,
+    };
+  }
+
+  // rank=0 означає невідому позицію — формула рейтингу делегується бекенду
+  const myTicket =
+    myUserId !== null
+      ? dto.tickets.find((t) => t.ownerId === myUserId)
+      : undefined;
+  const mine: ResultBet | undefined = myTicket
+    ? {
+        rank: 0,
+        user: `@${dto.owner.nickname}`,
+        price: centsToUsd(myTicket.price),
+        mine: true,
+      }
+    : undefined;
+
+  return {
+    id: dto.id,
+    title: dto.name,
+    author: `@${dto.owner.nickname}`,
+    contractAddress: dto.tonData.contractAddress ?? '',
+    status,
+    reward,
+    finishedAt,
+    finalPrice,
+    ticketsCount,
+    leader,
+    mine,
+  };
+}
+
+// ─────────────────────────────────────────
+// toWaitCard
+// ─────────────────────────────────────────
+
+/**
+ * Перетворює GameDto у картку гри, що очікує фіналізації (WaitGame).
+ *
+ * PROVISIONAL: сортування тікетів за відстанню до livePriceCents (якщо надано)
+ * або за createdAt у зростаючому порядку.
+ * ОСТАТОЧНА формула рейтингу буде реалізована на стороні бекенду — замінити
+ * цей порядок після появи лідерборд-ендпоінту.
+ *
+ * leader і mine — обов'язкові поля WaitGame; якщо тікетів немає, підставляємо
+ * плейсхолдер із автора гри.
+ */
+export function toWaitCard(
+  dto: GameDto,
+  myUserId: string | null,
+  livePriceCents?: number,
+): WaitGame {
+  const totalNano = Number(BigInt(dto.ticketAmount) * BigInt(dto.tickets.length));
+  const reward = `${nanoToTon(totalNano)} TON`;
+
+  // PROVISIONAL: сортування тікетів — за близькістю до livePriceCents або за часом
+  const sortedTickets = [...dto.tickets].sort((a, b) => {
+    if (livePriceCents !== undefined) {
+      return Math.abs(a.price - livePriceCents) - Math.abs(b.price - livePriceCents);
+    }
+    return Date.parse(a.createdAt) - Date.parse(b.createdAt);
+  });
+
+  const topTicket = sortedTickets[0];
+  const myTicket =
+    myUserId !== null ? sortedTickets.find((t) => t.ownerId === myUserId) : undefined;
+  const myRank = myTicket ? sortedTickets.indexOf(myTicket) + 1 : 0;
+
+  // Плейсхолдер-лідер і ставка з автора гри, якщо тікетів немає
+  const fallbackBet: WaitBet = {
+    rank: 1,
+    user: `@${dto.owner.nickname}`,
+    price: livePriceCents !== undefined ? centsToUsd(livePriceCents) : '$0.00',
+    mine: dto.owner.id === myUserId,
+  };
+
+  const leader: WaitBet = topTicket
+    ? {
+        rank: 1,
+        user: `@${topTicket.owner.nickname}`,
+        price: centsToUsd(topTicket.price),
+        mine: topTicket.ownerId === myUserId,
+      }
+    : fallbackBet;
+
+  const mine: WaitBet = myTicket
+    ? {
+        rank: myRank,
+        user: `@${myTicket.owner.nickname}`,
+        price: centsToUsd(myTicket.price),
+        mine: true,
+      }
+    : fallbackBet;
+
+  return {
+    id: dto.id,
+    title: dto.name,
+    author: `@${dto.owner.nickname}`,
+    reward,
+    startTime: Date.parse(dto.createdAt),
+    betCloseTime: Date.parse(dto.ticketDeadlineAt),
+    endTime: Date.parse(dto.endTime),
+    leader,
+    mine,
   };
 }

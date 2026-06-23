@@ -28,6 +28,8 @@ export interface GameDto {
   /** Фінальна ціна оракула у центах (×100), null до фіналізації. */
   oracleFinalPrice: number | null;
   winningTicketId: string | null;
+  /** ISO час фіналізації гри (null до фіналізації). */
+  finalizedAt: string | null;
   tonData: Partial<GameTonData>;
   owner: UserDto;
   wallet: WalletDto | null;
