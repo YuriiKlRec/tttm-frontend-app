@@ -14,30 +14,35 @@ interface PredictionButtonProps {
   onClick?: () => void
   /** Кольорова схема: оранжева (primary) чи біла (inverse). */
   variant?: PredictionButtonVariant
-  /** Вимкнений стан: зменшує непрозорість і блокує клік. */
+  /** Вимкнений стан: сіра кнопка без світіння, клік заблоковано. */
   disabled?: boolean
 }
 
 /** Базові класи незалежно від варіанта: розмір, типографіка. */
 const baseClass =
-  'relative flex h-11 w-full items-center justify-center font-mono text-[16px] font-bold text-[#323232] outline-none'
+  'relative flex h-11 w-full items-center justify-center font-mono text-[16px] font-bold outline-none'
 
-/** Класи кольору/тіні за варіантом (фон + glow). */
+/** Класи фону/тіні/тексту за варіантом (активний стан). */
 const variantClass: Record<PredictionButtonVariant, string> = {
-  primary: 'bg-[#ef9723] shadow-[0_4px_24px_0_rgba(239,151,35,0.5)]',
-  inverse: 'bg-white shadow-[0_4px_24px_0_rgba(255,255,255,0.5)]',
+  primary: 'bg-[#ef9723] text-[#323232] shadow-[0_4px_24px_0_rgba(239,151,35,0.5)]',
+  inverse: 'bg-white text-[#323232] shadow-[0_4px_24px_0_rgba(255,255,255,0.5)]',
 }
 
-/** Колір піксельних боків за варіантом. */
+/** Колір піксельних боків за варіантом (активний стан). */
 const sideColorClass: Record<PredictionButtonVariant, string> = {
   primary: 'bg-[#ef9723]',
   inverse: 'bg-white',
 }
 
+/** Сіра схема вимкненої кнопки (фон + текст), без світіння. */
+const DISABLED_CLASS = 'bg-[#3f3f3f] text-[#6e6e6e]'
+/** Колір боків вимкненої кнопки. */
+const DISABLED_SIDE = 'bg-[#3f3f3f]'
+
 /** Піксельні боки (виступ по горизонталі 4px) + підпис поверх. */
-const Inner: FC<{ label: string; variant: PredictionButtonVariant }> = ({ label, variant }) => (
+const Inner: FC<{ label: string; sideColor: string }> = ({ label, sideColor }) => (
   <>
-    <span className={`absolute inset-y-1 -inset-x-1 ${sideColorClass[variant]}`} aria-hidden="true" />
+    <span className={`absolute inset-y-1 -inset-x-1 ${sideColor}`} aria-hidden="true" />
     <span className="relative z-10">{label}</span>
   </>
 )
@@ -45,7 +50,7 @@ const Inner: FC<{ label: string; variant: PredictionButtonVariant }> = ({ label,
 /**
  * Акцентна CTA-кнопка з піксельними боками та неоновим світінням.
  * Поліморфна: за наявності `to` (і не disabled) рендерить `<Link>`, інакше `<button>`.
- * Має два варіанти кольору (primary/inverse) та disabled-стан.
+ * Має два варіанти кольору (primary/inverse) та сірий disabled-стан.
  */
 export const PredictionButton: FC<PredictionButtonProps> = ({
   label,
@@ -54,20 +59,21 @@ export const PredictionButton: FC<PredictionButtonProps> = ({
   variant = 'primary',
   disabled = false,
 }) => {
-  const className = `${baseClass} ${variantClass[variant]}${disabled ? ' opacity-50' : ''}`
+  const className = `${baseClass} ${disabled ? DISABLED_CLASS : variantClass[variant]}`
+  const sideColor = disabled ? DISABLED_SIDE : sideColorClass[variant]
 
   // У disabled-стані не рендеримо Link (щоб клік не спрацював), а звичайну вимкнену кнопку.
   if (to && !disabled) {
     return (
       <Link to={to} className={className}>
-        <Inner label={label} variant={variant} />
+        <Inner label={label} sideColor={sideColor} />
       </Link>
     )
   }
 
   return (
     <button type="button" onClick={onClick} disabled={disabled} className={className}>
-      <Inner label={label} variant={variant} />
+      <Inner label={label} sideColor={sideColor} />
     </button>
   )
 }

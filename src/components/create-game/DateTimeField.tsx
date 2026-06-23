@@ -1,0 +1,90 @@
+import { useRef, type FC } from 'react'
+import { FieldLabel } from './FieldLabel'
+import { FieldError } from './FieldError'
+import { formatDateTimeFull, toDateTimeLocalValue } from '../../utils/datetime'
+
+/** Пропси стилізованого поля дати/часу з нативним пікером. */
+interface DateTimeFieldProps {
+  /** Підпис над полем (опційно — для deadline його малює батько). */
+  label?: string
+  /** Поточне значення (epoch ms). */
+  value: number
+  /** Обробник зміни (epoch ms); не потрібен для нередагованого поля. */
+  onChange?: (epochMs: number) => void
+  /** Чи редаговане поле (false — лише показ, без пікера). */
+  editable?: boolean
+  /** Текст помилки (null — без помилки). */
+  error?: string | null
+  /** id для зв'язку label/error. */
+  id: string
+}
+
+/** Класи рамки/фону за станом (норма / помилка). */
+const stateClass = (hasError: boolean): string =>
+  hasError ? 'border-[#e5484d] bg-[rgba(229,72,77,0.1)]' : 'border-text-primary bg-[rgba(255,255,255,0.1)]'
+
+/**
+ * Стилізоване поле дати/часу: показує формат «24 Jun 2026 20:00:00»
+ * (секунди — сірі), а нативний вибір відкриває прихований
+ * `<input type="datetime-local">` через `showPicker()` по кліку.
+ */
+export const DateTimeField: FC<DateTimeFieldProps> = ({
+  label,
+  value,
+  onChange,
+  editable = true,
+  error = null,
+  id,
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const { main, seconds } = formatDateTimeFull(value)
+  const hasError = Boolean(error)
+
+  /** Відкриває нативний пікер (з fallback на focus, якщо showPicker недоступний). */
+  const openPicker = (): void => {
+    const el = inputRef.current
+    if (!el) return
+    if (typeof el.showPicker === 'function') {
+      el.showPicker()
+    } else {
+      el.focus()
+    }
+  }
+
+  const onInput = (raw: string): void => {
+    if (!raw) return
+    onChange?.(new Date(raw).getTime())
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-3">
+      {label && <FieldLabel htmlFor={id}>{label}</FieldLabel>}
+      <button
+        type="button"
+        id={id}
+        onClick={editable ? openPicker : undefined}
+        disabled={!editable}
+        aria-invalid={hasError}
+        aria-describedby={hasError ? `${id}-error` : undefined}
+        className={`relative flex h-12 w-full items-center justify-center border px-4 font-mono text-[18px] font-bold focus:outline-none ${stateClass(
+          hasError,
+        )}`}
+      >
+        <span className="text-text-primary">{main}</span>
+        <span className="text-text-secondary">{seconds}</span>
+        {editable && (
+          <input
+            ref={inputRef}
+            type="datetime-local"
+            value={toDateTimeLocalValue(value)}
+            onChange={(event) => onInput(event.target.value)}
+            tabIndex={-1}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-px w-px opacity-0"
+          />
+        )}
+      </button>
+      <FieldError id={`${id}-error`} message={error} />
+    </div>
+  )
+}
