@@ -4,7 +4,9 @@ import { PredictionButton } from '../ui/PredictionButton'
 import { Timer } from './Timer'
 import { WaitBetLine } from './WaitBetLine'
 import { useNow } from '../../hooks/useNow'
-import { clamp, formatCountdown, formatDateTime } from '../../utils/time'
+import { useAuth } from '../../hooks/useAuth'
+import { clamp, formatCountdown } from '../../utils/time'
+import { formatInTz } from '../../utils/datetime'
 import type { WaitGame } from '../../mocks/waitGames'
 
 /**
@@ -26,6 +28,7 @@ export const WaitCard: FC<WaitGame> = ({
   deviationPercent,
 }) => {
   const now = useNow()
+  const { tz } = useAuth()
 
   const total = endTime - startTime
   const elapsedFrac = total > 0 ? clamp((now - startTime) / total, 0, 1) : 1
@@ -43,7 +46,7 @@ export const WaitCard: FC<WaitGame> = ({
         elapsedFrac={elapsedFrac}
         betCloseFrac={betCloseFrac}
         time={formatCountdown(endTime - now)}
-        date={formatDateTime(endTime)}
+        date={formatInTz(endTime, tz)}
         reward={reward}
       />
 

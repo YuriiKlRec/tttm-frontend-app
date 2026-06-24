@@ -2,9 +2,14 @@ import type { FC } from 'react'
 import { ViewSelector } from './ViewSelector'
 import { Glyph } from '../ui/Glyph'
 import { useNow } from '../../hooks/useNow'
-import { formatCountdown, formatDateTime } from '../../utils/time'
+import { useAuth } from '../../hooks/useAuth'
+import { formatCountdown } from '../../utils/time'
+import { formatInTz } from '../../utils/datetime'
 import type { ViewMode } from '../../types/game'
 import btcIcon from '../../assets/icon-btc.svg'
+// Примітка: браузерний TZ у Telegram-міні-апп збігається з пристроєм, тому
+// formatInTz(…, tz) тут насамперед забезпечує консистентність і підтримку
+// tz-овериду, збереженого на бекенді (user.timezone).
 
 /** Пропси шапки сторінки гри. */
 interface GameHeaderProps {
@@ -45,6 +50,7 @@ export const GameHeader: FC<GameHeaderProps> = ({
   finalPrice,
 }) => {
   const now = useNow()
+  const { tz } = useAuth()
   const countdown = formatCountdown(endTime - now)
 
   return (
@@ -78,7 +84,7 @@ export const GameHeader: FC<GameHeaderProps> = ({
         {finished ? (
           <>
             <span className="font-mono text-[13px] text-text-primary">
-              {formatDateTime(endTime)}
+              {formatInTz(endTime, tz)}
             </span>
             <span className="flex items-center gap-1.5 font-mono text-[15px] font-bold text-text-focus">
               <img src={btcIcon} alt="" aria-hidden="true" className="h-4 w-4" />
@@ -89,7 +95,7 @@ export const GameHeader: FC<GameHeaderProps> = ({
           <>
             <span className="font-mono text-[16px] font-bold text-text-primary">{countdown}</span>
             <span className="font-mono text-[13px] text-text-secondary">
-              {formatDateTime(endTime)}
+              {formatInTz(endTime, tz)}
             </span>
           </>
         )}

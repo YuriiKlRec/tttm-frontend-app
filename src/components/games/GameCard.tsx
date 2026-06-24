@@ -4,7 +4,9 @@ import { PredictionButton } from '../ui/PredictionButton'
 import { IconButton } from '../ui/IconButton'
 import { Timer } from './Timer'
 import { useNow } from '../../hooks/useNow'
-import { clamp, formatCountdown, formatDateTime } from '../../utils/time'
+import { useAuth } from '../../hooks/useAuth'
+import { clamp, formatCountdown } from '../../utils/time'
+import { formatInTz } from '../../utils/datetime'
 import type { Game } from '../../types/game'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import trophyIcon from '../../assets/icon-trophy.svg'
@@ -36,6 +38,7 @@ export const GameCard: FC<Game> = ({
   isAuthor,
 }) => {
   const now = useNow()
+  const { tz } = useAuth()
 
   const total = endTime - startTime
   const elapsedFrac = total > 0 ? clamp((now - startTime) / total, 0, 1) : 1
@@ -63,7 +66,7 @@ export const GameCard: FC<Game> = ({
         elapsedFrac={elapsedFrac}
         betCloseFrac={betCloseFrac}
         time={formatCountdown(endTime - now)}
-        date={formatDateTime(endTime)}
+        date={formatInTz(endTime, tz)}
       />
 
       <div className="flex w-full max-w-[270px] items-center justify-between">

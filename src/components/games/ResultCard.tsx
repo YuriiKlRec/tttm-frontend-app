@@ -4,8 +4,9 @@ import { PredictionButton } from '../ui/PredictionButton'
 import { ConfettiBurst } from '../buy/ConfettiBurst'
 import { ResultBetLine } from './ResultBetLine'
 import { ResultStatusLine } from './ResultStatusLine'
+import { useAuth } from '../../hooks/useAuth'
 import type { ResultGame, ResultStatus } from '../../mocks/results'
-import { formatDateTime } from '../../utils/time'
+import { formatInTz } from '../../utils/datetime'
 import trophyImg from '../../assets/trophy.png'
 import receiptIcon from '../../assets/icon-receipt.svg'
 import btcIcon from '../../assets/icon-btc.svg'
@@ -44,6 +45,7 @@ export const ResultCard: FC<ResultGame> = ({
   mine,
   deviationPercent,
 }) => {
+  const { tz } = useAuth()
   const stateText = STATE_TEXT[status]
   const isGold = isGoldTrophy(status)
   const isCancelled = status === 'cancelled'
@@ -88,7 +90,7 @@ export const ResultCard: FC<ResultGame> = ({
         <>
           <div className="flex w-full items-center justify-between">
             <span className="font-mono text-[15px] font-bold text-text-primary">
-              {formatDateTime(finishedAt)}
+              {formatInTz(finishedAt, tz)}
             </span>
             {finalPrice ? (
               <span className="flex items-center gap-2">

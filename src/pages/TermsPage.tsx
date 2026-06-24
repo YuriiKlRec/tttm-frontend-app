@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { TermsActions } from '../components/onboarding/TermsActions'
 import { useScrollToEnd } from '../hooks/useScrollToEnd'
 import { termsParagraphs } from '../mocks/terms'
+import { acceptTerms } from '../services/meApi'
 import iconTimes from '../assets/icon-times.svg'
 
 /**
@@ -56,7 +57,14 @@ const TermsPage: FC = () => {
         <TermsActions
           atBottom={atBottom}
           reachedEnd={reachedEnd}
-          onAccept={() => navigate('/profile')}
+          onAccept={() => {
+            // Надсилаємо підтвердження угоди на бекенд; при помилці — логуємо й
+            // все одно переходимо далі (повторна перевірка через GET /api/me).
+            acceptTerms().catch((err: unknown) => {
+              console.warn('[TermsPage] acceptTerms failed, proceeding anyway:', err)
+            })
+            navigate('/profile')
+          }}
           onScrollBottom={scrollToBottom}
           onScrollTop={scrollToTop}
         />

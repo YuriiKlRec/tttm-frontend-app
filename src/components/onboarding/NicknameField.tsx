@@ -5,6 +5,12 @@ import type { NicknameInput } from '../../hooks/useNicknameInput'
 interface NicknameFieldProps {
   /** Стан/API поля з хука useNicknameInput. */
   input: NicknameInput
+  /**
+   * Серверна помилка валідації (наприклад, нік уже зайнятий за даними бекенду).
+   * Відображається у тому ж стилі, що й клієнтська помилка. Пріоритет нижчий за
+   * клієнтську — якщо showError вже активний, serverError ігнорується.
+   */
+  serverError?: string
 }
 
 /** Класи рамки/фону за станом (норма / помилка). */
@@ -17,30 +23,36 @@ const stateClass = (showError: boolean): string =>
  * Контрольоване поле нікнейму з обов'язковим префіксом `@`.
  * Показує повідомлення про помилку під полем у стані помилки.
  */
-export const NicknameField: FC<NicknameFieldProps> = ({ input }) => (
-  <div className="w-full">
-    <label htmlFor="nickname" className="sr-only">
-      Nickname
-    </label>
-    <input
-      id="nickname"
-      type="text"
-      value={input.value}
-      onChange={(event) => input.onChange(event.target.value)}
-      placeholder="@somebody"
-      autoComplete="off"
-      autoCapitalize="none"
-      spellCheck={false}
-      aria-invalid={input.showError}
-      aria-describedby={input.showError ? 'nickname-error' : undefined}
-      className={`h-12 w-full border px-4 text-center font-mono text-[18px] font-bold text-text-primary placeholder:text-text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${stateClass(
-        input.showError,
-      )}`}
-    />
-    {input.showError && (
-      <p id="nickname-error" className="mt-2 text-center font-body text-[12px] text-[#e5484d]">
-        {input.error}
-      </p>
-    )}
-  </div>
-)
+export const NicknameField: FC<NicknameFieldProps> = ({ input, serverError }) => {
+  // Клієнтська помилка має пріоритет; серверна показується лише за валідного формату
+  const activeError = input.showError ? input.error : (serverError ?? '')
+  const hasError = input.showError || (!input.showError && Boolean(serverError))
+
+  return (
+    <div className="w-full">
+      <label htmlFor="nickname" className="sr-only">
+        Nickname
+      </label>
+      <input
+        id="nickname"
+        type="text"
+        value={input.value}
+        onChange={(event) => input.onChange(event.target.value)}
+        placeholder="@somebody"
+        autoComplete="off"
+        autoCapitalize="none"
+        spellCheck={false}
+        aria-invalid={hasError}
+        aria-describedby={hasError ? 'nickname-error' : undefined}
+        className={`h-12 w-full border px-4 text-center font-mono text-[18px] font-bold text-text-primary placeholder:text-text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${stateClass(
+          hasError,
+        )}`}
+      />
+      {hasError && (
+        <p id="nickname-error" className="mt-2 text-center font-body text-[12px] text-[#e5484d]">
+          {activeError}
+        </p>
+      )}
+    </div>
+  )
+}

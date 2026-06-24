@@ -14,6 +14,7 @@ import { useGameLive } from '../hooks/useGameLive'
 import { useInfiniteTickets } from '../hooks/useInfiniteTickets'
 import { useLiveStore } from '../store/liveStore'
 import { centsToUsd } from '../utils/units'
+import { formatInTz } from '../utils/datetime'
 import type { Timeframe } from '../services/binance'
 import type { ViewMode, DetailGroup, Bet } from '../types/game'
 import type { WaitBet } from '../mocks/waitGames'
@@ -44,6 +45,7 @@ function computePhase(betCloseTime: number, endTime: number, now: number): GameP
  * Будує групи деталей гри для вигляду «Details».
  * Для завершеної гри додає першу групу з результатами.
  * Поля, що не заповнені — пропускаються.
+ * @param tz — часовий пояс користувача (з useAuth); null → браузерний TZ.
  */
 function buildDetailGroups(
   game: {
@@ -58,6 +60,7 @@ function buildDetailGroups(
     winnerTicketPrice?: string | null
   },
   finished: boolean,
+  tz: string | null,
 ): DetailGroup[] {
   const groups: DetailGroup[] = []
 
@@ -78,25 +81,15 @@ function buildDetailGroups(
     }
   }
 
-  // Часова група
+  // Часова група — дати через formatInTz для консистентного TZ
   const timeGroup: DetailGroup = [
     {
       label: 'Price prediction date/time',
-      value: new Date(game.endTime).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      value: formatInTz(game.endTime, tz),
     },
     {
       label: 'Stop receiving predictions',
-      value: new Date(game.betCloseTime).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      value: formatInTz(game.betCloseTime, tz),
     },
     { label: 'Oracle / price source', value: 'Binance' },
   ]
@@ -128,7 +121,7 @@ function buildDetailGroups(
  */
 const GamePage: FC = () => {
   const { id = '' } = useParams<{ id: string }>()
-  const { user } = useAuth()
+  const { user, tz } = useAuth()
   const myUserId = user?.id ?? null
 
   const { game, ready } = useGameLive(id, myUserId)
@@ -224,8 +217,8 @@ const GamePage: FC = () => {
   // Детальні групи (деталі гри)
   const gameInfo: DetailGroup[] = useMemo(() => {
     if (!game) return []
-    return buildDetailGroups(game, finished)
-  }, [game, finished])
+    return buildDetailGroups(game, finished, tz)
+  }, [game, finished, tz])
 
   // Статистика для вигляду «Predictions»
   const stats = useMemo(() => {
