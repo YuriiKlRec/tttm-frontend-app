@@ -21,6 +21,12 @@ import type { WaitBet } from '../mocks/waitGames'
 /** Торгова пара для графіка (поки фіксована). */
 const SYMBOL = 'BTCUSDT'
 
+/**
+ * Стабільний порожній масив ставок — використовується як fallback у селекторі
+ * liveStore, щоб уникнути нового посилання на кожен рендер (Zustand infinite loop).
+ */
+const EMPTY_BETS: Bet[] = []
+
 /** Фаза гри: прийом ставок / очікування фіналізації / завершено. */
 type GamePhase = 'active' | 'waiting' | 'finished'
 
@@ -158,8 +164,10 @@ const GamePage: FC = () => {
     ready,
   )
 
-  // Real-time тікети зі стора (game:ticket_added / ticket:created)
-  const liveBets = useLiveStore((s) => s.ticketsByGame.get(id) ?? [])
+  // Real-time тікети зі стора (game:ticket_added / ticket:created).
+  // EMPTY_BETS — стабільна константа; не вбудований літерал [], щоб Zustand
+  // не отримував нове посилання щорендер і не падав в infinite loop.
+  const liveBets = useLiveStore((s) => s.ticketsByGame.get(id) ?? EMPTY_BETS)
 
   // Об'єднуємо: живі тікети спереду, пагіновані — позаду (дедуплікація за rank+user)
   const bets: Bet[] = useMemo(() => {
