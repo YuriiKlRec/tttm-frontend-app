@@ -12,9 +12,10 @@ import { MOCK_PRICES, MOCK_TAKEN, MOCK_TICKET_PRICE } from '../mocks/buyTickets'
 const MOCK_COUNTDOWN = '00:03:01'
 
 /**
- * Сторінка оплати заброньованих ставок «Buy tickets». Читає ціни з корзини
- * (або DEV-мок), розбиває на чеки по 8, дозволяє керувати станами ставок та
- * імітує пооплату чеків. Гаманець — TonConnect, оплата — мокова.
+ * Сторінка оплати заброньованих ставок «Buy tickets». Читає ціни та gameId з
+ * корзини (або DEV-мок), розбиває на чеки по 8, дозволяє керувати станами
+ * ставок і виконує реальну TonConnect-транзакцію для кожного чека.
+ * При 422 (ціна зайнята) — показує модалку «ALREADY TAKEN».
  */
 const BuyTicketsPage: FC = () => {
   const cart = useBookedCart()
@@ -26,7 +27,11 @@ const BuyTicketsPage: FC = () => {
   // Зайняті ставки демонструємо лише на моку (реально приходять із бекенда).
   const takenPrices = usingMock ? MOCK_TAKEN : []
 
-  const flow = useBuyTicketsFlow(prices, MOCK_TICKET_PRICE, takenPrices)
+  // Ціна квитка: наразі береться з MOCK (бекенд не передає у корзину);
+  // у реальному флоу — з об'єкту гри (розширити корзину при потребі).
+  const ticketPrice = MOCK_TICKET_PRICE
+
+  const flow = useBuyTicketsFlow(prices, ticketPrice, takenPrices)
   const { checks } = flow
   const multipleChecks = checks.checks.length > 1
 
@@ -55,6 +60,15 @@ const BuyTicketsPage: FC = () => {
         onAddMore={flow.openUncompleted}
         splitNote={multipleChecks ? `Splitted into ${checks.checks.length} payments` : undefined}
       />
+
+      {flow.payError && (
+        <p
+          role="alert"
+          className="absolute bottom-[80px] left-0 right-0 px-7 text-center font-mono text-[13px] text-[#E5484D]"
+        >
+          {flow.payError}
+        </p>
+      )}
 
       <BuyModals
         active={flow.activeModal}

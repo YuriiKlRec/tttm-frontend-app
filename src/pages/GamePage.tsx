@@ -1,4 +1,4 @@
-import { useMemo, useState, type FC } from 'react'
+import { useEffect, useMemo, useState, type FC } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { GameLayout } from '../components/layout/GameLayout'
 import { GameHeader } from '../components/games/GameHeader'
@@ -175,6 +175,15 @@ const GamePage: FC = () => {
   // Корзина заброньованих ставок
   const cart = useBookedCart()
   const [cartOpen, setCartOpen] = useState(false)
+
+  // Синхронізуємо gameId корзини при відкритті гри — BuyTicketsPage читає його звідти.
+  useEffect(() => {
+    if (id) {
+      cart.setGameId(id)
+    }
+  // cart стабільний (useCallback), реагуємо лише на id
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   const { candles, currentPrice } = useChartData(SYMBOL, timeframe)
 

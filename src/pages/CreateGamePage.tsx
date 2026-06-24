@@ -1,5 +1,6 @@
 import { useCallback, useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react'
 import { CreateGameHeader } from '../components/create-game/CreateGameHeader'
 import { GameNameField } from '../components/create-game/GameNameField'
 import { PairDisplay } from '../components/create-game/PairDisplay'
@@ -10,18 +11,36 @@ import { PrizePoolControl } from '../components/create-game/PrizePoolControl'
 import { CreateFooter } from '../components/create-game/CreateFooter'
 import { ConfirmModal } from '../components/buy/ConfirmModal'
 import { useCreateGameForm } from '../hooks/useCreateGameForm'
+import { createGameTransaction, createGame } from '../services/gameApi'
+import { saveWallet } from '../services/walletApi'
+import { env } from '../config/env'
+import { ValidationError } from '../services/http'
 import thinkingBadge from '../assets/badge-face-thinking.svg'
+
+/** nanoTON в одному TON. */
+const NANO_PER_TON = 1_000_000_000
+
+/** Часовий ліміт транзакції (сек) — 10 хвилин. */
+const TX_VALID_SECONDS = 600
 
 /**
  * Сторінка «New prediction game» — окремий fullscreen-лайаут (поза AppLayout):
  * фіксована шапка та підвал, скрол-тіло з полями форми. Логіка винесена у
  * useCreateGameForm; вихід зі змінами підтверджується модалкою.
+ * Підтвердження форми → TonConnect-транзакція → збереження гри у БД.
  */
 const CreateGamePage: FC = () => {
   const navigate = useNavigate()
   const form = useCreateGameForm()
+  const [tonConnectUI] = useTonConnectUI()
+  const address = useTonAddress()
+
   // Чи показано модалку підтвердження виходу.
   const [confirmOpen, setConfirmOpen] = useState(false)
+  // Помилка транзакції або API (відображається у підвалі).
+  const [txError, setTxError] = useState<string | null>(null)
+  // Чи виконується транзакція.
+  const [submitting, setSubmitting] = useState(false)
 
   // «Go back»: за наявності змін — спершу підтвердження, інакше вихід одразу.
   const handleBack = useCallback((): void => {
@@ -33,9 +52,97 @@ const CreateGamePage: FC = () => {
   }, [form.isDirty, navigate])
 
   const handlePay = useCallback((): void => {
-    // MOCK: реальну TonConnect-транзакцію не інтегруємо — лише виходимо.
-    void navigate('/')
-  }, [navigate])
+    // Якщо гаманець не підключений — відкриваємо модалку TonConnect.
+    if (!address) {
+      void tonConnectUI.openModal()
+      return
+    }
+
+    if (!form.isValid || submitting) {
+      return
+    }
+
+    const run = async (): Promise<void> => {
+      setTxError(null)
+      setSubmitting(true)
+
+      try {
+        // Крок 1: зберегти гаманець на бекенді (ігноруємо помилку — не критично).
+        try {
+          await saveWallet(address)
+        } catch {
+          // Гаманець може вже бути збережений — не блокуємо флоу.
+        }
+
+        // Крок 2: підготовка транзакції контракту.
+        // ticketAmount у nanoTON: значення форми (TON) × 1_000_000_000.
+        const ticketAmount = Math.round(Number(form.ticketPrice) * NANO_PER_TON)
+        const endTimeIso = new Date(form.predictionTime).toISOString()
+        const ticketDeadlineIso = new Date(form.deadline).toISOString()
+
+        const txResp = await createGameTransaction({
+          owner: address,
+          name: form.name,
+          endTime: endTimeIso,
+          ticketDeadline: ticketDeadlineIso,
+          ticketAmount,
+          authorPercent: form.pool,
+        })
+
+        // Крок 3: зберегти гру у БД (до відправки транзакції — щоб мати id).
+        const gameResp = await createGame({
+          name: form.name,
+          targetCurrency: 'BTCUSDT',
+          ticketAmount,
+          authorPercent: form.pool,
+          endTime: endTimeIso,
+          ticketDeadlineAt: ticketDeadlineIso,
+          walletAddress: address,
+          isPublic: true,
+          contractGameId: txResp.gameId,
+          tonData: {
+            network: env.tonNetwork,
+            contractAddress: txResp.contractAddress,
+          },
+        })
+
+        // Крок 4: відправити транзакцію через TonConnect.
+        await tonConnectUI.sendTransaction({
+          validUntil: Math.floor(Date.now() / 1000) + TX_VALID_SECONDS,
+          messages: [
+            {
+              address: txResp.to,
+              amount: txResp.value,
+              payload: txResp.payload,
+              stateInit: txResp.stateInit ?? undefined,
+            },
+          ],
+        })
+
+        // Крок 5: навігація до нової гри.
+        void navigate(`/game/${gameResp.id}`)
+      } catch (err) {
+        // Відмова користувача від транзакції — не показуємо помилку.
+        if (
+          err instanceof Error &&
+          (err.message.includes('User declined') || err.message.includes('Reject'))
+        ) {
+          return
+        }
+
+        if (err instanceof ValidationError) {
+          setTxError(err.errors.join('; '))
+          return
+        }
+
+        setTxError(err instanceof Error ? err.message : 'Помилка створення гри')
+      } finally {
+        setSubmitting(false)
+      }
+    }
+
+    void run()
+  }, [address, form, tonConnectUI, submitting, navigate])
 
   // Скасування виходу: лишитись на сторінці.
   const cancelLeave = useCallback((): void => setConfirmOpen(false), [])
@@ -44,6 +151,9 @@ const CreateGamePage: FC = () => {
   const confirmLeave = useCallback((): void => {
     void navigate('/')
   }, [navigate])
+
+  // CTA активна: форма валідна та не йде транзакція.
+  const canPay = address ? (form.isValid && !submitting) : true
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
@@ -93,10 +203,20 @@ const CreateGamePage: FC = () => {
             onChange={form.setPool}
             ticketPrice={Number(form.ticketPrice)}
           />
+
+          {txError && (
+            <p role="alert" className="font-mono text-[13px] text-[#E5484D]">
+              {txError}
+            </p>
+          )}
         </div>
       </main>
 
-      <CreateFooter canPay={form.isValid} onPay={handlePay} onBack={handleBack} />
+      <CreateFooter
+        canPay={canPay}
+        onPay={handlePay}
+        onBack={handleBack}
+      />
 
       {confirmOpen && (
         <ConfirmModal

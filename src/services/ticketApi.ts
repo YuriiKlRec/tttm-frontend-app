@@ -1,11 +1,14 @@
 /**
- * HTTP-клієнт для ресурсу /api/games/:id/tickets.
+ * HTTP-клієнт для ресурсів /api/tickets та /api/games/:id/tickets.
  *
  * Функції:
- *   listTickets — сторінкований список ставок однієї гри
+ *   listTickets     — сторінкований список ставок однієї гри
+ *   prepareTicketTx — підготовка TON-транзакції для купівлі квитків
+ *   createTickets   — збереження квитків у БД після підтвердження транзакції
+ *   extractHash     — витягти transactionHash із BOC без авторизації
  */
 
-import { get } from './http';
+import { get, post } from './http';
 import { toBet } from './mappers';
 import type { TicketDto } from './dto/ticket.dto';
 import type { Bet } from '../types/game';
@@ -66,4 +69,83 @@ export async function listTickets(
   );
 
   return { items, total: response.meta.total };
+}
+
+// ─── Транзакції купівлі квитків ───────────────────────────────────────────────
+
+/** Тіло запиту POST /api/tickets/transaction. */
+export interface PrepareTicketTxReq {
+  gameId: string;
+  /** BTC-ціни прогнозів (raw-значення з корзини, одиниця як на бекенді). */
+  prices: number[];
+}
+
+/** Відповідь POST /api/tickets/transaction. */
+export interface PrepareTicketTxResp {
+  to: string;
+  /** Вартість транзакції у nanoTON (рядок). */
+  value: string;
+  payload: string;
+  stateInit?: string | null;
+  gameId: string;
+  prices: number[];
+  ticketCount: number;
+  ticketAmount: number;
+}
+
+/** Тіло запиту POST /api/tickets. */
+export interface CreateTicketsReq {
+  gameId: string;
+  prices: number[];
+  /** BOC транзакції у base64 (з результату sendTransaction). */
+  boc: string;
+}
+
+/** Один збережений тікет у відповіді POST /api/tickets. */
+export interface SavedTicket {
+  id: string;
+  price: number;
+  gameId: string;
+  ownerId: string;
+}
+
+/** Відповідь POST /api/tickets. */
+export interface CreateTicketsResp {
+  message: string;
+  tickets: SavedTicket[];
+  transactionHash: string;
+}
+
+/** Відповідь POST /api/tickets/extract-hash. */
+export interface ExtractHashResp {
+  transactionHash: string;
+}
+
+/**
+ * Підготовка TON-транзакції для купівлі квитків.
+ * При 422 (ціна вже зайнята) кидає ValidationError.
+ *
+ * @param req — ідентифікатор гри та обрані ціни прогнозів
+ */
+export async function prepareTicketTx(req: PrepareTicketTxReq): Promise<PrepareTicketTxResp> {
+  return post<PrepareTicketTxResp>('/api/tickets/transaction', req);
+}
+
+/**
+ * Зберігає куплені квитки у БД після підтвердження TON-транзакції.
+ *
+ * @param req — ідентифікатор гри, ціни та BOC транзакції
+ */
+export async function createTickets(req: CreateTicketsReq): Promise<CreateTicketsResp> {
+  return post<CreateTicketsResp>('/api/tickets', req);
+}
+
+/**
+ * Витягує transactionHash із BOC (без авторизації).
+ *
+ * @param boc — BOC транзакції у base64
+ */
+export async function extractHash(boc: string): Promise<string> {
+  const resp = await post<ExtractHashResp>('/api/tickets/extract-hash', { boc });
+  return resp.transactionHash;
 }
