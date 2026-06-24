@@ -46,7 +46,7 @@ export function useInfiniteGames<T>(
 ): InfiniteGamesResult<T> {
   const [items, setItems] = useState<T[]>([]);
   const [total, setTotal] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
 
   // Захист від паралельних запитів (StrictMode, подвійний mount, швидкий скрол)

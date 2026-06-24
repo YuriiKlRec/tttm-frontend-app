@@ -227,7 +227,7 @@ export function toResultCard(dto: GameDto, myUserId: string | null): ResultGame 
   const mine: ResultBet | undefined = myTicket
     ? {
         rank: 0,
-        user: `@${dto.owner.nickname}`,
+        user: `@${myTicket.owner?.nickname ?? 'user'}`,
         price: centsToUsd(myTicket.price),
         mine: true,
       }
@@ -304,7 +304,7 @@ export function toWaitCard(
   const mine: WaitBet = myTicket
     ? {
         rank: myRank,
-        user: `@${myTicket.owner.nickname}`,
+        user: `@${myTicket.owner?.nickname ?? 'user'}`,
         price: centsToUsd(myTicket.price),
         mine: true,
       }
