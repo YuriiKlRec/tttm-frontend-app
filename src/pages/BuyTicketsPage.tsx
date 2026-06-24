@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FC } from 'react'
+import { useEffect, useMemo, useRef, useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BuyHeader } from '../components/buy/BuyHeader'
 import { CheckSlides } from '../components/buy/CheckSlides'
@@ -7,6 +7,7 @@ import { CheckActionPanel } from '../components/buy/CheckActionPanel'
 import { BuyModals } from '../components/buy/BuyModals'
 import { useBuyTicketsFlow } from '../hooks/useBuyTicketsFlow'
 import { useBookedCart } from '../context/BookedCartProvider'
+import { useTelegramBackButton } from '../hooks/useTelegramBackButton'
 import { useLiveStore } from '../store/liveStore'
 import { getGame } from '../services/gameApi'
 import { formatCountdown } from '../utils/time'
@@ -25,12 +26,17 @@ const BuyTicketsPage: FC = () => {
   const cart = useBookedCart()
   const navigate = useNavigate()
 
-  // ─── Редирект при порожній корзині або відсутньому gameId ────────────────
+  // ─── Редирект: тільки при монтуванні (не реагуємо на подальші зміни корзини) ──
+  // Після оплати cart.prices порожніє, але користувач ще на success-екрані —
+  // реактивний редирект закидував би його на головну. Тому перевіряємо стан
+  // лише один раз через ref, а useEffect спрацьовує без залежностей від cart.
+  const shouldRedirect = useRef(cart.prices.length === 0 || !cart.gameId)
   useEffect(() => {
-    if (!cart.gameId || cart.prices.length === 0) {
+    if (shouldRedirect.current) {
       navigate('/', { replace: true })
     }
-  }, [cart.gameId, cart.prices.length, navigate])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate])
 
   // ─── Реальна ціна квитка та зайняті ставки ────────────────────────────────
   // Спочатку шукаємо вже завантажений GameDetail у live-сторі.
@@ -96,6 +102,9 @@ const BuyTicketsPage: FC = () => {
   const { checks } = flow
   const multipleChecks = checks.checks.length > 1
 
+  // ─── Telegram back: власний обробник для /buy (уникаємо подвійного керування) ──
+  useTelegramBackButton(flow.leaveToGame)
+
   // Не рендеримо сторінку, якщо корзина порожня (редирект вже запущено).
   if (!cart.gameId || cart.prices.length === 0) return null
 
@@ -121,7 +130,7 @@ const BuyTicketsPage: FC = () => {
         cta={flow.cta}
         onCta={flow.handleCta}
         showAddMore={flow.showAddMore}
-        onAddMore={flow.openUncompleted}
+        onAddMore={flow.leaveToGame}
         splitNote={multipleChecks ? `Splitted into ${checks.checks.length} payments` : undefined}
       />
 

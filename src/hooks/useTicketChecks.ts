@@ -34,6 +34,8 @@ export interface UseTicketChecks {
   goToNextPending: () => boolean
   /** Ціни всіх ставок, що НЕ active (inactive + taken) — для очищення корзини. */
   nonActivePrices: number[]
+  /** Ціни успішно оплачених ставок (статус чека 'paid', тікет 'active') — для негайного видалення з корзини. */
+  paidPrices: number[]
 }
 
 /** Будує підсумки чека: кількість/сума активних ставок. */
@@ -140,6 +142,16 @@ export const useTicketChecks = (
     [checks],
   )
 
+  // Ціни тікетів, що входять до ОПЛАЧЕНИХ чеків і лишились active —
+  // саме вони підлягають негайному видаленню з корзини після успішної оплати.
+  const paidPrices = useMemo(
+    () =>
+      checks
+        .filter((c) => c.status === 'paid')
+        .flatMap((c) => c.tickets.filter((t) => t.status === 'active').map((t) => t.price)),
+    [checks],
+  )
+
   return {
     checks,
     activeIndex,
@@ -149,5 +161,6 @@ export const useTicketChecks = (
     payCheck,
     goToNextPending,
     nonActivePrices,
+    paidPrices,
   }
 }

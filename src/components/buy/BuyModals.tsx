@@ -35,7 +35,7 @@ export const BuyModals: FC<BuyModalsProps> = ({ active, onClose, onConfirmUncomp
       <ConfirmModal
         emblem={badgeThinking}
         title="UNCOMPLETED ORDER"
-        message="Are you sure you want to leave this page now?"
+        message="Your cancelled predictions will be discarded. Return to the game?"
         actions={[
           { label: 'Cancel', variant: 'inverse', onClick: onClose },
           { label: 'OK', onClick: onConfirmUncompleted },

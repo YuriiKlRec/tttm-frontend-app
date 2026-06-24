@@ -37,6 +37,11 @@ export interface BuyTicketsFlow {
   openUncompleted: () => void
   confirmUncompleted: () => void
   closeModal: () => void
+  /**
+   * Безпечний вихід до гри: якщо є скасовані ставки — показує попередження,
+   * інакше одразу переходить до маршруту гри.
+   */
+  leaveToGame: () => void
 }
 
 /**
@@ -159,8 +164,12 @@ export const useBuyTicketsFlow = (
         }
       }
 
-      // Успіх — позначити чек як оплачений.
+      // Успіх — позначити чек як оплачений і одразу прибрати оплачені ціни з корзини.
+      // useTicketChecks ігнорує подальші зміни prices, тому UI чека не змінюється.
       checks.payCheck(checks.activeIndex, false)
+      // Видаляємо всі активні ціни групи (вони щойно стали частиною paid-чека).
+      const paidGroup = groups.flat()
+      cart.removeMany(paidGroup)
     } catch (err) {
       // Відмова користувача від транзакції — тихо виходимо, без повідомлення.
       if (isUserRejection(err)) {
@@ -180,6 +189,28 @@ export const useBuyTicketsFlow = (
     }
   }, [activeCheck, summary, paying, cart.gameId, tonConnectUI, checks])
 
+  const openTakenModal = useCallback(() => setActiveModal('taken'), [])
+  const openUncompleted = useCallback(() => setActiveModal('uncompleted'), [])
+
+  // Безпечний вихід до гри: якщо є скасовані ставки — попередження,
+  // інакше — одразу перехід. Оплачені вже видалені з корзини в payCurrentCheck.
+  const leaveToGame = useCallback((): void => {
+    if (checks.nonActivePrices.length > 0) {
+      setActiveModal('uncompleted')
+      return
+    }
+    const route = cart.gameId ? `/game/${cart.gameId}` : GAME_ROUTE_FALLBACK
+    navigate(route)
+  }, [checks.nonActivePrices, cart.gameId, navigate])
+
+  // Підтвердження виходу: прибрати скасовані ставки (оплачені вже видалено).
+  const confirmUncompleted = useCallback((): void => {
+    cart.removeMany(checks.nonActivePrices)
+    setActiveModal(null)
+    const route = cart.gameId ? `/game/${cart.gameId}` : GAME_ROUTE_FALLBACK
+    navigate(route)
+  }, [cart, checks.nonActivePrices, navigate])
+
   const handleCta = useCallback((): void => {
     if (cta.kind === 'connect') {
       void tonConnectUI.openModal()
@@ -193,21 +224,9 @@ export const useBuyTicketsFlow = (
       checks.goToNextPending()
       return
     }
-    // back: перейти до гри.
-    const route = cart.gameId ? `/game/${cart.gameId}` : GAME_ROUTE_FALLBACK
-    navigate(route)
-  }, [cta.kind, checks, tonConnectUI, payCurrentCheck, cart.gameId, navigate])
-
-  const openTakenModal = useCallback(() => setActiveModal('taken'), [])
-  const openUncompleted = useCallback(() => setActiveModal('uncompleted'), [])
-
-  // Підтвердження виходу: прибрати з корзини всі неактивні+зайняті ставки.
-  const confirmUncompleted = useCallback((): void => {
-    cart.removeMany(checks.nonActivePrices)
-    setActiveModal(null)
-    const route = cart.gameId ? `/game/${cart.gameId}` : GAME_ROUTE_FALLBACK
-    navigate(route)
-  }, [cart, checks.nonActivePrices, navigate])
+    // back: безпечний вихід із попередженням про скасовані ставки.
+    leaveToGame()
+  }, [cta.kind, checks, tonConnectUI, payCurrentCheck, leaveToGame])
 
   return {
     checks,
@@ -222,5 +241,6 @@ export const useBuyTicketsFlow = (
     openUncompleted,
     confirmUncompleted,
     closeModal,
+    leaveToGame,
   }
 }
