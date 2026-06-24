@@ -142,6 +142,9 @@ export function toGameDetail(dto: GameDto, myUserId?: string | null): GameDetail
   const finalPrice =
     dto.oracleFinalPrice !== null ? centsToUsd(dto.oracleFinalPrice) : null;
 
+  // Унікальні гравці: множина унікальних ownerId серед тікетів
+  const uniquePlayers = new Set(dto.tickets.map((t) => t.ownerId)).size;
+
   return {
     id: dto.id,
     name: dto.name,
@@ -156,6 +159,9 @@ export function toGameDetail(dto: GameDto, myUserId?: string | null): GameDetail
     organizer: `@${dto.owner.nickname}`,
     prize,
     ticketsTotal: dto.tickets.length,
+    uniquePlayers,
+    authorPercent: dto.authorPercent,
+    targetCurrency: dto.targetCurrency,
     finalPrice,
     winningTicketId: dto.winningTicketId,
     winnerNickname: dto.winningTicket ? `@${dto.winningTicket.owner.nickname}` : null,

@@ -4,10 +4,9 @@ import { CurrencyPricePlate } from '../components/games/CurrencyPricePlate'
 import { WaitCard } from '../components/games/WaitCard'
 import { useInfiniteGames, PER_PAGE } from '../hooks/useInfiniteGames'
 import { useAuth } from '../hooks/useAuth'
+import { useBinancePrice } from '../hooks/useBinancePrice'
 import { listWaiting } from '../services/gameApi'
-
-/** Поточний курс пари для плашки (мок; real-time ціна підключається окремо). */
-const MOCK_PRICE = '$56,542.47'
+import { centsToUsd } from '../utils/units'
 
 /**
  * Вкладка Waiting: плашка поточного курсу + список ігор, що очікують фіналізації.
@@ -25,10 +24,15 @@ const WaitingPage: FC = () => {
   // enabled=ready — не стартуємо запит до завершення ініціалізації auth
   const { items, loading, hasMore, sentinelRef } = useInfiniteGames(fetchPage, ready)
 
+  // Жива ціна BTC з Binance WebSocket; null — до першого тіку
+  const livePrice = useBinancePrice()
+  // Форматуємо аналогічно до GamePage (centsToUsd(Math.round(price*100)))
+  const priceStr = livePrice !== null ? centsToUsd(Math.round(livePrice * 100)) : '—'
+
   return (
     <>
       <div className="sticky top-0 z-20 -mt-8 w-full bg-background px-3 pt-1.5 pb-3">
-        <CurrencyPricePlate price={MOCK_PRICE} />
+        <CurrencyPricePlate price={priceStr} />
       </div>
       <div className="w-full">
         {/* Чекаємо ініціалізації AuthProvider або першого завантаження — уникаємо flash EmptyState */}

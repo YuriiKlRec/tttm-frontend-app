@@ -80,6 +80,12 @@ export interface GameDetail {
   prize?: string
   /** Кількість унікальних тікетів у грі. */
   ticketsTotal?: number
+  /** Кількість унікальних гравців (обчислюється на фронті за множиною ownerId). */
+  uniquePlayers?: number
+  /** Відсоток призового фонду, що відходить організатору (0–100). */
+  authorPercent?: number
+  /** Торгова пара для графіка (напр. "BTCUSDT"). */
+  targetCurrency?: string
   /** Фінальна ціна оракула у форматованому вигляді (напр. "$57,342.47"); null — до фіналізації. */
   finalPrice?: string | null
   /** ID виграшного тікета; null — до фіналізації. */

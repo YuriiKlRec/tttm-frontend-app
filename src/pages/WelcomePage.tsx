@@ -1,16 +1,21 @@
 import type { FC } from 'react'
 import { PredictionButton } from '../components/ui/PredictionButton'
+import { useBinancePrice } from '../hooks/useBinancePrice'
+import { centsToUsd } from '../utils/units'
 import rocketAir from '../assets/rocket-air.png'
 import iconBitcoin from '../assets/icon-bitcoin.svg'
 
-/** Статична (мокова) ціна для верхньої мітки. */
-const MOCK_PRICE = '$62,054.85'
-
 /**
  * Перший екран онбордингу `/welcome`: фон-ракета, поточна ціна BTC зверху,
- * привітання по центру та CTA «Get started» унизу. Дані статичні (без API).
+ * привітання по центру та CTA «Get started» унизу.
  */
-const WelcomePage: FC = () => (
+const WelcomePage: FC = () => {
+  // Жива ціна BTC з Binance WebSocket; null — до першого тіку
+  const livePrice = useBinancePrice()
+  // Форматуємо аналогічно до GamePage (centsToUsd(Math.round(price*100)))
+  const priceStr = livePrice !== null ? centsToUsd(Math.round(livePrice * 100)) : '—'
+
+  return (
   <div className="relative mx-auto h-[100dvh] max-w-[430px] overflow-hidden bg-background">
     {/* Фон-ракета: центрований по вертикалі, масштабований як у Figma. */}
     <div
@@ -24,10 +29,10 @@ const WelcomePage: FC = () => (
       />
     </div>
 
-    {/* Верх: поточна ціна BTC (мок). */}
+    {/* Верх: поточна ціна BTC з Binance WebSocket. */}
     <div className="absolute inset-x-7 top-[calc(var(--app-safe-top)+32px)] z-10 flex flex-col items-center gap-2 text-center">
       <span className="font-mono text-[13px] font-bold text-text-primary">BTC/USDT:</span>
-      <span className="font-mono text-[22px] font-bold text-text-primary">{MOCK_PRICE}</span>
+      <span className="font-mono text-[22px] font-bold text-text-primary">{priceStr}</span>
     </div>
 
     {/* Центр: привітання гравця. */}
@@ -44,6 +49,7 @@ const WelcomePage: FC = () => (
       <PredictionButton label="Get started" to="/terms" />
     </div>
   </div>
-)
+  )
+}
 
 export default WelcomePage

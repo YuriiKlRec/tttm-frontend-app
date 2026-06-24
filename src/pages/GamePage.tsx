@@ -19,8 +19,8 @@ import type { Timeframe } from '../services/binance'
 import type { ViewMode, DetailGroup, Bet } from '../types/game'
 import type { WaitBet } from '../mocks/waitGames'
 
-/** Торгова пара для графіка (поки фіксована). */
-const SYMBOL = 'BTCUSDT'
+/** Запасна торгова пара для графіка — використовується якщо targetCurrency відсутній у грі. */
+const FALLBACK_SYMBOL = 'BTCUSDT'
 
 /**
  * Стабільний порожній масив ставок — використовується як fallback у селекторі
@@ -55,6 +55,7 @@ function buildDetailGroups(
     organizer?: string
     prize?: string
     ticketsTotal?: number
+    authorPercent?: number
     finalPrice?: string | null
     winnerNickname?: string | null
     winnerTicketPrice?: string | null
@@ -99,6 +100,20 @@ function buildDetailGroups(
   const prizeGroup: DetailGroup = []
   if (game.prize) {
     prizeGroup.push({ label: 'Reward', value: game.prize })
+
+    // Розподіл призового фонду між переможцем та організатором.
+    // Формула відповідає старому фронтенду (frontend/src/hooks/useGameCalc.ts):
+    //   organizerShare = pool * authorPercent / 100
+    //   winnerShare = pool - organizerShare
+    if (game.authorPercent !== undefined) {
+      const pool = parseFloat(game.prize)
+      if (Number.isFinite(pool)) {
+        const organizerShare = pool * game.authorPercent / 100
+        const winnerShare = pool - organizerShare
+        prizeGroup.push({ label: "Winner's share", value: `${winnerShare.toFixed(2)} TON` })
+        prizeGroup.push({ label: "Organizer's share", value: `${organizerShare.toFixed(2)} TON` })
+      }
+    }
   }
   if (game.ticketsTotal !== undefined) {
     prizeGroup.push({ label: 'Number of tickets', value: String(game.ticketsTotal) })
@@ -185,7 +200,9 @@ const GamePage: FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  const { candles, currentPrice } = useChartData(SYMBOL, timeframe)
+  // Торгова пара береться з даних гри; FALLBACK_SYMBOL — якщо гра ще не завантажена
+  const chartSymbol = game?.targetCurrency ?? FALLBACK_SYMBOL
+  const { candles, currentPrice } = useChartData(chartSymbol, timeframe)
 
   // Маркери графіка: реальні тікети + заброньовані з корзини
   const chartBets = useMemo(() => {
@@ -238,8 +255,8 @@ const GamePage: FC = () => {
       reward: game.prize ?? '—',
       ticketsTaken: String(taken),
       ticketsMine: String(mine),
-      // Кількість унікальних гравців — приблизно: totalTickets (players ≠ tickets у загальному випадку)
-      players: game.ticketsTotal !== undefined ? String(game.ticketsTotal) : '—',
+      // Кількість унікальних гравців, обчислена в маппері за множиною ownerId
+      players: game.uniquePlayers !== undefined ? String(game.uniquePlayers) : '—',
     }
   }, [game])
 
