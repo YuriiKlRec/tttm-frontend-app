@@ -177,12 +177,14 @@ const GamePage: FC = () => {
   // не отримував нове посилання щорендер і не падав в infinite loop.
   const liveBets = useLiveStore((s) => s.ticketsByGame.get(id) ?? EMPTY_BETS)
 
-  // Об'єднуємо: живі тікети спереду, пагіновані — позаду (дедуплікація за rank+user)
+  // Об'єднуємо: живі тікети спереду, пагіновані — позаду (дедуплікація за user+price).
+  // Кожне джерело має власну нумерацію rank, тому після злиття ПЕРЕНУМЕРОВУЄМО
+  // послідовно за позицією — інакше ранги дублюються (напр. 1 1 2 3 4).
   const bets: Bet[] = useMemo(() => {
     if (liveBets.length === 0) return pagedBets
     const liveSet = new Set(liveBets.map((b) => `${b.user}-${b.price}`))
     const filtered = pagedBets.filter((b) => !liveSet.has(`${b.user}-${b.price}`))
-    return [...liveBets, ...filtered]
+    return [...liveBets, ...filtered].map((b, i) => ({ ...b, rank: i + 1 }))
   }, [liveBets, pagedBets])
 
   // Єдине джерело правди для вибраної ціни
