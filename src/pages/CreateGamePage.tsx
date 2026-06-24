@@ -109,6 +109,8 @@ const CreateGamePage: FC = () => {
         const gameResp = await createGame({
           name: form.name,
           targetCurrency: 'BTCUSDT',
+          // У формі поля опису немає; колонка БД NOT NULL → порожній рядок.
+          description: '',
           ticketAmount,
           authorPercent: form.pool,
           endTime: endTimeIso,

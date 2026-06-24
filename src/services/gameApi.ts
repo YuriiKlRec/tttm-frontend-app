@@ -59,6 +59,8 @@ interface GameTonData {
 export interface CreateGameReq {
   name: string;
   targetCurrency: 'BTCUSDT';
+  /** Опис гри. Колонка БД NOT NULL — надсилаємо хоча б порожній рядок. */
+  description: string;
   /** Ціна квитка у nanoTON (int). */
   ticketAmount: number;
   authorPercent: number;
