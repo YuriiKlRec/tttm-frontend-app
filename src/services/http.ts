@@ -32,6 +32,13 @@ export class ValidationError extends ApiError {
 /** Поточний Bearer-токен, встановлюється через setToken(). */
 let currentToken: string | null = null;
 
+/**
+ * In-flight promise оновлення токена.
+ * Якщо кілька 401 відповідей прийдуть одночасно — всі чекають на ОДИН запит,
+ * а не запускають паралельні /api/me/refresh (mutex-паттерн).
+ */
+let refreshInFlight: Promise<string | null> | null = null;
+
 /** Встановити або скинути токен авторизації. */
 export function setToken(token: string | null): void {
   currentToken = token;
@@ -83,31 +90,44 @@ async function parseError(response: Response): Promise<never> {
  * Спроба оновити access-токен через /api/me/refresh.
  * Повертає новий access-токен або null, якщо refresh-токен відсутній чи запит завершився помилкою.
  * Не використовує `request()`, щоб уникнути рекурсії.
+ *
+ * Mutex: якщо оновлення вже виконується — повертає той самий Promise,
+ * не запускаючи паралельний /api/me/refresh.
  */
 async function tryRefreshToken(): Promise<string | null> {
+  // Якщо вже є in-flight запит — приєднуємось до нього замість нового
+  if (refreshInFlight) return refreshInFlight;
+
   const refreshToken = getStoredRefreshToken();
   if (!refreshToken) return null;
 
-  try {
-    const response = await fetch(`${env.apiBaseUrl}/api/me/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
+  refreshInFlight = (async (): Promise<string | null> => {
+    try {
+      const response = await fetch(`${env.apiBaseUrl}/api/me/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
+        clearTokens();
+        return null;
+      }
+
+      const dto = (await response.json()) as TokenSet;
+      storeTokens(dto);
+      setToken(dto.accessToken);
+      return dto.accessToken;
+    } catch {
       clearTokens();
       return null;
+    } finally {
+      // Скидаємо mutex після завершення (успіх або помилка)
+      refreshInFlight = null;
     }
+  })();
 
-    const dto = (await response.json()) as TokenSet;
-    storeTokens(dto);
-    setToken(dto.accessToken);
-    return dto.accessToken;
-  } catch {
-    clearTokens();
-    return null;
-  }
+  return refreshInFlight;
 }
 
 async function request<T>(

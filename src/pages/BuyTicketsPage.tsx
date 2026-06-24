@@ -1,4 +1,4 @@
-import { useMemo, type FC } from 'react'
+import { useEffect, useMemo, useState, type FC } from 'react'
 import { BuyHeader } from '../components/buy/BuyHeader'
 import { CheckSlides } from '../components/buy/CheckSlides'
 import { BulletsPagination } from '../components/buy/BulletsPagination'
@@ -6,6 +6,8 @@ import { CheckActionPanel } from '../components/buy/CheckActionPanel'
 import { BuyModals } from '../components/buy/BuyModals'
 import { useBuyTicketsFlow } from '../hooks/useBuyTicketsFlow'
 import { useBookedCart } from '../context/BookedCartProvider'
+import { useLiveStore } from '../store/liveStore'
+import { getGame } from '../services/gameApi'
 import { MOCK_PRICES, MOCK_TAKEN, MOCK_TICKET_PRICE } from '../mocks/buyTickets'
 
 /** Моковий зворотний відлік у шапці (без реального таймера). */
@@ -27,9 +29,30 @@ const BuyTicketsPage: FC = () => {
   // Зайняті ставки демонструємо лише на моку (реально приходять із бекенда).
   const takenPrices = usingMock ? MOCK_TAKEN : []
 
-  // Ціна квитка: наразі береться з MOCK (бекенд не передає у корзину);
-  // у реальному флоу — з об'єкту гри (розширити корзину при потребі).
-  const ticketPrice = MOCK_TICKET_PRICE
+  // Реальна ціна квитка: спочатку з live-стору (вже завантажена сторінка гри),
+  // якщо відсутня — одноразовий fetch через gameApi.
+  const liveGame = useLiveStore((s) => (cart.gameId ? s.games.get(cart.gameId) : undefined))
+  const [fetchedTicketPrice, setFetchedTicketPrice] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Якщо ціна вже є у live-сторі або гра невідома — fetch не потрібен
+    if (!cart.gameId || liveGame?.ticketPrice) return
+
+    let cancelled = false
+    getGame(cart.gameId)
+      .then((game) => {
+        if (!cancelled) setFetchedTicketPrice(game.ticketPrice)
+      })
+      .catch(() => {
+        // Не падаємо — залишаємо мок-фолбек
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [cart.gameId, liveGame?.ticketPrice])
+
+  // Пріоритет: live-стор → одноразовий fetch → мок-фолбек
+  const ticketPrice = liveGame?.ticketPrice ?? fetchedTicketPrice ?? MOCK_TICKET_PRICE
 
   const flow = useBuyTicketsFlow(prices, ticketPrice, takenPrices)
   const { checks } = flow
