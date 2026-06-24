@@ -9,19 +9,14 @@ import { ClosestPredictions } from '../components/games/ClosestPredictions'
 import { useChartData } from '../hooks/useChartData'
 import { useNow } from '../hooks/useNow'
 import { useBookedCart } from '../context/BookedCartProvider'
+import { useAuth } from '../hooks/useAuth'
+import { useGameLive } from '../hooks/useGameLive'
+import { useInfiniteTickets } from '../hooks/useInfiniteTickets'
+import { useLiveStore } from '../store/liveStore'
+import { centsToUsd } from '../utils/units'
 import type { Timeframe } from '../services/binance'
-import {
-  mockBets,
-  mockChartBets,
-  mockClosest,
-  mockCurrencyPrice,
-  mockFinalPrice,
-  mockGameDetail,
-  mockGameInfo,
-  mockPredictionStats,
-  mockResultInfo,
-} from '../mocks/gameDetail'
-import type { ViewMode } from '../types/game'
+import type { ViewMode, DetailGroup, Bet } from '../types/game'
+import type { WaitBet } from '../mocks/waitGames'
 
 /** Торгова пара для графіка (поки фіксована). */
 const SYMBOL = 'BTCUSDT'
@@ -30,83 +25,265 @@ const SYMBOL = 'BTCUSDT'
 type GamePhase = 'active' | 'waiting' | 'finished'
 
 /**
+ * Обчислює фазу гри на основі часів GameDetail та поточного моменту (epoch ms).
+ * Дублює семантику derivePhase, але працює з вже замапленими полями GameDetail.
+ */
+function computePhase(betCloseTime: number, endTime: number, now: number): GamePhase {
+  if (now >= endTime) return 'finished'
+  if (now >= betCloseTime) return 'waiting'
+  return 'active'
+}
+
+/**
+ * Будує групи деталей гри для вигляду «Details».
+ * Для завершеної гри додає першу групу з результатами.
+ * Поля, що не заповнені — пропускаються.
+ */
+function buildDetailGroups(
+  game: {
+    ticketPrice: string
+    betCloseTime: number
+    endTime: number
+    organizer?: string
+    prize?: string
+    ticketsTotal?: number
+    finalPrice?: string | null
+    winnerNickname?: string | null
+    winnerTicketPrice?: string | null
+  },
+  finished: boolean,
+): DetailGroup[] {
+  const groups: DetailGroup[] = []
+
+  // Група результату (лише для завершеної гри)
+  if (finished) {
+    const resultGroup: DetailGroup = []
+    if (game.winnerNickname) {
+      resultGroup.push({ label: 'Winner', value: game.winnerNickname })
+    }
+    if (game.finalPrice) {
+      resultGroup.push({ label: 'BTC/USDT price', value: game.finalPrice })
+    }
+    if (game.winnerTicketPrice) {
+      resultGroup.push({ label: 'Winner ticket', value: game.winnerTicketPrice })
+    }
+    if (resultGroup.length > 0) {
+      groups.push(resultGroup)
+    }
+  }
+
+  // Часова група
+  const timeGroup: DetailGroup = [
+    {
+      label: 'Price prediction date/time',
+      value: new Date(game.endTime).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    },
+    {
+      label: 'Stop receiving predictions',
+      value: new Date(game.betCloseTime).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    },
+    { label: 'Oracle / price source', value: 'Binance' },
+  ]
+  groups.push(timeGroup)
+
+  // Група призу
+  const prizeGroup: DetailGroup = []
+  if (game.prize) {
+    prizeGroup.push({ label: 'Reward', value: game.prize })
+  }
+  if (game.ticketsTotal !== undefined) {
+    prizeGroup.push({ label: 'Number of tickets', value: String(game.ticketsTotal) })
+  }
+  prizeGroup.push({ label: 'Ticket price', value: `${game.ticketPrice} TON` })
+  groups.push(prizeGroup)
+
+  // Організатор
+  if (game.organizer) {
+    groups.push([{ label: 'Organizer', value: game.organizer }])
+  }
+
+  return groups
+}
+
+/**
  * Окрема сторінка гри `/game/:id` (поза AppLayout): шапка з відліком і перемикачем
  * виду, інтерактивний графік ціни BTC у центрі та підвал ставки.
- * Дані гри — з моку, дані графіка — з Binance (REST + WebSocket).
+ * Дані гри — з useGameLive (REST + real-time Socket.IO), дані графіка — з Binance.
  */
 const GamePage: FC = () => {
-  useParams<{ id: string }>()
-  const game = mockGameDetail
+  const { id = '' } = useParams<{ id: string }>()
+  const { user } = useAuth()
+  const myUserId = user?.id ?? null
+
+  const { game, ready } = useGameLive(id, myUserId)
+
   const [searchParams] = useSearchParams()
-  // Початковий вид: ?view=predictions відкриває список ставок (з «All tickets»).
+  // Початковий вид: ?view=predictions відкриває список ставок
   const initialView: ViewMode = searchParams.get('view') === 'predictions' ? 'bets' : 'chart'
   const [rawViewMode, setViewMode] = useState<ViewMode>(initialView)
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
-  // Фільтр «лише мої ставки» — керується кнопкою в шапці (вид Predictions).
+  // Фільтр «лише мої ставки» — керується кнопкою в шапці (вид Predictions)
   const [mineOnly, setMineOnly] = useState(false)
 
-  // Фаза гри: active (прийом ставок) → waiting (закрито, чекає фіналізації) →
-  // finished (завершено). DEV-перемикач циклічно форсує фазу для демо.
   const now = useNow()
-  const [phaseOverride, setPhaseOverride] = useState<GamePhase | null>(null)
-  const computedPhase: GamePhase =
-    now < mockGameDetail.betCloseTime ? 'active' : now < mockGameDetail.endTime ? 'waiting' : 'finished'
-  const phase = phaseOverride ?? computedPhase
-  const cyclePhase = (): void =>
-    setPhaseOverride((p) => {
-      const order: (GamePhase | null)[] = ['active', 'waiting', 'finished', null]
-      const current = p ?? computedPhase
-      return order[(order.indexOf(current) + 1) % order.length]
-    })
 
-  // У завершеній грі вид «графік» недоступний: дропдаун без нього, а пряме
-  // посилання на chart перенаправляємо на список ставок.
+  // Фаза гри обчислюється з реальних часів GameDetail
+  const phase: GamePhase = game
+    ? computePhase(game.betCloseTime, game.endTime, now)
+    : 'active'
+
   const finished = phase === 'finished'
+
+  // У завершеній грі вид «графік» недоступний
   const viewMode: ViewMode = finished && rawViewMode === 'chart' ? 'bets' : rawViewMode
   const viewOptions: ViewMode[] | undefined = finished ? ['bets', 'details'] : undefined
-  // Деталі завершеної гри додають групу результату (переможець/курс/квиток).
-  const gameInfo = finished ? [mockResultInfo, ...mockGameInfo] : mockGameInfo
-  // Єдине джерело правди для вибраної ціни: і графік, і поле читають/пишуть сюди.
+
+  // Список ставок із безперервним завантаженням
+  const winningTicketId = game?.winningTicketId ?? null
+  const { bets: pagedBets, sentinelRef } = useInfiniteTickets(
+    id,
+    mineOnly,
+    myUserId,
+    winningTicketId,
+    ready,
+  )
+
+  // Real-time тікети зі стора (game:ticket_added / ticket:created)
+  const liveBets = useLiveStore((s) => s.ticketsByGame.get(id) ?? [])
+
+  // Об'єднуємо: живі тікети спереду, пагіновані — позаду (дедуплікація за rank+user)
+  const bets: Bet[] = useMemo(() => {
+    if (liveBets.length === 0) return pagedBets
+    const liveSet = new Set(liveBets.map((b) => `${b.user}-${b.price}`))
+    const filtered = pagedBets.filter((b) => !liveSet.has(`${b.user}-${b.price}`))
+    return [...liveBets, ...filtered]
+  }, [liveBets, pagedBets])
+
+  // Єдине джерело правди для вибраної ціни
   const [selectedPrice, setSelectedPrice] = useState<number | undefined>(undefined)
-  // Корзина заброньованих ставок + чи відкрита панель Booked (замість графіка).
+  // Корзина заброньованих ставок
   const cart = useBookedCart()
   const [cartOpen, setCartOpen] = useState(false)
 
   const { candles, currentPrice } = useChartData(SYMBOL, timeframe)
 
-  // Маркери графіка: мокові (оплачені свої/чужі) + заброньовані з корзини
-  // (свої неоплачені — малюються на білому фоні).
-  const chartBets = useMemo(
-    () => [
-      ...mockChartBets,
-      ...cart.prices.map((price) => ({ price, mine: true, booked: true })),
-    ],
-    [cart.prices],
-  )
+  // Маркери графіка: реальні тікети + заброньовані з корзини
+  const chartBets = useMemo(() => {
+    const yourPrices = game?.yourTickets ?? []
+    const otherPrices = game?.takenByOthers ?? []
+    const ticketMarkers = [
+      ...yourPrices.map((price) => ({ price, mine: true, booked: false as const })),
+      ...otherPrices.map((price) => ({ price, mine: false, booked: false as const })),
+    ]
+    const bookedMarkers = cart.prices.map((price) => ({
+      price,
+      mine: true as const,
+      booked: true as const,
+    }))
+    return [...ticketMarkers, ...bookedMarkers]
+  }, [game, cart.prices])
 
-  // Стабільний геймовий контекст для графіка — інакше новий об'єкт щорендеру
-  // змушував би canvas перемальовуватись зайвий раз.
+  // Стабільний геймовий контекст для графіка
   const chartGame = useMemo(
-    () => ({
-      startTime: game.startTime,
-      betOpenTime: game.betOpenTime,
-      betCloseTime: game.betCloseTime,
-      endTime: game.endTime,
-    }),
-    [game.startTime, game.betOpenTime, game.betCloseTime, game.endTime],
+    () =>
+      game
+        ? {
+            startTime: game.startTime,
+            betOpenTime: game.betOpenTime,
+            betCloseTime: game.betCloseTime,
+            endTime: game.endTime,
+          }
+        : {
+            startTime: now - 3_600_000,
+            betOpenTime: now - 3_600_000,
+            betCloseTime: now + 3_600_000,
+            endTime: now + 7_200_000,
+          },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [game?.startTime, game?.betOpenTime, game?.betCloseTime, game?.endTime],
   )
 
-  // «Edit»: повертає ціну в поле вводу та прибирає її з корзини (панель лишається).
+  // Детальні групи (деталі гри)
+  const gameInfo: DetailGroup[] = useMemo(() => {
+    if (!game) return []
+    return buildDetailGroups(game, finished)
+  }, [game, finished])
+
+  // Статистика для вигляду «Predictions»
+  const stats = useMemo(() => {
+    if (!game) return { reward: '—', ticketsTaken: '—', ticketsMine: '—', players: '—' }
+    const taken = (game.takenByOthers?.length ?? 0) + (game.yourTickets?.length ?? 0)
+    const mine = game.yourTickets?.length ?? 0
+    return {
+      reward: game.prize ?? '—',
+      ticketsTaken: String(taken),
+      ticketsMine: String(mine),
+      // Кількість унікальних гравців — приблизно: totalTickets (players ≠ tickets у загальному випадку)
+      players: game.ticketsTotal !== undefined ? String(game.ticketsTotal) : '—',
+    }
+  }, [game])
+
+  // Форматована поточна ціна BTC для плашки курсу
+  const currentPriceStr = currentPrice
+    ? centsToUsd(Math.round(currentPrice * 100))
+    : '—'
+
+  // Найближчі прогнози для «waiting»: лідер і ставка користувача з bets
+  const closestPredictions = useMemo((): {
+    leader: WaitBet
+    mine: WaitBet
+  } | null => {
+    if (phase !== 'waiting' || bets.length === 0) return null
+
+    const topBet = bets[0]
+    const myBet = bets.find((b) => b.variant === 'mine')
+    const fallback: WaitBet = {
+      rank: 1,
+      user: topBet.user,
+      price: topBet.price,
+      mine: topBet.variant === 'mine' || topBet.variant === 'win',
+    }
+
+    return {
+      leader: fallback,
+      mine: myBet
+        ? { rank: myBet.rank, user: myBet.user, price: myBet.price, mine: true }
+        : fallback,
+    }
+  }, [phase, bets])
+
+  // «Edit»: повертає ціну в поле вводу та прибирає її з корзини
   const handleEditBooked = (price: number): void => {
     cart.remove(price)
     setSelectedPrice(price)
   }
 
-  // «Clear all»: очищає корзину та згортає панель на графік.
+  // «Clear all»: очищає корзину та згортає панель на графік
   const handleClearAll = (): void => {
     cart.clear()
     setCartOpen(false)
   }
+
+  // Поки дані не завантажені — порожній контейнер без краша
+  if (!ready || !game) {
+    return <GameLayout header={<div />}>{null}</GameLayout>
+  }
+
+  // Фінальна ціна для шапки завершеної гри
+  const headerFinalPrice = game.finalPrice ?? undefined
+
+  // Виграшний пул для графіка
+  const winningPool = game.prize ?? '—'
 
   return (
     <GameLayout
@@ -120,7 +297,7 @@ const GamePage: FC = () => {
           onToggleMine={() => setMineOnly((prev) => !prev)}
           viewOptions={viewOptions}
           finished={finished}
-          finalPrice={mockFinalPrice}
+          finalPrice={headerFinalPrice}
         />
       }
       footer={
@@ -135,11 +312,10 @@ const GamePage: FC = () => {
             presetPrice={selectedPrice}
             onPriceChange={setSelectedPrice}
           />
-        ) : phase === 'waiting' ? (
+        ) : phase === 'waiting' && closestPredictions ? (
           <ClosestPredictions
-            leader={mockClosest.leader}
-            mine={mockClosest.mine}
-            deviationPercent={mockClosest.deviationPercent}
+            leader={closestPredictions.leader}
+            mine={closestPredictions.mine}
             viewMode={viewMode}
             onChangeView={setViewMode}
           />
@@ -157,34 +333,26 @@ const GamePage: FC = () => {
         />
       ) : (
         <GameContent
-        viewMode={viewMode}
-        mineOnly={mineOnly}
-        bets={mockBets}
-        stats={mockPredictionStats}
-        info={gameInfo}
-        price={mockCurrencyPrice}
-        showCurrencyPlate={!finished}
-        candles={candles}
-        currentPrice={currentPrice}
-        timeframe={timeframe}
-        onTimeframeChange={setTimeframe}
-        game={chartGame}
-        chartBets={chartBets}
-        winningPool={mockPredictionStats.reward}
-        onPriceSelect={setSelectedPrice}
-        externalPrice={selectedPrice}
-        interactive={phase === 'active'}
-      />
+          viewMode={viewMode}
+          mineOnly={mineOnly}
+          bets={bets}
+          stats={stats}
+          info={gameInfo}
+          price={currentPriceStr}
+          showCurrencyPlate={!finished}
+          candles={candles}
+          currentPrice={currentPrice}
+          timeframe={timeframe}
+          onTimeframeChange={setTimeframe}
+          game={chartGame}
+          chartBets={chartBets}
+          winningPool={winningPool}
+          onPriceSelect={setSelectedPrice}
+          externalPrice={selectedPrice}
+          interactive={phase === 'active'}
+          sentinelRef={sentinelRef}
+        />
       )}
-
-      {/* DEV-перемикач фази гри — приберемо після демонстрації. */}
-      <button
-        type="button"
-        onClick={cyclePhase}
-        className="absolute right-2 top-1/2 z-50 bg-black/50 px-2 py-1 font-mono text-[10px] text-text-secondary"
-      >
-        DEV phase: {phase}
-      </button>
     </GameLayout>
   )
 }

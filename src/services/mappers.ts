@@ -117,6 +117,7 @@ export function toGameCard(dto: GameDto, myUserId?: string | null): Game {
  * Перетворює GameDto у детальну модель GameDetail.
  *
  * betOpenTime: таймлайн починається від створення гри (createdAt).
+ * Додаткові поля (organizer, prize, finalPrice тощо) — для вигляду «Details».
  */
 export function toGameDetail(dto: GameDto, myUserId?: string | null): GameDetail {
   const createdAtMs = Date.parse(dto.createdAt);
@@ -128,11 +129,18 @@ export function toGameDetail(dto: GameDto, myUserId?: string | null): GameDetail
 
   const myTicketPrices = dto.tickets
     .filter((t) => myUserId !== undefined && myUserId !== null && t.ownerId === myUserId)
-    .map((t) => t.price / 100); // nanoTON → TON? Ні: тут price є BTC-прогноз у центах → ділимо на 100
+    .map((t) => t.price / 100); // price — BTC-прогноз у центах → ділимо на 100
 
   const otherTicketPrices = dto.tickets
     .filter((t) => !(myUserId !== undefined && myUserId !== null && t.ownerId === myUserId))
     .map((t) => t.price / 100);
+
+  // Призовий фонд: ticketAmount (nanoTON) × кількість тікетів
+  const totalNano = Number(BigInt(dto.ticketAmount) * BigInt(dto.tickets.length));
+  const prize = dto.tickets.length > 0 ? `${nanoToTon(totalNano)} TON` : undefined;
+
+  const finalPrice =
+    dto.oracleFinalPrice !== null ? centsToUsd(dto.oracleFinalPrice) : null;
 
   return {
     id: dto.id,
@@ -144,6 +152,14 @@ export function toGameDetail(dto: GameDto, myUserId?: string | null): GameDetail
     endTime: endTimeMs,
     takenByOthers: otherTicketPrices,
     yourTickets: myTicketPrices,
+
+    organizer: `@${dto.owner.nickname}`,
+    prize,
+    ticketsTotal: dto.tickets.length,
+    finalPrice,
+    winningTicketId: dto.winningTicketId,
+    winnerNickname: dto.winningTicket ? `@${dto.winningTicket.owner.nickname}` : null,
+    winnerTicketPrice: dto.winningTicket ? centsToUsd(dto.winningTicket.price) : null,
   };
 }
 

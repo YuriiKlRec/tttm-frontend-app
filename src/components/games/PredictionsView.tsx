@@ -1,4 +1,5 @@
 import { useMemo, type FC } from 'react'
+import type React from 'react'
 import type { Bet } from '../../types/game'
 import { PredictionStats } from './PredictionStats'
 import { BetLine } from './BetLine'
@@ -29,6 +30,11 @@ interface PredictionsViewProps {
   mineOnly: boolean
   /** Показувати плашку поточного курсу (приховано для завершеної гри). */
   showPrice?: boolean
+  /**
+   * Sentinel-елемент для IntersectionObserver нескінченного скролу.
+   * Якщо передано — розміщується у кінці списку.
+   */
+  sentinelRef?: React.RefObject<HTMLDivElement | null>
 }
 
 /**
@@ -42,6 +48,7 @@ export const PredictionsView: FC<PredictionsViewProps> = ({
   price,
   mineOnly,
   showPrice = true,
+  sentinelRef,
 }) => {
   const visibleBets = useMemo(
     () => (mineOnly ? bets.filter((bet) => bet.variant === 'mine') : bets),
@@ -82,6 +89,8 @@ export const PredictionsView: FC<PredictionsViewProps> = ({
             </li>
           ))}
         </ul>
+        {/* Sentinel для IntersectionObserver нескінченного скролу */}
+        {sentinelRef ? <div ref={sentinelRef} aria-hidden="true" /> : null}
       </div>
 
       {showPrice ? (

@@ -71,4 +71,21 @@ export interface GameDetail {
   takenByOthers: number[]
   /** Ціни квитків, що належать поточному користувачу. */
   yourTickets: number[]
+
+  // ─── Додаткові поля для детального виду (присутні лише після маперу) ───
+
+  /** Організатор гри (нік, напр. "@user_name"). */
+  organizer?: string
+  /** Загальний призовий фонд у TON (напр. "2.4 TON"). */
+  prize?: string
+  /** Кількість унікальних тікетів у грі. */
+  ticketsTotal?: number
+  /** Фінальна ціна оракула у форматованому вигляді (напр. "$57,342.47"); null — до фіналізації. */
+  finalPrice?: string | null
+  /** ID виграшного тікета; null — до фіналізації. */
+  winningTicketId?: string | null
+  /** Нік переможця (напр. "@user_4"); null — до фіналізації. */
+  winnerNickname?: string | null
+  /** Прогнозована ціна переможного тікета (напр. "$57,212.46"); null — до фіналізації. */
+  winnerTicketPrice?: string | null
 }

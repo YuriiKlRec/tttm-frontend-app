@@ -20,11 +20,16 @@ import { useLiveStore } from '../store/liveStore';
 import type { GameDetail } from '../types/game';
 
 /**
- * @param id - ідентифікатор гри
+ * @param id       — ідентифікатор гри
+ * @param myUserId — ID поточного користувача; якщо передано, yourTickets
+ *                   та takenByOthers у GameDetail заповнюються коректно
  * @returns game — поточний GameDetail зі стора (null до першого fetch)
  * @returns ready — true після завершення початкового завантаження
  */
-export function useGameLive(id: string): { game: GameDetail | null; ready: boolean } {
+export function useGameLive(
+  id: string,
+  myUserId?: string | null,
+): { game: GameDetail | null; ready: boolean } {
   const [ready, setReady] = useState(false);
   // Захист від повторного fetch у StrictMode (подвійний mount)
   const fetchedRef = useRef(false);
@@ -40,7 +45,7 @@ export function useGameLive(id: string): { game: GameDetail | null; ready: boole
 
     const init = async (): Promise<void> => {
       try {
-        const detail = await getGame(id);
+        const detail = await getGame(id, myUserId);
         setGame(detail);
       } finally {
         setReady(true);

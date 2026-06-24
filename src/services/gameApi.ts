@@ -24,12 +24,13 @@ export interface PageResult<T> {
 /**
  * Завантажує деталі однієї гри з бекенду.
  *
- * @param id - унікальний ідентифікатор гри
+ * @param id       — унікальний ідентифікатор гри
+ * @param myUserId — ID поточного користувача; потрібен для yourTickets/takenByOthers
  * @returns GameDetail (view-модель)
  */
-export async function getGame(id: string): Promise<GameDetail> {
+export async function getGame(id: string, myUserId?: string | null): Promise<GameDetail> {
   const dto = await get<GameDto>(`/api/games/${id}`);
-  return toGameDetail(dto);
+  return toGameDetail(dto, myUserId);
 }
 
 /**

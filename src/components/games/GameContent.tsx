@@ -1,4 +1,5 @@
 import type { FC } from 'react'
+import type React from 'react'
 import type { Bet, DetailGroup, ViewMode } from '../../types/game'
 import type { Candle, Timeframe } from '../../services/binance'
 import type { ChartBet, ChartGame } from './chart/chartTypes'
@@ -54,6 +55,11 @@ interface GameContentProps {
   interactive?: boolean
   /** Показувати плашку курсу у Predictions (приховано для завершеної гри). */
   showCurrencyPlate?: boolean
+  /**
+   * Sentinel-ref для нескінченного скролу у вигляді «Predictions».
+   * Передається до PredictionsView.
+   */
+  sentinelRef?: React.RefObject<HTMLDivElement | null>
 }
 
 /**
@@ -78,6 +84,7 @@ export const GameContent: FC<GameContentProps> = ({
   externalPrice,
   interactive = true,
   showCurrencyPlate = true,
+  sentinelRef,
 }) => {
   if (viewMode === 'bets') {
     return (
@@ -87,6 +94,7 @@ export const GameContent: FC<GameContentProps> = ({
         price={price}
         mineOnly={mineOnly}
         showPrice={showCurrencyPlate}
+        sentinelRef={sentinelRef}
       />
     )
   }
