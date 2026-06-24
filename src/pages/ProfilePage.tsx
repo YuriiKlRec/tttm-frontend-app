@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PredictionButton } from '../components/ui/PredictionButton'
 import { NicknameField } from '../components/onboarding/NicknameField'
 import { useNicknameInput } from '../hooks/useNicknameInput'
+import { useAuth } from '../hooks/useAuth'
 import { updateNickname } from '../services/meApi'
 import { ValidationError } from '../services/http'
 
@@ -12,10 +13,12 @@ import { ValidationError } from '../services/http'
  * Завершальний екран онбордингу `/profile`: поле вводу нікнейму по центру
  * (з клієнтською та серверною валідацією) і CTA «Continue» унизу.
  * Нік зберігається через PUT /api/me перед переходом на головну.
+ * Поле попередньо заповнюється поточним ніком користувача (якщо є).
  */
 const ProfilePage: FC = () => {
   const navigate = useNavigate()
-  const nickname = useNicknameInput()
+  const { user } = useAuth()
+  const nickname = useNicknameInput(user?.nickname)
   const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string>('')
 

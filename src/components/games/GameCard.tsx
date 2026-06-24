@@ -8,17 +8,18 @@ import { useAuth } from '../../hooks/useAuth'
 import { clamp, formatCountdown } from '../../utils/time'
 import { formatInTz } from '../../utils/datetime'
 import type { Game } from '../../types/game'
+import { gameDeepLink } from '../../utils/gameLink'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import trophyIcon from '../../assets/icon-trophy.svg'
 import linkIcon from '../../assets/icon-link.svg'
 
-/** Копіює публічне посилання на гру в буфер обміну (доступно авторам). */
+/** Копіює deep-link на Mini App з id гри у буфер обміну (доступно авторам). */
 const copyGameLink = (id: string): void => {
   if (!navigator.clipboard) {
     return
   }
   try {
-    void navigator.clipboard.writeText(`${window.location.origin}/game/${id}`)
+    void navigator.clipboard.writeText(gameDeepLink(id))
   } catch {
     // буфер обміну недоступний — мовчазно ігноруємо
   }

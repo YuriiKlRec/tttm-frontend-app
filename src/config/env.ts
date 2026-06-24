@@ -6,6 +6,8 @@ export interface Env {
   tonNetwork: 'testnet' | 'mainnet';
   /** Тривалість таймаута оплати у хвилинах (зворотний відлік на сторінці Buy). */
   paymentTimeoutMinutes: number;
+  /** URL Telegram Mini App (використовується для deep-link генерації). */
+  tgMiniAppUrl: string;
 }
 
 const apiBaseUrl =
@@ -24,4 +26,6 @@ export const env: Env = {
   tonNetwork:
     import.meta.env.VITE_TON_NETWORK === 'mainnet' ? 'mainnet' : 'testnet',
   paymentTimeoutMinutes,
+  tgMiniAppUrl:
+    import.meta.env.VITE_TG_MINI_APP_URL ?? 'https://t.me/tothemoon_dev_bot/tothemoondev',
 };

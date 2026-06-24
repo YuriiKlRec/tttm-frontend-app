@@ -338,6 +338,7 @@ const GamePage: FC = () => {
             onOpenCart={() => setCartOpen(true)}
             presetPrice={selectedPrice}
             onPriceChange={setSelectedPrice}
+            gameId={id}
           />
         ) : phase === 'waiting' && closestPredictions ? (
           <ClosestPredictions

@@ -1,6 +1,7 @@
-import type { FC } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { type FC, useEffect, useRef } from 'react'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import { useLocation } from 'react-router-dom'
+import { retrieveLaunchParams } from '@telegram-apps/sdk'
 import { useTelegramBackButton } from '../hooks/useTelegramBackButton'
 import { AppLayout } from '../components/layout/AppLayout'
 import OnboardingGate from '../components/auth/OnboardingGate'
@@ -17,8 +18,24 @@ import CreateGamePage from '../pages/CreateGamePage'
 /** Маршрути застосунку під спільним AppLayout. */
 export const AppRoutes: FC = () => {
   const location = useLocation()
+  const navigate = useNavigate()
   // Нативна кнопка «назад» Telegram: показ/приховання + навігація за маршрутом
   useTelegramBackButton()
+
+  // Один раз при монтуванні: читаємо startapp-параметр із launch params та
+  // навігуємо на сторінку гри, якщо він присутній (deep-link ?startapp=<gameId>).
+  const startHandledRef = useRef(false)
+  useEffect(() => {
+    if (startHandledRef.current) return
+    startHandledRef.current = true
+    try {
+      const lp = retrieveLaunchParams()
+      const startParam = lp.tgWebAppStartParam
+      if (startParam) navigate(`/game/${startParam}`)
+    } catch {
+      // поза Telegram — ігноруємо
+    }
+  }, [navigate])
 
   return (
     <Routes location={location}>

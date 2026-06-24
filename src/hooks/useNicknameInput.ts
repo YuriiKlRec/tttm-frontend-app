@@ -21,9 +21,10 @@ export interface NicknameInput {
  * Інкапсулює стан і валідацію поля нікнейму.
  * `value` завжди містить провідний `@`, який не можна стерти.
  * Помилка показується тільки після того, як користувач почав вводити.
+ * @param initialNick — початкове значення (напр. поточний нік користувача); `@`-префікс обрізається.
  */
-export const useNicknameInput = (): NicknameInput => {
-  const [nick, setNick] = useState('')
+export const useNicknameInput = (initialNick?: string): NicknameInput => {
+  const [nick, setNick] = useState<string>(() => stripAt(initialNick ?? ''))
 
   const onChange = useCallback((raw: string): void => {
     setNick(stripAt(raw))

@@ -7,6 +7,7 @@ import { useBetPanel } from '../../hooks/useBetPanel'
 import { useNow } from '../../hooks/useNow'
 import { formatCountdown } from '../../utils/time'
 import { totalTon } from '../../utils/price'
+import { gameDeepLink } from '../../utils/gameLink'
 import type { BookedCart } from '../../context/BookedCartProvider'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import btcIcon from '../../assets/icon-btc.svg'
@@ -30,6 +31,8 @@ interface BetPanelProps {
   presetPrice?: number
   /** Емітується при діях користувача над полем (синк → контролер графіка). */
   onPriceChange?: (price: number) => void
+  /** ID гри — для генерації deep-link у кнопці «Copy game link». */
+  gameId: string
 }
 
 /** Варіант action-кнопки за статусом ціни. */
@@ -59,6 +62,7 @@ export const BetPanel: FC<BetPanelProps> = ({
   onOpenCart,
   presetPrice,
   onPriceChange,
+  gameId,
 }) => {
   const { input, status, setInput, decrement, increment, toggleBooking, applyExternal } =
     useBetPanel({ takenByOthers, yourTickets, cart, onPriceChange })
@@ -78,9 +82,9 @@ export const BetPanel: FC<BetPanelProps> = ({
   const countdown = formatCountdown(betCloseTime - now)
   const [copied, setCopied] = useState(false)
 
-  // Копіює посилання на гру в буфер обміну з коротким підтвердженням.
+  // Копіює deep-link Mini App на гру в буфер обміну з коротким підтвердженням.
   const handleCopyLink = (): void => {
-    void navigator.clipboard?.writeText(window.location.href)
+    void navigator.clipboard?.writeText(gameDeepLink(gameId))
     setCopied(true)
     window.setTimeout(() => setCopied(false), 2000)
   }
