@@ -19,7 +19,8 @@ const ResultsPage: FC = () => {
     [myUserId],
   )
 
-  const { items, loading, hasMore, sentinelRef } = useInfiniteGames(fetchPage)
+  // enabled=ready — не стартуємо запит до завершення ініціалізації auth
+  const { items, loading, hasMore, sentinelRef } = useInfiniteGames(fetchPage, ready)
 
   // groupByDate — чиста функція, тому useMemo дає нам оптимізацію при великих списках
   const groups = useMemo(

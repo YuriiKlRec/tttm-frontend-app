@@ -18,7 +18,8 @@ const PredictionsPage: FC = () => {
     [myUserId],
   )
 
-  const { items, loading, hasMore, sentinelRef } = useInfiniteGames(fetchPage)
+  // enabled=ready — не стартуємо запит до завершення ініціалізації auth
+  const { items, loading, hasMore, sentinelRef } = useInfiniteGames(fetchPage, ready)
 
   // Чекаємо ініціалізації AuthProvider — уникаємо помилкового EmptyState
   if (!ready) {

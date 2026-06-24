@@ -1,6 +1,7 @@
 import { env } from '../config/env';
 import {
   getStoredRefreshToken,
+  getStoredAccessToken,
   storeTokens,
   clearTokens,
   type TokenSet,
@@ -40,8 +41,11 @@ function buildHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  if (currentToken) {
-    headers['Authorization'] = `Bearer ${currentToken}`;
+  // Fallback до збереженого токена у localStorage — актуально після перезавантаження сторінки,
+  // доки AuthProvider ще не встиг викликати setToken().
+  const token = currentToken ?? getStoredAccessToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
 }

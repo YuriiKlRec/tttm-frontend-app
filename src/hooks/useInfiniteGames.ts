@@ -37,9 +37,13 @@ export interface InfiniteGamesResult<T> {
  * Generically завантажує сторінки з бекенду та накопичує результати.
  *
  * @param fetchPage - функція, що приймає номер сторінки і повертає PageResult<T>
+ * @param enabled   - якщо false, запити не виконуються (наприклад, до ініціалізації auth)
  * @returns items, hasMore, loading, loadMore, sentinelRef
  */
-export function useInfiniteGames<T>(fetchPage: FetchPage<T>): InfiniteGamesResult<T> {
+export function useInfiniteGames<T>(
+  fetchPage: FetchPage<T>,
+  enabled = true,
+): InfiniteGamesResult<T> {
   const [items, setItems] = useState<T[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -71,19 +75,22 @@ export function useInfiniteGames<T>(fetchPage: FetchPage<T>): InfiniteGamesResul
     [fetchPage],
   );
 
-  // Початкове завантаження і скидання стану при зміні fetchPage (тобто при зміні вкладки)
+  // Початкове завантаження і скидання стану при зміні fetchPage або enabled.
+  // Коли enabled=false — пропускаємо запит, але скидаємо стан, щоб бути готовими.
   useEffect(() => {
     setItems([]);
     setTotal(0);
     setPage(1);
+    if (!enabled) return;
     void loadPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchPage]);
+  }, [fetchPage, enabled]);
 
   const loadMore = useCallback(() => {
-    if (isLoadingRef.current || items.length >= total) return;
+    // Не завантажуємо, якщо auth ще не готовий
+    if (!enabled || isLoadingRef.current || items.length >= total) return;
     void loadPage(page + 1);
-  }, [items.length, total, page, loadPage]);
+  }, [enabled, items.length, total, page, loadPage]);
 
   // IntersectionObserver: автоматично викликає loadMore при появі sentinel у viewport
   useEffect(() => {
