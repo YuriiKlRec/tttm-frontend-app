@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useLocation } from 'react-router-dom'
 import { AppLayout } from '../components/layout/AppLayout'
+import OnboardingGate from '../components/auth/OnboardingGate'
 import PredictionsPage from '../pages/PredictionsPage'
 import WaitingPage from '../pages/WaitingPage'
 import ResultsPage from '../pages/ResultsPage'
@@ -18,21 +19,24 @@ export const AppRoutes: FC = () => {
 
   return (
     <Routes location={location}>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<PredictionsPage />} />
-        <Route path="/waiting" element={<WaitingPage />} />
-        <Route path="/results" element={<ResultsPage />} />
-      </Route>
-      {/* окремий лайаут гри: без app-топбару, нижньої навігації та slide-переходів */}
-      <Route path="/game/:id" element={<GamePage />} />
-      {/* сторінка оплати заброньованих ставок (fullscreen) */}
-      <Route path="/buy" element={<BuyTicketsPage />} />
-      {/* створення нової гри (fullscreen, поза AppLayout) */}
-      <Route path="/create-game" element={<CreateGamePage />} />
-      {/* онбординг: окремі fullscreen-екрани поза AppLayout */}
+      {/* Онбординг: окремі fullscreen-екрани поза OnboardingGate */}
       <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+
+      {/* Захищені маршрути: OnboardingGate перевіряє ready + termsAccepted */}
+      <Route element={<OnboardingGate />}>
+        {/* Сторінки з AppLayout (топбар + нижня навігація + slide-переходи) */}
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<PredictionsPage />} />
+          <Route path="/waiting" element={<WaitingPage />} />
+          <Route path="/results" element={<ResultsPage />} />
+        </Route>
+        {/* Окремі fullscreen-маршрути без AppLayout, але за онбординг-ґейтом */}
+        <Route path="/game/:id" element={<GamePage />} />
+        <Route path="/buy" element={<BuyTicketsPage />} />
+        <Route path="/create-game" element={<CreateGamePage />} />
+      </Route>
     </Routes>
   )
 }

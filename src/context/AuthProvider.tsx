@@ -8,13 +8,14 @@ import {
   type FC,
   type ReactNode,
 } from 'react';
-import { retrieveRawInitData } from '@telegram-apps/sdk';
+import { retrieveRawInitData, requestWriteAccess } from '@telegram-apps/sdk';
 import { env } from '../config/env';
 import { setToken } from '../services/http';
 import {
   authWithTelegram,
   authDevLogin,
   fetchCurrentUser,
+  grantWriteAccess,
   storeTokens,
   clearTokens,
   type AuthResponseDto,
@@ -40,6 +41,8 @@ export interface AuthContextValue {
   login: () => Promise<void>;
   /** Перезавантажити дані поточного користувача з бекенду. */
   refreshUser: () => Promise<void>;
+  /** Оновити user у контексті без звернення до бекенду (напр. після acceptTerms). */
+  updateUser: (u: UserDto) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -74,6 +77,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   // Захист від повторного запуску (StrictMode подвійний mount)
   const initStartedRef = useRef(false);
+  // Захист: запитуємо write-access лише один раз за монтування
+  const writeAccessAskedRef = useRef(false);
 
   /** Зберегти токени, встановити in-memory токен і оновити стан користувача. */
   const applyAuthResponse = useCallback(
@@ -110,6 +115,11 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const refreshUser = useCallback(async (): Promise<void> => {
     const freshUser = await fetchCurrentUser();
     setUser(freshUser);
+  }, []);
+
+  /** Синхронно замінює user у контексті (без запиту до бекенду). */
+  const updateUser = useCallback((u: UserDto): void => {
+    setUser(u);
   }, []);
 
   useEffect(() => {
@@ -175,8 +185,32 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     void initializeAuth();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Після авторизації: якщо Telegram ще не надав дозвіл на ЛС — запитуємо
+  // його один раз і повідомляємо бекенд через grant-write-access.
+  useEffect(() => {
+    if (!user || user.canNotify) return;
+    if (writeAccessAskedRef.current) return;
+    if (!requestWriteAccess.isAvailable()) return;
+
+    writeAccessAskedRef.current = true;
+
+    const ensureWriteAccess = async (): Promise<void> => {
+      try {
+        const status = await requestWriteAccess();
+        if (status === 'allowed') {
+          const updated = await grantWriteAccess();
+          setUser(updated);
+        }
+      } catch (err: unknown) {
+        console.warn('[AuthProvider] requestWriteAccess failed:', err);
+      }
+    };
+
+    void ensureWriteAccess();
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, tz, ready, login, refreshUser }}>
+    <AuthContext.Provider value={{ user, tz, ready, login, refreshUser, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

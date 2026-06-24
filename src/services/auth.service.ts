@@ -27,3 +27,12 @@ export async function doRefreshToken(refreshToken: string): Promise<RefreshRespo
 export function fetchCurrentUser(): Promise<UserDto> {
   return get<UserDto>('/api/me');
 }
+
+/**
+ * Підтвердити дозвіл на надсилання повідомлень — POST /api/me/grant-write-access.
+ * Викликається після того як requestWriteAccess() від Telegram повернув 'allowed'.
+ * Повертає оновлений UserDto з canNotify=true.
+ */
+export function grantWriteAccess(): Promise<UserDto> {
+  return post<UserDto>('/api/me/grant-write-access');
+}

@@ -8,4 +8,6 @@ export interface UserDto {
   termsAccepted: boolean;
   timezone: string | null;
   wallets: WalletDto[];
+  /** true якщо Telegram надав дозвіл надсилати повідомлення цьому користувачу. */
+  canNotify?: boolean;
 }

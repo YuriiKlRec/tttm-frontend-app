@@ -1,7 +1,8 @@
 import { useEffect, useRef, type FC } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { TermsActions } from '../components/onboarding/TermsActions'
 import { useScrollToEnd } from '../hooks/useScrollToEnd'
+import { useAuth } from '../hooks/useAuth'
 import { termsParagraphs } from '../mocks/terms'
 import { acceptTerms } from '../services/meApi'
 import iconTimes from '../assets/icon-times.svg'
@@ -10,11 +11,18 @@ import iconTimes from '../assets/icon-times.svg'
  * Повноекранна угода `/terms`: шапка з заголовком і ✕, прокручуване тіло
  * з текстом EULA та панель дій. Кнопки залежать від прогресу прокрутки
  * (див. useScrollToEnd + TermsActions). Прийняття веде на `/profile`.
+ * Якщо користувач вже прийняв умови — одразу редирект на головну.
  */
 const TermsPage: FC = () => {
   const navigate = useNavigate()
+  const { user, refreshUser } = useAuth()
   const bodyRef = useRef<HTMLDivElement>(null)
   const { atBottom, reachedEnd, scrollToBottom, scrollToTop } = useScrollToEnd(bodyRef)
+
+  // Якщо умови вже прийнято — не показуємо цю сторінку
+  if (user?.termsAccepted) {
+    return <Navigate to="/" replace />
+  }
 
   // Поява «Accept and Continue» зменшує висоту тіла на ~висоту кнопки, тож після
   // першого досягнення низу доскролюємо решту — користувач лишається в самому
@@ -58,12 +66,17 @@ const TermsPage: FC = () => {
           atBottom={atBottom}
           reachedEnd={reachedEnd}
           onAccept={() => {
-            // Надсилаємо підтвердження угоди на бекенд; при помилці — логуємо й
-            // все одно переходимо далі (повторна перевірка через GET /api/me).
-            acceptTerms().catch((err: unknown) => {
-              console.warn('[TermsPage] acceptTerms failed, proceeding anyway:', err)
-            })
-            navigate('/profile')
+            // acceptTerms → refreshUser (оновлює termsAccepted у контексті) → /profile.
+            // Якщо виникає помилка — логуємо і не переходимо (користувач може повторити).
+            void (async () => {
+              try {
+                await acceptTerms();
+                await refreshUser();
+                navigate('/profile');
+              } catch (err: unknown) {
+                console.error('[TermsPage] acceptTerms or refreshUser failed:', err);
+              }
+            })();
           }}
           onScrollBottom={scrollToBottom}
           onScrollTop={scrollToTop}

@@ -1,6 +1,8 @@
 import type { FC } from 'react'
+import { Navigate } from 'react-router-dom'
 import { PredictionButton } from '../components/ui/PredictionButton'
 import { useBinancePrice } from '../hooks/useBinancePrice'
+import { useAuth } from '../hooks/useAuth'
 import { centsToUsd } from '../utils/units'
 import rocketAir from '../assets/rocket-air.png'
 import iconBitcoin from '../assets/icon-bitcoin.svg'
@@ -8,8 +10,16 @@ import iconBitcoin from '../assets/icon-bitcoin.svg'
 /**
  * Перший екран онбордингу `/welcome`: фон-ракета, поточна ціна BTC зверху,
  * привітання по центру та CTA «Get started» унизу.
+ * Якщо користувач вже прийняв умови — одразу редирект на головну.
  */
 const WelcomePage: FC = () => {
+  const { user } = useAuth()
+
+  // Якщо умови вже прийнято — не показуємо онбординг
+  if (user?.termsAccepted) {
+    return <Navigate to="/" replace />
+  }
+
   // Жива ціна BTC з Binance WebSocket; null — до першого тіку
   const livePrice = useBinancePrice()
   // Форматуємо аналогічно до GamePage (centsToUsd(Math.round(price*100)))
