@@ -34,7 +34,7 @@ interface PredictionsViewProps {
    * Sentinel-елемент для IntersectionObserver нескінченного скролу.
    * Якщо передано — розміщується у кінці списку.
    */
-  sentinelRef?: React.RefObject<HTMLDivElement | null>
+  sentinelRef?: React.RefCallback<HTMLDivElement>
 }
 
 /**

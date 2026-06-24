@@ -1,9 +1,11 @@
 /**
  * Хук для нескінченного завантаження тікетів однієї гри.
  *
- * Патерн: повністю аналогічний useInfiniteGames — IntersectionObserver через
- * sentinelRef, захист від паралельних запитів через isLoadingRef.
+ * Sentinel реалізовано через callback ref (а не useRef), щоб IntersectionObserver
+ * перепідключався кожного разу, коли sentinel-вузол монтується/ремонтується
+ * (наприклад, при перемиканні вкладок Details ↔ Predictions на GamePage).
  *
+ * Захист від паралельних запитів — через isLoadingRef.
  * Інтеграція з real-time: нові тікети з liveStore.ticketsByGame прилітають
  * окремо (через ingest → applyTicketAdded) і НЕ входять до цього списку.
  * GamePage об'єднує обидва джерела в масив bets (спочатку live, потім сторінки).
@@ -25,8 +27,27 @@ export interface InfiniteTicketsResult {
   loading: boolean;
   /** Завантажити наступну сторінку. */
   loadMore: () => void;
-  /** Ref для sentinel-елемента; IntersectionObserver приєднується автоматично. */
-  sentinelRef: React.RefObject<HTMLDivElement | null>;
+  /**
+   * Callback ref для sentinel-елемента.
+   * Призначається як `ref={sentinelRef}` — замінює попередній RefObject.
+   * Observer автоматично підключається при монтуванні та відключається при
+   * демонтуванні вузла.
+   */
+  sentinelRef: React.RefCallback<HTMLDivElement>;
+}
+
+/**
+ * Повертає найближчий scrollable-предок вузла (overflowY auto|scroll),
+ * або null якщо такого немає — тоді root IntersectionObserver буде viewport.
+ */
+function findScrollRoot(node: HTMLElement): Element | null {
+  let el: HTMLElement | null = node.parentElement;
+  while (el) {
+    const { overflowY } = getComputedStyle(el);
+    if (overflowY === 'auto' || overflowY === 'scroll') return el;
+    el = el.parentElement;
+  }
+  return null;
 }
 
 /**
@@ -52,7 +73,11 @@ export function useInfiniteTickets(
 
   // Захист від паралельних запитів
   const isLoadingRef = useRef<boolean>(false);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  // Внутрішній ref на IntersectionObserver — щоб можна було disconnect() при ремонті
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  // Ref на актуальний loadMore — оновлюється після кожного рендеру, щоб callback ref
+  // залишався стабільним і не перебудовував observer при кожній зміні сторінки
+  const loadMoreRef = useRef<() => void>(() => undefined);
 
   const loadPage = useCallback(
     async (pageNum: number) => {
@@ -98,24 +123,38 @@ export function useInfiniteTickets(
     void loadPage(page + 1);
   }, [enabled, bets.length, total, page, loadPage]);
 
-  // IntersectionObserver: автоматично викликає loadMore при появі sentinel у viewport
+  // Синхронізуємо ref щоразу, коли loadMore змінюється — без перебудови observer
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    loadMoreRef.current = loadMore;
+  });
 
-    const observer = new IntersectionObserver(
+  /**
+   * Callback ref для sentinel-елемента.
+   * Викликається React при монтуванні (node !== null) та демонтуванні (node === null).
+   * Кожного разу перепідключає IntersectionObserver до актуального DOM-вузла.
+   * Стабільний між рендерами — залежностей немає.
+   */
+  const sentinelRef = useCallback((node: HTMLDivElement | null) => {
+    // Відключаємо попередній observer (якщо є)
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+
+    if (!node) return;
+
+    // Знаходимо найближчий scrollable-предок як root observer
+    const root = findScrollRoot(node);
+
+    observerRef.current = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          loadMore();
+          loadMoreRef.current();
         }
       },
-      { rootMargin: '120px' },
+      { root, rootMargin: '200px' },
     );
 
-    observer.observe(sentinel);
-
-    return () => observer.disconnect();
-  }, [loadMore]);
+    observerRef.current.observe(node);
+  }, []);
 
   return {
     bets,

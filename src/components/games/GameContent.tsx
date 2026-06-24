@@ -59,7 +59,7 @@ interface GameContentProps {
    * Sentinel-ref для нескінченного скролу у вигляді «Predictions».
    * Передається до PredictionsView.
    */
-  sentinelRef?: React.RefObject<HTMLDivElement | null>
+  sentinelRef?: React.RefCallback<HTMLDivElement>
 }
 
 /**
