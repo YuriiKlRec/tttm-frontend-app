@@ -198,16 +198,26 @@ export interface LiveState {
   ticketsByGame: Map<string, Bet[]>;
   /** Id поточного користувача; встановлюється ззовні (провайдером). */
   myUserId: string | null;
+  /** Кількість підключених користувачів (оновлюється через stats:updated). */
+  connectedUsers: number;
+  /** true, якщо WebSocket-з'єднання активне. */
+  socketConnected: boolean;
   setGame: (d: GameDetail) => void;
   setMyUserId: (id: string | null) => void;
   appendTickets: (gameId: string, bets: Bet[]) => void;
   ingest: (event: { type: string; payload: unknown }) => void;
+  /** Оновлює кількість підключених користувачів із stats:updated. */
+  setConnectedUsers: (n: number) => void;
+  /** Оновлює стан WebSocket-з'єднання. */
+  setSocketConnected: (b: boolean) => void;
 }
 
 export const useLiveStore = create<LiveState>((set) => ({
   games: new Map(),
   ticketsByGame: new Map(),
   myUserId: null,
+  connectedUsers: 0,
+  socketConnected: false,
 
   /** Встановлює або оновлює GameDetail у сторі за id. */
   setGame(d) {
@@ -231,6 +241,16 @@ export const useLiveStore = create<LiveState>((set) => ({
       next.set(gameId, [...existing, ...bets]);
       return { ticketsByGame: next };
     });
+  },
+
+  /** Оновлює кількість підключених користувачів (з events stats:updated). */
+  setConnectedUsers(n) {
+    set({ connectedUsers: n });
+  },
+
+  /** Оновлює прапор активності WebSocket-з'єднання. */
+  setSocketConnected(b) {
+    set({ socketConnected: b });
   },
 
   /**

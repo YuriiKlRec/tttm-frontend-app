@@ -50,9 +50,25 @@ function subscribeEvents(s: Socket): void {
     useLiveStore.getState().ingest({ type: 'ticket:created', payload });
   });
 
-  // Логування помилок підключення (токен не виводимо)
+  // Встановлюємо socketConnected=true при успішному підключенні
+  s.on('connect', () => {
+    useLiveStore.getState().setSocketConnected(true);
+  });
+
+  // Скидаємо socketConnected при відключенні
+  s.on('disconnect', () => {
+    useLiveStore.getState().setSocketConnected(false);
+  });
+
+  // Логування помилок підключення (токен не виводимо); скидаємо статус
   s.on('connect_error', (err) => {
     console.warn('[realtime] connect_error:', err.message);
+    useLiveStore.getState().setSocketConnected(false);
+  });
+
+  // Оновлення глобальної статистики (кількість підключених користувачів)
+  s.on('stats:updated', (d: { connectedUsers: number }) => {
+    useLiveStore.getState().setConnectedUsers(d.connectedUsers);
   });
 }
 

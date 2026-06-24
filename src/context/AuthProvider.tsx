@@ -27,6 +27,7 @@ import {
 } from '../services/token-storage';
 import type { UserDto } from '../services/dto/user.dto';
 import { useLiveStore } from '../store/liveStore';
+import { connectRealtime, disconnectRealtime } from '../services/realtime';
 
 /** Контракт контексту автентифікації. */
 export interface AuthContextValue {
@@ -82,6 +83,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
       setUser(dto.user);
       // Синхронізуємо myUserId у liveStore для mine/win-логіки real-time подій
       useLiveStore.getState().setMyUserId(dto.user.id);
+      // Підключаємо WebSocket app-wide після успішної автентифікації
+      connectRealtime(dto.accessToken);
     },
     [],
   );
@@ -124,6 +127,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             setUser(currentUser);
             // Синхронізуємо myUserId після відновлення сесії за access-токеном
             useLiveStore.getState().setMyUserId(currentUser.id);
+            // Підключаємо WebSocket з відновленим access-токеном
+            connectRealtime(storedAccess);
             return;
           } catch {
             // Токен протух або відкликаний — продовжуємо нижче
@@ -144,6 +149,9 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             setUser(currentUser);
             // Синхронізуємо myUserId після відновлення сесії за refresh-токеном
             useLiveStore.getState().setMyUserId(currentUser.id);
+            // Токен міг оновитись у http.ts; читаємо актуальний зі сховища
+            const refreshedAccess = getStoredAccessToken();
+            connectRealtime(refreshedAccess);
             return;
           } catch {
             // refresh також не вдався — повна реавторизація
@@ -158,6 +166,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         // Автентифікація не вдалась — гостьовий режим
         setUser(null);
         useLiveStore.getState().setMyUserId(null);
+        disconnectRealtime();
       } finally {
         setReady(true);
       }
