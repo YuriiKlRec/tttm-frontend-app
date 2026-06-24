@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react'
-import { useTicketChecks } from './useTicketChecks'
+import { useTicketChecks, CHUNK_SIZE } from './useTicketChecks'
 import { useBookedCart } from '../context/BookedCartProvider'
 import { prepareTicketTx, createTickets } from '../services/ticketApi'
 import { ValidationError } from '../services/http'
+import { isUserRejection } from '../utils/isUserRejection'
+import { chunk } from '../utils/chunk'
 import type { CheckCta } from '../components/buy/CheckActionPanel'
 
 /** Тип відкритої модалки на сторінці оплати. */
@@ -110,45 +112,62 @@ export const useBuyTicketsFlow = (
     setPaying(true)
 
     try {
+      // Інваріант: кожен чек містить ≤ CHUNK_SIZE (8) цін — useTicketChecks
+      // розбиває prices через chunk(prices, CHUNK_SIZE) під час ініціалізації.
+      // Захисне розбиття на випадок, якщо інваріант порушено зовні.
       const activePrices = summary.activePrices
+      const groups =
+        activePrices.length <= CHUNK_SIZE
+          ? [activePrices]
+          : chunk(activePrices, CHUNK_SIZE)
 
-      // Крок 1: підготовка транзакції.
-      const txResp = await prepareTicketTx({ gameId, prices: activePrices })
+      for (const group of groups) {
+        // Крок 1: підготовка транзакції.
+        const txResp = await prepareTicketTx({ gameId, prices: group })
 
-      // Крок 2: відправка через TonConnect.
-      const result = await tonConnectUI.sendTransaction({
-        validUntil: Math.floor(Date.now() / 1000) + TX_VALID_SECONDS,
-        messages: [
-          {
-            address: txResp.to,
-            amount: txResp.value,
-            payload: txResp.payload,
-            stateInit: txResp.stateInit ?? undefined,
-          },
-        ],
-      })
+        // Крок 2: відправка через TonConnect.
+        // При відмові користувача — кидає помилку, яку ловимо нижче.
+        const result = await tonConnectUI.sendTransaction({
+          validUntil: Math.floor(Date.now() / 1000) + TX_VALID_SECONDS,
+          messages: [
+            {
+              address: txResp.to,
+              amount: txResp.value,
+              payload: txResp.payload,
+              stateInit: txResp.stateInit ?? undefined,
+            },
+          ],
+        })
 
-      // Крок 3: збереження квитків у БД.
-      await createTickets({
-        gameId,
-        prices: activePrices,
-        boc: result.boc,
-      })
+        // Крок 3: збереження квитків у БД (транзакція вже відправлена).
+        // 422 тут означає гонку цін — показуємо ALREADY TAKEN так само,
+        // як і при 422 на етапі підготовки.
+        try {
+          await createTickets({
+            gameId,
+            prices: group,
+            boc: result.boc,
+          })
+        } catch (postErr) {
+          if (postErr instanceof ValidationError) {
+            // Транзакція пішла в мережу, але ціна вже зайнята — ті самі дії.
+            setActiveModal('taken')
+            checks.payCheck(checks.activeIndex, true)
+            return
+          }
+          throw postErr
+        }
+      }
 
       // Успіх — позначити чек як оплачений.
       checks.payCheck(checks.activeIndex, false)
     } catch (err) {
-      // Відмова користувача від транзакції — не показуємо помилку.
-      if (
-        err instanceof Error &&
-        (err.message.includes('User declined') ||
-          err.message.includes('Reject') ||
-          err.message.includes('Transaction was not sent'))
-      ) {
+      // Відмова користувача від транзакції — тихо виходимо, без повідомлення.
+      if (isUserRejection(err)) {
         return
       }
 
-      // 422 від prepareTicketTx — ціна вже зайнята.
+      // 422 від prepareTicketTx — ціна вже зайнята (до відправки).
       if (err instanceof ValidationError) {
         setActiveModal('taken')
         checks.payCheck(checks.activeIndex, true)

@@ -76,7 +76,6 @@ export interface CreateGameReq {
 /** Відповідь POST /api/games (скорочена — потрібен лише id для навігації). */
 export interface CreatedGameResp {
   id: string;
-  [key: string]: unknown;
 }
 
 /** Результат сторінки для useInfiniteGames. */

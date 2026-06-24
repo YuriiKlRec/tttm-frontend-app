@@ -15,6 +15,7 @@ import { createGameTransaction, createGame } from '../services/gameApi'
 import { saveWallet } from '../services/walletApi'
 import { env } from '../config/env'
 import { ValidationError } from '../services/http'
+import { isUserRejection } from '../utils/isUserRejection'
 import thinkingBadge from '../assets/badge-face-thinking.svg'
 
 /** nanoTON в одному TON. */
@@ -89,7 +90,22 @@ const CreateGamePage: FC = () => {
           authorPercent: form.pool,
         })
 
-        // Крок 3: зберегти гру у БД (до відправки транзакції — щоб мати id).
+        // Крок 3: відправити транзакцію через TonConnect.
+        // DB-запис виконується ТІЛЬКИ після підтвердження користувачем —
+        // щоб уникнути phantom-рядків у разі відмови від транзакції.
+        await tonConnectUI.sendTransaction({
+          validUntil: Math.floor(Date.now() / 1000) + TX_VALID_SECONDS,
+          messages: [
+            {
+              address: txResp.to,
+              amount: txResp.value,
+              payload: txResp.payload,
+              stateInit: txResp.stateInit ?? undefined,
+            },
+          ],
+        })
+
+        // Крок 4: зберегти гру у БД (тільки якщо транзакція підтверджена).
         const gameResp = await createGame({
           name: form.name,
           targetCurrency: 'BTCUSDT',
@@ -106,27 +122,11 @@ const CreateGamePage: FC = () => {
           },
         })
 
-        // Крок 4: відправити транзакцію через TonConnect.
-        await tonConnectUI.sendTransaction({
-          validUntil: Math.floor(Date.now() / 1000) + TX_VALID_SECONDS,
-          messages: [
-            {
-              address: txResp.to,
-              amount: txResp.value,
-              payload: txResp.payload,
-              stateInit: txResp.stateInit ?? undefined,
-            },
-          ],
-        })
-
         // Крок 5: навігація до нової гри.
         void navigate(`/game/${gameResp.id}`)
       } catch (err) {
-        // Відмова користувача від транзакції — не показуємо помилку.
-        if (
-          err instanceof Error &&
-          (err.message.includes('User declined') || err.message.includes('Reject'))
-        ) {
+        // Відмова користувача від транзакції — тихо виходимо, без повідомлення.
+        if (isUserRejection(err)) {
           return
         }
 
