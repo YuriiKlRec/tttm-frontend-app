@@ -86,8 +86,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
       storeTokens(dto);
       setToken(dto.accessToken);
       setUser(dto.user);
-      // Синхронізуємо myUserId у liveStore для mine/win-логіки real-time подій
-      useLiveStore.getState().setMyUserId(dto.user.id);
+      // Синхронізуємо myUserId + нік у liveStore (mine/win + підпис своїх live-ставок)
+      useLiveStore.getState().setMyUserId(dto.user.id, dto.user.nickname);
       // Підключаємо WebSocket app-wide після успішної автентифікації
       connectRealtime(dto.accessToken);
     },
@@ -136,7 +136,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             const currentUser = await fetchCurrentUser();
             setUser(currentUser);
             // Синхронізуємо myUserId після відновлення сесії за access-токеном
-            useLiveStore.getState().setMyUserId(currentUser.id);
+            useLiveStore.getState().setMyUserId(currentUser.id, currentUser.nickname);
             // Підключаємо WebSocket з відновленим access-токеном
             connectRealtime(storedAccess);
             return;
@@ -158,7 +158,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             const currentUser = await fetchCurrentUser();
             setUser(currentUser);
             // Синхронізуємо myUserId після відновлення сесії за refresh-токеном
-            useLiveStore.getState().setMyUserId(currentUser.id);
+            useLiveStore.getState().setMyUserId(currentUser.id, currentUser.nickname);
             // Токен міг оновитись у http.ts; читаємо актуальний зі сховища
             const refreshedAccess = getStoredAccessToken();
             connectRealtime(refreshedAccess);

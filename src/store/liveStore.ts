@@ -136,10 +136,13 @@ function buildBetFromSocket(
   priceCentsStr: string,
   rank: number,
   myUserId: string | null,
+  myNickname: string | null,
 ): Bet {
   const mine = userId === myUserId;
-  // Нікнейм власника відсутній у socket-payload — бекенд його не передає
-  const user = '@user';
+  // Нікнейм власника відсутній у socket-payload. Для СВОЇХ ставок підставляємо
+  // нік поточного користувача; для чужих — нейтральний '@user' (уточниться при
+  // наступному рефетчі списку через REST, де owner.nickname присутній).
+  const user = mine && myNickname ? `@${myNickname}` : '@user';
   // price — рядок центів → конвертуємо напряму (не множимо повторно)
   const price = centsToUsd(Number(priceCentsStr));
   const variant = mine ? 'mine' : 'default';
@@ -154,6 +157,7 @@ export function applyTicketAdded(
   ticketsByGame: Map<string, Bet[]>,
   payload: TicketAddedSocketPayload,
   myUserId: string | null,
+  myNickname: string | null,
 ): Map<string, Bet[]> {
   const existing = ticketsByGame.get(payload.gameId) ?? [];
   const bet = buildBetFromSocket(
@@ -162,6 +166,7 @@ export function applyTicketAdded(
     payload.ticket.price,
     existing.length + 1,
     myUserId,
+    myNickname,
   );
   const next = new Map(ticketsByGame);
   next.set(payload.gameId, [...existing, bet]);
@@ -175,6 +180,7 @@ export function applyTicketCreated(
   ticketsByGame: Map<string, Bet[]>,
   payload: TicketCreatedSocketPayload,
   myUserId: string | null,
+  myNickname: string | null,
 ): Map<string, Bet[]> {
   const existing = ticketsByGame.get(payload.gameId) ?? [];
   const bet = buildBetFromSocket(
@@ -183,6 +189,7 @@ export function applyTicketCreated(
     payload.ticket.price,
     existing.length + 1,
     myUserId,
+    myNickname,
   );
   const next = new Map(ticketsByGame);
   next.set(payload.gameId, [...existing, bet]);
@@ -198,12 +205,14 @@ export interface LiveState {
   ticketsByGame: Map<string, Bet[]>;
   /** Id поточного користувача; встановлюється ззовні (провайдером). */
   myUserId: string | null;
+  /** Нік поточного користувача — для підпису СВОЇХ live-ставок (socket не шле нік). */
+  myNickname: string | null;
   /** Кількість підключених користувачів (оновлюється через stats:updated). */
   connectedUsers: number;
   /** true, якщо WebSocket-з'єднання активне. */
   socketConnected: boolean;
   setGame: (d: GameDetail) => void;
-  setMyUserId: (id: string | null) => void;
+  setMyUserId: (id: string | null, nickname?: string | null) => void;
   ingest: (event: { type: string; payload: unknown }) => void;
   /** Оновлює кількість підключених користувачів із stats:updated. */
   setConnectedUsers: (n: number) => void;
@@ -215,6 +224,7 @@ export const useLiveStore = create<LiveState>((set) => ({
   games: new Map(),
   ticketsByGame: new Map(),
   myUserId: null,
+  myNickname: null,
   connectedUsers: 0,
   socketConnected: false,
 
@@ -227,9 +237,9 @@ export const useLiveStore = create<LiveState>((set) => ({
     });
   },
 
-  /** Оновлює myUserId (викликається AuthProvider-ом при логіні). */
-  setMyUserId(id) {
-    set({ myUserId: id });
+  /** Оновлює myUserId + нік (викликається AuthProvider-ом при логіні). */
+  setMyUserId(id, nickname = null) {
+    set({ myUserId: id, myNickname: nickname });
   },
 
   /** Оновлює кількість підключених користувачів (з events stats:updated). */
@@ -260,14 +270,14 @@ export const useLiveStore = create<LiveState>((set) => ({
       case 'game:ticket_added': {
         const p = payload as TicketAddedSocketPayload;
         set((state) => ({
-          ticketsByGame: applyTicketAdded(state.ticketsByGame, p, state.myUserId),
+          ticketsByGame: applyTicketAdded(state.ticketsByGame, p, state.myUserId, state.myNickname),
         }));
         break;
       }
       case 'ticket:created': {
         const p = payload as TicketCreatedSocketPayload;
         set((state) => ({
-          ticketsByGame: applyTicketCreated(state.ticketsByGame, p, state.myUserId),
+          ticketsByGame: applyTicketCreated(state.ticketsByGame, p, state.myUserId, state.myNickname),
         }));
         break;
       }

@@ -105,8 +105,10 @@ const BuyTicketsPage: FC = () => {
   // ─── Telegram back: власний обробник для /buy (уникаємо подвійного керування) ──
   useTelegramBackButton(flow.leaveToGame)
 
-  // Не рендеримо сторінку, якщо корзина порожня (редирект вже запущено).
-  if (!cart.gameId || cart.prices.length === 0) return null
+  // Не рендеримо лише коли корзина була порожня НА МОНТУВАННІ (редирект уже
+  // запущено). Не реагуємо на живий cart.prices: після оплати кошик
+  // спорожняється (removeMany), але success-екран має лишитись видимим.
+  if (shouldRedirect.current) return null
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
