@@ -4,6 +4,8 @@ import type { NavTab } from '../../types/navigation'
 
 interface NavItemProps {
   tab: NavTab
+  /** Динамічне значення бейджа; перевизначає `tab.badge`. null — без бейджа. */
+  badge?: number | null
 }
 
 /** Бейдж лічильника над іконкою. Активний — помаранчевий, неактивний — білий. */
@@ -18,8 +20,10 @@ const Badge: FC<{ value: number; active: boolean }> = ({ value, active }) => (
 )
 
 /** Пункт нижньої навігації: іконка + підпис + опційний бейдж. */
-export const NavItem: FC<NavItemProps> = ({ tab }) => {
-  const { path, label, Icon, badge } = tab
+export const NavItem: FC<NavItemProps> = ({ tab, badge }) => {
+  const { path, label, Icon } = tab
+  // Динамічне значення (з пропа) має пріоритет над статичним tab.badge.
+  const value = badge !== undefined ? badge : tab.badge
 
   return (
     <NavLink
@@ -34,7 +38,7 @@ export const NavItem: FC<NavItemProps> = ({ tab }) => {
               className={`h-6 w-6 ${isActive ? 'text-text-focus' : 'text-text-primary'}`}
               aria-hidden="true"
             />
-            {badge !== null && <Badge value={badge} active={isActive} />}
+            {value !== null && value > 0 && <Badge value={value} active={isActive} />}
           </span>
           <span
             className={`font-mono text-[13px] font-bold ${
