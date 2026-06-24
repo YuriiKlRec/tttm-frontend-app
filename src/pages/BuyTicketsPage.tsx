@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FC } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { BuyHeader } from '../components/buy/BuyHeader'
 import { CheckSlides } from '../components/buy/CheckSlides'
 import { BulletsPagination } from '../components/buy/BulletsPagination'
@@ -8,59 +9,99 @@ import { useBuyTicketsFlow } from '../hooks/useBuyTicketsFlow'
 import { useBookedCart } from '../context/BookedCartProvider'
 import { useLiveStore } from '../store/liveStore'
 import { getGame } from '../services/gameApi'
-import { MOCK_PRICES, MOCK_TAKEN, MOCK_TICKET_PRICE } from '../mocks/buyTickets'
-
-/** Моковий зворотний відлік у шапці (без реального таймера). */
-const MOCK_COUNTDOWN = '00:03:01'
+import { formatCountdown } from '../utils/time'
+import { env } from '../config/env'
+import type { GameDetail } from '../types/game'
 
 /**
  * Сторінка оплати заброньованих ставок «Buy tickets». Читає ціни та gameId з
- * корзини (або DEV-мок), розбиває на чеки по 8, дозволяє керувати станами
- * ставок і виконує реальну TonConnect-транзакцію для кожного чека.
+ * корзини, розбиває на чеки по 8, дозволяє керувати станами ставок і виконує
+ * реальну TonConnect-транзакцію для кожного чека.
  * При 422 (ціна зайнята) — показує модалку «ALREADY TAKEN».
+ *
+ * Порожня корзина або відсутній gameId → редирект на головну «/».
  */
 const BuyTicketsPage: FC = () => {
   const cart = useBookedCart()
-  const usingMock = cart.prices.length === 0
-  const prices = useMemo(
-    () => (usingMock ? MOCK_PRICES : cart.prices),
-    [usingMock, cart.prices],
-  )
-  // Зайняті ставки демонструємо лише на моку (реально приходять із бекенда).
-  const takenPrices = usingMock ? MOCK_TAKEN : []
+  const navigate = useNavigate()
 
-  // Реальна ціна квитка: спочатку з live-стору (вже завантажена сторінка гри),
-  // якщо відсутня — одноразовий fetch через gameApi.
-  const liveGame = useLiveStore((s) => (cart.gameId ? s.games.get(cart.gameId) : undefined))
-  const [fetchedTicketPrice, setFetchedTicketPrice] = useState<string | null>(null)
+  // ─── Редирект при порожній корзині або відсутньому gameId ────────────────
+  useEffect(() => {
+    if (!cart.gameId || cart.prices.length === 0) {
+      navigate('/', { replace: true })
+    }
+  }, [cart.gameId, cart.prices.length, navigate])
+
+  // ─── Реальна ціна квитка та зайняті ставки ────────────────────────────────
+  // Спочатку шукаємо вже завантажений GameDetail у live-сторі.
+  const liveGame = useLiveStore((s) =>
+    cart.gameId ? s.games.get(cart.gameId) : undefined,
+  )
+
+  // Одноразово fetch-нутий GameDetail (якщо live-стор ще не має гри).
+  const [fetchedGame, setFetchedGame] = useState<GameDetail | null>(null)
 
   useEffect(() => {
-    // Якщо ціна вже є у live-сторі або гра невідома — fetch не потрібен
-    if (!cart.gameId || liveGame?.ticketPrice) return
+    // Якщо gra вже є у live-сторі — fetch не потрібен
+    if (!cart.gameId || liveGame) return
 
     let cancelled = false
     getGame(cart.gameId)
       .then((game) => {
-        if (!cancelled) setFetchedTicketPrice(game.ticketPrice)
+        if (!cancelled) setFetchedGame(game)
       })
       .catch(() => {
-        // Не падаємо — залишаємо мок-фолбек
+        // Не падаємо — ticketPrice та takenByOthers залишаться undefined
       })
     return () => {
       cancelled = true
     }
-  }, [cart.gameId, liveGame?.ticketPrice])
+  }, [cart.gameId, liveGame])
 
-  // Пріоритет: live-стор → одноразовий fetch → мок-фолбек
-  const ticketPrice = liveGame?.ticketPrice ?? fetchedTicketPrice ?? MOCK_TICKET_PRICE
+  // Пріоритет: live-стор → одноразовий fetch
+  const ticketPrice = liveGame?.ticketPrice ?? fetchedGame?.ticketPrice ?? ''
+  const takenPrices: number[] =
+    liveGame?.takenByOthers ?? fetchedGame?.takenByOthers ?? []
 
+  // ─── Ціни з корзини ───────────────────────────────────────────────────────
+  const prices = useMemo(() => cart.prices, [cart.prices])
+
+  // ─── Реальний зворотний відлік ────────────────────────────────────────────
+  // Час початку: фіксується одноразово при монтуванні компонента.
+  const [startedAt] = useState<number>(() => Date.now())
+  const timeoutMs = env.paymentTimeoutMinutes * 60 * 1000
+  const [remainingMs, setRemainingMs] = useState<number>(timeoutMs)
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const elapsed = Date.now() - startedAt
+      const left = Math.max(0, timeoutMs - elapsed)
+      setRemainingMs(left)
+
+      if (left === 0) {
+        clearInterval(id)
+        // Відлік вичерпано — повертаємось до гри або на головну
+        const target = cart.gameId ? `/game/${cart.gameId}` : '/'
+        navigate(target, { replace: true })
+      }
+    }, 1000)
+
+    return () => clearInterval(id)
+  }, [startedAt, timeoutMs, cart.gameId, navigate])
+
+  const countdown = formatCountdown(remainingMs)
+
+  // ─── Flow ─────────────────────────────────────────────────────────────────
   const flow = useBuyTicketsFlow(prices, ticketPrice, takenPrices)
   const { checks } = flow
   const multipleChecks = checks.checks.length > 1
 
+  // Не рендеримо сторінку, якщо корзина порожня (редирект вже запущено).
+  if (!cart.gameId || cart.prices.length === 0) return null
+
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
-      <BuyHeader countdown={MOCK_COUNTDOWN} />
+      <BuyHeader countdown={countdown} />
 
       <main className="relative z-10 flex-1 overflow-hidden">
         <CheckSlides checks={checks} onTicketInfo={flow.openTakenModal} />
