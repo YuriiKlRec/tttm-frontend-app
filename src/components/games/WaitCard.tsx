@@ -7,7 +7,7 @@ import { useNow } from '../../hooks/useNow'
 import { useAuth } from '../../hooks/useAuth'
 import { clamp, formatCountdown } from '../../utils/time'
 import { formatInTz } from '../../utils/datetime'
-import type { WaitGame } from '../../mocks/waitGames'
+import type { WaitGame } from '../../types/wait'
 
 /**
  * Картка гри на вкладці Waiting: заголовок, кільце-таймер із винагородою та

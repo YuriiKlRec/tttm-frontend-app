@@ -5,7 +5,7 @@
  * Якщо tz === null або рядок порожній — використовує локальний TZ браузера.
  *
  * @example
- * formatInTz('2025-01-01T10:00:00Z', 'America/New_York') // "Jan 1, 05:00 AM"
+ * formatInTz('2025-01-01T10:00:00Z', 'America/New_York') // "Jan 1, 17:00"
  * formatInTz('2025-01-01T10:00:00Z', null)               // локальний TZ
  */
 export function formatInTz(
@@ -18,6 +18,7 @@ export function formatInTz(
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   }
   return new Intl.DateTimeFormat('en-US', {
     ...defaults,

@@ -204,7 +204,6 @@ export interface LiveState {
   socketConnected: boolean;
   setGame: (d: GameDetail) => void;
   setMyUserId: (id: string | null) => void;
-  appendTickets: (gameId: string, bets: Bet[]) => void;
   ingest: (event: { type: string; payload: unknown }) => void;
   /** Оновлює кількість підключених користувачів із stats:updated. */
   setConnectedUsers: (n: number) => void;
@@ -231,16 +230,6 @@ export const useLiveStore = create<LiveState>((set) => ({
   /** Оновлює myUserId (викликається AuthProvider-ом при логіні). */
   setMyUserId(id) {
     set({ myUserId: id });
-  },
-
-  /** Пакетне завантаження історичних тікетів (F2 infinite scroll); відрізняється від real-time шляху ingest → applyTicketAdded. */
-  appendTickets(gameId, bets) {
-    set((state) => {
-      const existing = state.ticketsByGame.get(gameId) ?? [];
-      const next = new Map(state.ticketsByGame);
-      next.set(gameId, [...existing, ...bets]);
-      return { ticketsByGame: next };
-    });
   },
 
   /** Оновлює кількість підключених користувачів (з events stats:updated). */

@@ -15,32 +15,9 @@
 import type { GameDto } from './dto/game.dto';
 import type { TicketDto } from './dto/ticket.dto';
 import type { Game, GameDetail, Bet } from '../types/game';
-import type { ResultGame, ResultBet } from '../mocks/results';
-import type { WaitGame, WaitBet } from '../mocks/waitGames';
+import type { ResultGame, ResultBet } from '../types/results';
+import type { WaitGame, WaitBet } from '../types/wait';
 import { nanoToTon, centsToUsd } from '../utils/units';
-
-// ─────────────────────────────────────────
-// derivePhase
-// ─────────────────────────────────────────
-
-/**
- * Визначає поточну фазу гри відносно `now` (epoch ms).
- *
- *   active    — дедлайн ставок ще не настав
- *   waiting   — ставки закрито, гра ще не завершена
- *   finished  — endTime минув
- */
-export function derivePhase(
-  dto: GameDto,
-  now: number,
-): 'active' | 'waiting' | 'finished' {
-  const deadline = Date.parse(dto.ticketDeadlineAt);
-  const end = Date.parse(dto.endTime);
-
-  if (end <= now) return 'finished';
-  if (deadline <= now) return 'waiting';
-  return 'active';
-}
 
 // ─────────────────────────────────────────
 // deriveResultState

@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import type { ResultStatus } from '../../mocks/results'
+import type { ResultStatus } from '../../types/results'
 import checkGreenIcon from '../../assets/icon-check-green.svg'
 import checkGrayIcon from '../../assets/icon-check-gray.svg'
 import timesGrayIcon from '../../assets/icon-times-gray.svg'

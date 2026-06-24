@@ -1,4 +1,4 @@
-/** Моки ігор для вкладки Waiting (ігри, у яких користувач бере участь). */
+/** View-model типи ігор у очікуванні для вкладки Waiting. */
 
 /** Одна ставка у короткому списку Wait-картки. */
 export interface WaitBet {
@@ -35,37 +35,3 @@ export interface WaitGame {
   /** Відхилення своєї ціни від ринку, % (показуємо, коли користувач лідирує). */
   deviationPercent?: number
 }
-
-const MINUTE = 60_000
-const now = Date.now()
-
-/**
- * Дві гри для демонстрації обох станів картки:
- * - btc-1: користувач НЕ лідер (показано лідера + свою ставку);
- * - eth-1: користувач лідирує (один рядок + відхилення від ринку).
- */
-export const mockWaitGames: WaitGame[] = [
-  {
-    id: 'btc-1',
-    title: 'Label',
-    author: 'User_name',
-    reward: '2.4 TON',
-    startTime: now - 25 * MINUTE,
-    betCloseTime: now - 5 * MINUTE,
-    endTime: now + 5 * MINUTE,
-    leader: { rank: 1, user: '@User_4', price: '$57,212.46', mine: false },
-    mine: { rank: 24, user: '@User_name', price: '$58,212.46', mine: true },
-  },
-  {
-    id: 'eth-1',
-    title: 'Label',
-    author: 'User_name',
-    reward: '2.4 TON',
-    startTime: now - 25 * MINUTE,
-    betCloseTime: now - 5 * MINUTE,
-    endTime: now + 5 * MINUTE,
-    leader: { rank: 1, user: '@User_name', price: '$58,212.46', mine: true },
-    mine: { rank: 1, user: '@User_name', price: '$58,212.46', mine: true },
-    deviationPercent: 0.17,
-  },
-]

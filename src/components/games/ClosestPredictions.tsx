@@ -1,7 +1,7 @@
 import type { FC } from 'react'
 import { WaitBetLine } from './WaitBetLine'
 import { PredictionButton } from '../ui/PredictionButton'
-import type { WaitBet } from '../../mocks/waitGames'
+import type { WaitBet } from '../../types/wait'
 import type { ViewMode } from '../../types/game'
 import moonImg from '../../assets/moon.png'
 

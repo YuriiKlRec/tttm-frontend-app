@@ -21,11 +21,3 @@ export function centsToUsd(cents: number): string {
     maximumFractionDigits: 2,
   });
 }
-
-/**
- * Конвертація секунд → мілісекунди.
- * Використовується для JWT-часових міток і таймерів.
- */
-export function secToMs(seconds: number): number {
-  return seconds * 1000;
-}

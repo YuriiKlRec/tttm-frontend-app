@@ -14,8 +14,8 @@ import { get, post } from './http';
 import { toGameDetail, toGameCard, toResultCard, toWaitCard } from './mappers';
 import type { GameDto, Paginated } from './dto/game.dto';
 import type { GameDetail, Game } from '../types/game';
-import type { ResultGame } from '../mocks/results';
-import type { WaitGame } from '../mocks/waitGames';
+import type { ResultGame } from '../types/results';
+import type { WaitGame } from '../types/wait';
 
 // ─── DTO для транзакції та створення гри ────────────────────────────────────
 

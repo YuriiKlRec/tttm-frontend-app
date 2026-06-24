@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import type { WaitBet } from '../../mocks/waitGames'
+import type { WaitBet } from '../../types/wait'
 import crownIcon from '../../assets/icon-crown.svg'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import ticketRedIcon from '../../assets/icon-ticket-red.svg'

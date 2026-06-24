@@ -5,7 +5,6 @@
  *   listTickets     — сторінкований список ставок однієї гри
  *   prepareTicketTx — підготовка TON-транзакції для купівлі квитків
  *   createTickets   — збереження квитків у БД після підтвердження транзакції
- *   extractHash     — витягти transactionHash із BOC без авторизації
  */
 
 import { get, post } from './http';
@@ -116,11 +115,6 @@ export interface CreateTicketsResp {
   transactionHash: string;
 }
 
-/** Відповідь POST /api/tickets/extract-hash. */
-export interface ExtractHashResp {
-  transactionHash: string;
-}
-
 /**
  * Підготовка TON-транзакції для купівлі квитків.
  * При 422 (ціна вже зайнята) кидає ValidationError.
@@ -140,12 +134,3 @@ export async function createTickets(req: CreateTicketsReq): Promise<CreateTicket
   return post<CreateTicketsResp>('/api/tickets', req);
 }
 
-/**
- * Витягує transactionHash із BOC (без авторизації).
- *
- * @param boc — BOC транзакції у base64
- */
-export async function extractHash(boc: string): Promise<string> {
-  const resp = await post<ExtractHashResp>('/api/tickets/extract-hash', { boc });
-  return resp.transactionHash;
-}

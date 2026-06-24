@@ -17,7 +17,7 @@ import { centsToUsd } from '../utils/units'
 import { formatInTz } from '../utils/datetime'
 import type { Timeframe } from '../services/binance'
 import type { ViewMode, DetailGroup, Bet } from '../types/game'
-import type { WaitBet } from '../mocks/waitGames'
+import type { WaitBet } from '../types/wait'
 
 /** Запасна торгова пара для графіка — використовується якщо targetCurrency відсутній у грі. */
 const FALLBACK_SYMBOL = 'BTCUSDT'
