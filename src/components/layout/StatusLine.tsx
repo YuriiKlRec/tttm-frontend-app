@@ -21,7 +21,9 @@ export const StatusLine: FC = () => {
           {socketConnected ? 'Live' : 'Connecting'}
         </span>
       </div>
-      <span className="font-mono text-[13px] font-bold text-text-success">
+      <span
+        className={`font-mono text-[13px] font-bold ${socketConnected ? 'text-text-success' : 'text-gray-500'}`}
+      >
         {connectedUsers} USERS ONLINE
       </span>
     </div>

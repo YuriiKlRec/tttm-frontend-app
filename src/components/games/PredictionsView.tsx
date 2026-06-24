@@ -50,8 +50,11 @@ export const PredictionsView: FC<PredictionsViewProps> = ({
   showPrice = true,
   sentinelRef,
 }) => {
+  // «Лише мої»: бекенд уже повертає лише мої тікети (mine=true), тож тут
+  // лишаємо і 'mine', і 'win' — моя ВИГРАШНА ставка має variant 'win'
+  // (win перекриває mine у toBet) і не повинна випадати з фільтра.
   const visibleBets = useMemo(
-    () => (mineOnly ? bets.filter((bet) => bet.variant === 'mine') : bets),
+    () => (mineOnly ? bets.filter((bet) => bet.variant === 'mine' || bet.variant === 'win') : bets),
     [bets, mineOnly],
   )
 

@@ -1,6 +1,7 @@
 import type { FC } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useLocation } from 'react-router-dom'
+import { useTelegramBackButton } from '../hooks/useTelegramBackButton'
 import { AppLayout } from '../components/layout/AppLayout'
 import OnboardingGate from '../components/auth/OnboardingGate'
 import PredictionsPage from '../pages/PredictionsPage'
@@ -16,6 +17,8 @@ import CreateGamePage from '../pages/CreateGamePage'
 /** Маршрути застосунку під спільним AppLayout. */
 export const AppRoutes: FC = () => {
   const location = useLocation()
+  // Нативна кнопка «назад» Telegram: показ/приховання + навігація за маршрутом
+  useTelegramBackButton()
 
   return (
     <Routes location={location}>
