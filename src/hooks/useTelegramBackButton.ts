@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { backButton } from '@telegram-apps/sdk'
+import { backButton, miniApp } from '@telegram-apps/sdk'
 
 /**
  * Керує нативною кнопкою «назад» Telegram Mini App.
@@ -24,6 +24,15 @@ export function useTelegramBackButton(customHandler?: () => void): void {
     const handler = (): void => {
       if (customHandler) {
         customHandler()
+        return
+      }
+      // /welcome — перший екран онбордингу: «назад» закриває Mini App.
+      if (location.pathname === '/welcome') {
+        try {
+          miniApp.close()
+        } catch {
+          // поза Telegram — ігноруємо
+        }
         return
       }
       const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0
