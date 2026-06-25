@@ -31,7 +31,9 @@ const WaitingPage: FC = () => {
 
   return (
     <>
-      <div className="sticky top-0 z-20 -mt-8 w-full bg-background px-3 pt-1.5 pb-3">
+      {/* Без суцільної підкладки/sticky — плашка стоїть на сітці з відступами,
+          як плашка онлайн-статусу (mx-3). */}
+      <div className="-mt-8 w-full px-3 pt-1.5 pb-3">
         <CurrencyPricePlate price={priceStr} variant="online" />
       </div>
       <div className="w-full">
