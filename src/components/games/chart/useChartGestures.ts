@@ -277,9 +277,9 @@ export const useChartGestures = ({
         moveController(e.offsetY)
         e.preventDefault()
       } else if (g.kind === 'timeframe') {
-        // Горизонтальний зум часу: драг праворуч — менше свічок (деталізація),
-        // ліворуч — більше (ширший період).
-        const target = g.startVisible - dx * XZOOM_PER_PX
+        // Горизонтальний зум часу: драг ліворуч — менше свічок (деталізація),
+        // праворуч — більше (ширший період). Напрямок свайпу інвертований (+dx).
+        const target = g.startVisible + dx * XZOOM_PER_PX
         applyXZoom(target)
         // На краях зуму — раз за жест перемикаємо granularity таймфрейму.
         const max = state.current.candlesLength
