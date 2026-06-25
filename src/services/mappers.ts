@@ -218,19 +218,37 @@ export function toResultCard(dto: GameDto, myUserId: string | null): ResultGame 
     };
   }
 
-  // rank=0 означає невідому позицію — формула рейтингу делегується бекенду
-  const myTicket =
-    myUserId !== null
-      ? dto.tickets.find((t) => t.ownerId === myUserId)
-      : undefined;
-  const mine: ResultBet | undefined = myTicket
-    ? {
-        rank: 0,
-        user: `@${myTicket.owner?.nickname ?? 'user'}`,
-        price: centsToUsd(myTicket.price),
+  // Місце ставки = позиція за близькістю до переможної ціни (oracleFinalPrice).
+  // Це визначається вже зараз (без бекенд-лідерборду): сортуємо всі тікети за
+  // |price − final| і беремо НАЙКРАЩИЙ (найближчий) тікет користувача.
+  const finalCents = dto.oracleFinalPrice;
+  const myTickets =
+    myUserId !== null ? dto.tickets.filter((t) => t.ownerId === myUserId) : [];
+
+  let mine: ResultBet | undefined;
+  if (myTickets.length > 0) {
+    if (finalCents !== null) {
+      const dist = (t: { price: number }): number => Math.abs(t.price - finalCents);
+      const ranked = [...dto.tickets].sort((a, b) => dist(a) - dist(b));
+      const myBest = myTickets.reduce((best, t) => (dist(t) < dist(best) ? t : best));
+      const place = ranked.findIndex((t) => t.id === myBest.id) + 1;
+      mine = {
+        rank: place,
+        user: `@${myBest.owner?.nickname ?? 'user'}`,
+        price: centsToUsd(myBest.price),
         mine: true,
-      }
-    : undefined;
+      };
+    } else {
+      // Переможна ціна ще невідома — місце визначити не можна (rank 0 → «—»)
+      const myFirst = myTickets[0];
+      mine = {
+        rank: 0,
+        user: `@${myFirst.owner?.nickname ?? 'user'}`,
+        price: centsToUsd(myFirst.price),
+        mine: true,
+      };
+    }
+  }
 
   return {
     id: dto.id,
