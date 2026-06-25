@@ -32,7 +32,7 @@ const WaitingPage: FC = () => {
   return (
     <>
       <div className="sticky top-0 z-20 -mt-8 w-full bg-background px-3 pt-1.5 pb-3">
-        <CurrencyPricePlate price={priceStr} />
+        <CurrencyPricePlate price={priceStr} variant="online" />
       </div>
       <div className="w-full">
         {/* Чекаємо ініціалізації AuthProvider або першого завантаження — уникаємо flash EmptyState */}
