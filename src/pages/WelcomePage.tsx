@@ -27,17 +27,19 @@ const WelcomePage: FC = () => {
 
   return (
   <div className="relative mx-auto h-[100dvh] max-w-[430px] overflow-hidden bg-background">
-    {/* Фон-ракета: центрований по вертикалі, масштабований як у Figma. */}
-    <div
-      className="pointer-events-none absolute left-0 top-[calc(50%+12px)] aspect-[390/920] w-full -translate-y-1/2 overflow-hidden"
+    {/* Фон: відео welcome.mp4 (із public), заставка (poster) — поточне фото ракети.
+        muted+playsInline+autoPlay — для автозапуску у Telegram-вебвʼю. */}
+    <video
+      className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+      src="/welcome.mp4"
+      poster={rocketAir}
+      autoPlay
+      loop
+      muted
+      playsInline
+      preload="auto"
       aria-hidden="true"
-    >
-      <img
-        src={rocketAir}
-        alt=""
-        className="absolute left-[-105.01%] top-[-2.28%] h-[116.85%] w-[413.35%] max-w-none"
-      />
-    </div>
+    />
 
     {/* Верх: поточна ціна BTC з Binance WebSocket. */}
     <div className="absolute inset-x-7 top-[calc(var(--app-safe-top)+32px)] z-10 flex flex-col items-center gap-2 text-center">
