@@ -38,6 +38,10 @@ export interface Bet {
   price: string
   /** Варіант відображення (своя / виграшна / звичайна). */
   variant: BetLineVariant
+  /** Спрогнозована ціна у центах (×100) — для сортування за місцем. */
+  priceCents: number
+  /** Час створення ставки (epoch ms) — для сортування за датою. */
+  createdAt: number
 }
 
 /** Один рядок таблиці деталей гри (label → value). */
@@ -88,6 +92,10 @@ export interface GameDetail {
   targetCurrency?: string
   /** Фінальна ціна оракула у форматованому вигляді (напр. "$57,342.47"); null — до фіналізації. */
   finalPrice?: string | null
+  /** Фінальна ціна оракула у центах (×100) — референс для сортування за місцем; null — до фіналізації. */
+  finalPriceCents?: number | null
+  /** Повний список ставок гри (усі тікети) — джерело для списку Predictions і сортування. */
+  allBets?: Bet[]
   /** ID виграшного тікета; null — до фіналізації. */
   winningTicketId?: string | null
   /** Нік переможця (напр. "@user_4"); null — до фіналізації. */

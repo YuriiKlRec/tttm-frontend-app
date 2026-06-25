@@ -1,5 +1,4 @@
 import { useMemo, type FC } from 'react'
-import type React from 'react'
 import type { Bet } from '../../types/game'
 import { PredictionStats } from './PredictionStats'
 import { BetLine } from './BetLine'
@@ -30,11 +29,10 @@ interface PredictionsViewProps {
   mineOnly: boolean
   /** Показувати плашку поточного курсу (приховано для завершеної гри). */
   showPrice?: boolean
-  /**
-   * Sentinel-елемент для IntersectionObserver нескінченного скролу.
-   * Якщо передано — розміщується у кінці списку.
-   */
-  sentinelRef?: React.RefCallback<HTMLDivElement>
+  /** Режим сортування: 'place' — за місцем (близькість до ціни), 'date' — за часом. */
+  sortMode: 'place' | 'date'
+  /** Перемикач режиму сортування. */
+  onToggleSort: () => void
 }
 
 /**
@@ -48,7 +46,8 @@ export const PredictionsView: FC<PredictionsViewProps> = ({
   price,
   mineOnly,
   showPrice = true,
-  sentinelRef,
+  sortMode,
+  onToggleSort,
 }) => {
   // «Лише мої»: бекенд уже повертає лише мої тікети (mine=true), тож тут
   // лишаємо і 'mine', і 'win' — моя ВИГРАШНА ставка має variant 'win'
@@ -65,12 +64,13 @@ export const PredictionsView: FC<PredictionsViewProps> = ({
 
         <div className="flex items-center justify-between px-6">
           <h2 className="font-body text-[15px] font-bold text-text-primary">Tickets</h2>
-          {/* Стрілки сортування — placeholder; функція з'явиться з підключенням API. */}
+          {/* Перемикач сортування: за місцем (близькість до ціни) ↔ за датою. */}
           <button
             type="button"
-            aria-label="Sort tickets"
-            disabled
-            className="flex h-7 w-7 items-center justify-center opacity-40"
+            aria-label={sortMode === 'place' ? 'Sort by date' : 'Sort by place'}
+            aria-pressed={sortMode === 'date'}
+            onClick={onToggleSort}
+            className="flex h-7 w-7 items-center justify-center transition-opacity active:opacity-60"
           >
             <img src={sortIcon} alt="" aria-hidden="true" className="h-4 w-4" />
           </button>
@@ -92,8 +92,6 @@ export const PredictionsView: FC<PredictionsViewProps> = ({
             </li>
           ))}
         </ul>
-        {/* Sentinel для IntersectionObserver нескінченного скролу */}
-        {sentinelRef ? <div ref={sentinelRef} aria-hidden="true" /> : null}
       </div>
 
       {showPrice ? (

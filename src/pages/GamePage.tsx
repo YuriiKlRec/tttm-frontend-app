@@ -11,7 +11,6 @@ import { useNow } from '../hooks/useNow'
 import { useBookedCart } from '../context/BookedCartProvider'
 import { useAuth } from '../hooks/useAuth'
 import { useGameLive } from '../hooks/useGameLive'
-import { useInfiniteTickets } from '../hooks/useInfiniteTickets'
 import { useLiveStore } from '../store/liveStore'
 import { centsToUsd } from '../utils/units'
 import { formatInTz } from '../utils/datetime'
@@ -148,6 +147,8 @@ const GamePage: FC = () => {
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   // Фільтр «лише мої ставки» — керується кнопкою в шапці (вид Predictions)
   const [mineOnly, setMineOnly] = useState(false)
+  // Режим сортування списку ставок: 'place' — за близькістю до ціни (дефолт), 'date' — за часом
+  const [sortMode, setSortMode] = useState<'place' | 'date'>('place')
 
   const now = useNow()
 
@@ -162,30 +163,21 @@ const GamePage: FC = () => {
   const viewMode: ViewMode = finished && rawViewMode === 'chart' ? 'bets' : rawViewMode
   const viewOptions: ViewMode[] | undefined = finished ? ['bets', 'details'] : undefined
 
-  // Список ставок із безперервним завантаженням
-  const winningTicketId = game?.winningTicketId ?? null
-  const { bets: pagedBets, sentinelRef } = useInfiniteTickets(
-    id,
-    mineOnly,
-    myUserId,
-    winningTicketId,
-    ready,
-  )
+  // Повний набір ставок гри (усі тікети) — джерело для списку Predictions.
+  // EMPTY_BETS — стабільна константа, щоб не давати Zustand нове посилання щорендер.
+  const allBets = game?.allBets ?? EMPTY_BETS
 
   // Real-time тікети зі стора (game:ticket_added / ticket:created).
-  // EMPTY_BETS — стабільна константа; не вбудований літерал [], щоб Zustand
-  // не отримував нове посилання щорендер і не падав в infinite loop.
   const liveBets = useLiveStore((s) => s.ticketsByGame.get(id) ?? EMPTY_BETS)
 
-  // Об'єднуємо: живі тікети спереду, пагіновані — позаду (дедуплікація за user+price).
-  // Кожне джерело має власну нумерацію rank, тому після злиття ПЕРЕНУМЕРОВУЄМО
-  // послідовно за позицією — інакше ранги дублюються (напр. 1 1 2 3 4).
-  const bets: Bet[] = useMemo(() => {
-    if (liveBets.length === 0) return pagedBets
-    const liveSet = new Set(liveBets.map((b) => `${b.user}-${b.price}`))
-    const filtered = pagedBets.filter((b) => !liveSet.has(`${b.user}-${b.price}`))
-    return [...liveBets, ...filtered].map((b, i) => ({ ...b, rank: i + 1 }))
-  }, [liveBets, pagedBets])
+  // Об'єднуємо повний набір із живими ставками (яких ще нема у грі до рефетчу),
+  // дедуплікація за user+price. Сортування і перенумерація — нижче (після currentPrice).
+  const mergedBets: Bet[] = useMemo(() => {
+    if (liveBets.length === 0) return allBets
+    const baseSet = new Set(allBets.map((b) => `${b.user}-${b.price}`))
+    const newLive = liveBets.filter((b) => !baseSet.has(`${b.user}-${b.price}`))
+    return [...newLive, ...allBets]
+  }, [liveBets, allBets])
 
   // Єдине джерело правди для вибраної ціни
   const [selectedPrice, setSelectedPrice] = useState<number | undefined>(undefined)
@@ -266,6 +258,32 @@ const GamePage: FC = () => {
   const currentPriceStr = currentPrice
     ? centsToUsd(Math.round(currentPrice * 100))
     : '—'
+
+  // Референс-ціна (центи) для сортування за місцем: фінальна ціна оракула, якщо гра
+  // фіналізована, інакше — поточний курс Binance. null — поки курс невідомий.
+  const referenceCents: number | null =
+    game?.finalPriceCents != null
+      ? game.finalPriceCents
+      : currentPrice != null
+        ? Math.round(currentPrice * 100)
+        : null
+
+  // Відсортований список ставок із послідовною перенумерацією rank (1..N).
+  //   place — за близькістю priceCents до референс-ціни (дефолт);
+  //   date  — за часом створення (нові спереду).
+  // Якщо референс-ціни ще немає, place відкочується на сортування за датою.
+  const bets: Bet[] = useMemo(() => {
+    const sorted = [...mergedBets]
+    if (sortMode === 'place' && referenceCents != null) {
+      sorted.sort(
+        (a, b) =>
+          Math.abs(a.priceCents - referenceCents) - Math.abs(b.priceCents - referenceCents),
+      )
+    } else {
+      sorted.sort((a, b) => b.createdAt - a.createdAt)
+    }
+    return sorted.map((b, i) => ({ ...b, rank: i + 1 }))
+  }, [mergedBets, sortMode, referenceCents])
 
   // Найближчі прогнози для «waiting»: лідер і ставка користувача з bets
   const closestPredictions = useMemo((): {
@@ -380,7 +398,8 @@ const GamePage: FC = () => {
           onPriceSelect={setSelectedPrice}
           externalPrice={selectedPrice}
           interactive={phase === 'active'}
-          sentinelRef={sentinelRef}
+          sortMode={sortMode}
+          onToggleSort={() => setSortMode((m) => (m === 'place' ? 'date' : 'place'))}
         />
       )}
     </GameLayout>

@@ -144,10 +144,12 @@ function buildBetFromSocket(
   // наступному рефетчі списку через REST, де owner.nickname присутній).
   const user = mine && myNickname ? `@${myNickname}` : '@user';
   // price — рядок центів → конвертуємо напряму (не множимо повторно)
-  const price = centsToUsd(Number(priceCentsStr));
+  const priceCents = Number(priceCentsStr);
+  const price = centsToUsd(priceCents);
   const variant = mine ? 'mine' : 'default';
 
-  return { rank, user, price, variant };
+  // createdAt — момент отримання події (точний час створення прийде при рефетчі)
+  return { rank, user, price, variant, priceCents, createdAt: Date.now() };
 }
 
 /**

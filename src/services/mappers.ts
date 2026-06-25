@@ -122,6 +122,17 @@ export function toGameDetail(dto: GameDto, myUserId?: string | null): GameDetail
   // Унікальні гравці: множина унікальних ownerId серед тікетів
   const uniquePlayers = new Set(dto.tickets.map((t) => t.ownerId)).size;
 
+  // Повний список ставок гри (rank=0 — перенумеровується після сортування на GamePage)
+  const isMine = (ownerId: string): boolean =>
+    myUserId !== undefined && myUserId !== null && ownerId === myUserId;
+  const allBets: Bet[] = dto.tickets.map((t) =>
+    toBet(t, {
+      rank: 0,
+      mine: isMine(t.ownerId),
+      win: dto.winningTicketId != null && t.id === dto.winningTicketId,
+    }),
+  );
+
   return {
     id: dto.id,
     name: dto.name,
@@ -140,6 +151,8 @@ export function toGameDetail(dto: GameDto, myUserId?: string | null): GameDetail
     authorPercent: dto.authorPercent,
     targetCurrency: dto.targetCurrency,
     finalPrice,
+    finalPriceCents: dto.oracleFinalPrice,
+    allBets,
     winningTicketId: dto.winningTicketId,
     winnerNickname: dto.winningTicket ? `@${dto.winningTicket.owner.nickname}` : null,
     winnerTicketPrice: dto.winningTicket ? centsToUsd(dto.winningTicket.price) : null,
@@ -182,6 +195,9 @@ export function toBet(ticket: TicketDto, opts: ToBetOpts): Bet {
     user,
     price,
     variant,
+    // priceCents — завжди прогноз тікета (для сортування за близькістю), не final
+    priceCents: ticket.price,
+    createdAt: Date.parse(ticket.createdAt),
   };
 }
 

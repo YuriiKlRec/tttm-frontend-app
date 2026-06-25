@@ -1,5 +1,4 @@
 import type { FC } from 'react'
-import type React from 'react'
 import type { Bet, DetailGroup, ViewMode } from '../../types/game'
 import type { Candle, Timeframe } from '../../services/binance'
 import type { ChartBet, ChartGame } from './chart/chartTypes'
@@ -55,11 +54,10 @@ interface GameContentProps {
   interactive?: boolean
   /** Показувати плашку курсу у Predictions (приховано для завершеної гри). */
   showCurrencyPlate?: boolean
-  /**
-   * Sentinel-ref для нескінченного скролу у вигляді «Predictions».
-   * Передається до PredictionsView.
-   */
-  sentinelRef?: React.RefCallback<HTMLDivElement>
+  /** Режим сортування списку ставок ('place' | 'date'). */
+  sortMode: 'place' | 'date'
+  /** Перемикач режиму сортування (кнопка у заголовку списку). */
+  onToggleSort: () => void
 }
 
 /**
@@ -84,7 +82,8 @@ export const GameContent: FC<GameContentProps> = ({
   externalPrice,
   interactive = true,
   showCurrencyPlate = true,
-  sentinelRef,
+  sortMode,
+  onToggleSort,
 }) => {
   if (viewMode === 'bets') {
     return (
@@ -94,7 +93,8 @@ export const GameContent: FC<GameContentProps> = ({
         price={price}
         mineOnly={mineOnly}
         showPrice={showCurrencyPlate}
-        sentinelRef={sentinelRef}
+        sortMode={sortMode}
+        onToggleSort={onToggleSort}
       />
     )
   }
