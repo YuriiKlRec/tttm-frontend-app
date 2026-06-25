@@ -33,7 +33,7 @@ const stepperClass =
   'absolute inset-y-0 flex w-11 items-center justify-center focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white'
 
 /**
- * Поле вводу ціни: центрований "$" + керований input, рамка залежить від статусу,
+ * Поле вводу ціни: керований input + суфікс "USDT", рамка залежить від статусу,
  * по краях — степери −/+ із тап-зоною 44px. Ввід дозволяє цифри й одну крапку.
  */
 export const PriceInput: FC<PriceInputProps> = ({
@@ -52,8 +52,7 @@ export const PriceInput: FC<PriceInputProps> = ({
       className={`relative flex flex-1 flex-col items-center gap-1.5 border bg-[rgba(255,255,255,0.1)] px-11 py-2 ${borderByStatus(status)}`}
     >
       <span className="font-mono text-[11px] text-white">Prediction price:</span>
-      <div className="flex items-center font-mono text-[15px] font-bold text-white">
-        <span aria-hidden="true">$</span>
+      <div className="flex items-center gap-1 font-mono text-[15px] font-bold text-white">
         <input
           type="text"
           inputMode="decimal"
@@ -63,6 +62,7 @@ export const PriceInput: FC<PriceInputProps> = ({
           placeholder="0.00"
           className="w-24 bg-transparent text-center font-mono text-[15px] font-bold text-white outline-none placeholder:text-text-secondary"
         />
+        <span aria-hidden="true">USDT</span>
       </div>
 
       <button
