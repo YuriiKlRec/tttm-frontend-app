@@ -22,7 +22,8 @@ export const ResultBetLine: FC<ResultBetLineProps> = ({ bet }) => {
     <div className="flex items-center justify-between">
       <span className="flex items-center gap-3">
         <span className="w-5 text-center font-mono text-[15px] font-bold text-text-secondary">
-          {bet.rank}
+          {/* rank 0 = позиція невідома (лідерборд ще без формули) → показуємо «—» */}
+          {bet.rank > 0 ? bet.rank : '—'}
         </span>
         <span className="relative">
           {bet.rank === 1 ? (
