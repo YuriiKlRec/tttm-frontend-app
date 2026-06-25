@@ -73,11 +73,13 @@ export const ChartOverlays: FC<ChartOverlaysProps> = ({
 
   return (
     <>
-      {/* Пул */}
-      <div className="pointer-events-none absolute top-7 left-6 flex items-center gap-1.5 bg-[rgba(50,50,50,0.75)] px-2 py-2.5">
-        <img src={trophyIcon} alt="" aria-hidden="true" className="h-4 w-4" />
-        <span className="font-mono text-[15px] text-text-primary">{winningPool}</span>
-      </div>
+      {/* Пул — показуємо лише коли він є (інакше плейсхолдер "—" не виводимо) */}
+      {winningPool && winningPool !== '—' ? (
+        <div className="pointer-events-none absolute top-7 left-6 flex items-center gap-1.5 bg-[rgba(50,50,50,0.75)] px-2 py-2.5">
+          <img src={trophyIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+          <span className="font-mono text-[15px] text-text-primary">{winningPool}</span>
+        </div>
+      ) : null}
 
       {/* Кнопка свічок */}
       <button
