@@ -4,7 +4,6 @@ import { PredictionButton } from '../components/ui/PredictionButton'
 import { useBinancePrice } from '../hooks/useBinancePrice'
 import { useAuth } from '../hooks/useAuth'
 import { centsToUsd } from '../utils/units'
-import rocketAir from '../assets/rocket-air.png'
 import iconBitcoin from '../assets/icon-bitcoin.svg'
 
 /**
@@ -32,7 +31,7 @@ const WelcomePage: FC = () => {
     <video
       className="pointer-events-none absolute inset-0 h-full w-full object-cover"
       src="/welcome.mp4"
-      poster={rocketAir}
+      poster="/welcome-poster.jpg"
       autoPlay
       loop
       muted
