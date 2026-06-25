@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { backButton, miniApp } from '@telegram-apps/sdk'
+import { backButton } from '@telegram-apps/sdk'
 
 /**
  * Керує нативною кнопкою «назад» Telegram Mini App.
@@ -16,7 +16,9 @@ export function useTelegramBackButton(customHandler?: () => void): void {
   const location = useLocation()
 
   useEffect(() => {
-    const isRoot = location.pathname === '/'
+    // На корені та /welcome нативну «назад» ховаємо — Telegram показує свою
+    // стандартну кнопку Close (✕), яка закриває Mini App.
+    const noBackButton = location.pathname === '/' || location.pathname === '/welcome'
     // Глобальний виклик (без customHandler) пропускає /buy — там хук
     // викликається окремо з власним обробником (BuyTicketsPage).
     const isBuyWithoutCustom = location.pathname === '/buy' && customHandler === undefined
@@ -24,15 +26,6 @@ export function useTelegramBackButton(customHandler?: () => void): void {
     const handler = (): void => {
       if (customHandler) {
         customHandler()
-        return
-      }
-      // /welcome — перший екран онбордингу: «назад» закриває Mini App.
-      if (location.pathname === '/welcome') {
-        try {
-          miniApp.close()
-        } catch {
-          // поза Telegram — ігноруємо
-        }
         return
       }
       const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0
@@ -50,7 +43,7 @@ export function useTelegramBackButton(customHandler?: () => void): void {
       return
     }
 
-    if (isRoot || isBuyWithoutCustom) {
+    if (noBackButton || isBuyWithoutCustom) {
       backButton.hide()
       return () => {}
     }
