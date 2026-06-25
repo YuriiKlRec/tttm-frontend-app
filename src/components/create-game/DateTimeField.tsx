@@ -36,20 +36,8 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
   error = null,
   id,
 }) => {
-  const inputRef = useRef<HTMLInputElement>(null)
   const { main, seconds } = formatDateTimeFull(value)
   const hasError = Boolean(error)
-
-  /** Відкриває нативний пікер (з fallback на focus, якщо showPicker недоступний). */
-  const openPicker = (): void => {
-    const el = inputRef.current
-    if (!el) return
-    if (typeof el.showPicker === 'function') {
-      el.showPicker()
-    } else {
-      el.focus()
-    }
-  }
 
   const onInput = (raw: string): void => {
     if (!raw) return
@@ -59,31 +47,27 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
   return (
     <div className="flex w-full flex-col gap-3">
       {label && <FieldLabel htmlFor={id}>{label}</FieldLabel>}
-      <button
-        type="button"
-        id={id}
-        onClick={editable ? openPicker : undefined}
-        disabled={!editable}
-        aria-invalid={hasError}
-        aria-describedby={hasError ? `${id}-error` : undefined}
-        className={`relative flex h-12 w-full items-center justify-center border px-4 font-mono text-[18px] font-bold focus:outline-none ${stateClass(
+      <div
+        className={`relative flex h-12 w-full items-center justify-center border px-4 font-mono text-[18px] font-bold ${stateClass(
           hasError,
         )}`}
       >
         <span className="text-text-primary">{main}</span>
         <span className="text-text-secondary">{seconds}</span>
+        {/* Прозорий нативний datetime-local поверх поля: тап відкриває нативний
+            пікер напряму (надійно в Telegram-вебвʼю, без showPicker). */}
         {editable && (
           <input
-            ref={inputRef}
+            id={id}
             type="datetime-local"
             value={toDateTimeLocalValue(value)}
             onChange={(event) => onInput(event.target.value)}
-            tabIndex={-1}
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 h-px w-px opacity-0"
+            aria-invalid={hasError}
+            aria-describedby={hasError ? `${id}-error` : undefined}
+            className="absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent opacity-0"
           />
         )}
-      </button>
+      </div>
       <FieldError id={`${id}-error`} message={error} />
     </div>
   )
