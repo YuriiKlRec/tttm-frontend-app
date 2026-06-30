@@ -5,6 +5,7 @@ import { BetHint } from './BetHint'
 import { PredictionButton } from '../ui/PredictionButton'
 import { useBetPanel } from '../../hooks/useBetPanel'
 import { useNow } from '../../hooks/useNow'
+import { useT } from '../../i18n/useT'
 import { formatCountdown } from '../../utils/time'
 import { totalTon } from '../../utils/price'
 import { gameDeepLink } from '../../utils/gameLink'
@@ -67,6 +68,7 @@ export const BetPanel: FC<BetPanelProps> = ({
   const { input, status, setInput, decrement, increment, toggleBooking, applyExternal } =
     useBetPanel({ takenByOthers, yourTickets, cart, onPriceChange })
   const now = useNow()
+  const { t } = useT()
 
   // Y-контролер графіка заповнює поле ціни (силент: applyExternal НЕ емітить
   // onPriceChange, тому синк графік→поле не повертається назад у контролер).
@@ -108,7 +110,7 @@ export const BetPanel: FC<BetPanelProps> = ({
           >
             <img src={ticketIcon} alt="" aria-hidden="true" className="w-6" />
             <span className="font-mono text-[15px] text-text-focus">
-              Booked: {bookedCount} | {totalTon(bookedCount, ticketPrice)}
+              {t('game.bookedSummary', { count: bookedCount, total: totalTon(bookedCount, ticketPrice) })}
             </span>
           </button>
         )}
@@ -141,7 +143,7 @@ export const BetPanel: FC<BetPanelProps> = ({
         {bookedCount === 0 ? (
           <div className="flex flex-col items-center gap-3">
             <p className="text-center font-mono text-[16px] font-bold text-text-primary">
-              Make prediction | {countdown}
+              {t('game.makePrediction', { countdown })}
             </p>
             <button
               type="button"
@@ -149,11 +151,11 @@ export const BetPanel: FC<BetPanelProps> = ({
               className="flex items-center gap-2 font-mono text-[16px] font-bold text-text-focus outline-none"
             >
               <img src={linkIcon} alt="" aria-hidden="true" className="h-4 w-4" />
-              {copied ? 'Link copied!' : 'Copy game link'}
+              {copied ? t('game.linkCopied') : t('game.copyGameLink')}
             </button>
           </div>
         ) : (
-          <PredictionButton label={`Buy tickets | ${countdown}`} to="/buy" />
+          <PredictionButton label={t('game.buyTickets', { countdown })} to="/buy" />
         )}
       </div>
     </footer>

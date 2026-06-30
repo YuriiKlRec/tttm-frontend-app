@@ -5,6 +5,8 @@ import { Timer } from './Timer'
 import { WaitBetLine } from './WaitBetLine'
 import { useNow } from '../../hooks/useNow'
 import { useAuth } from '../../hooks/useAuth'
+import { useT } from '../../i18n/useT'
+import { useLocale } from '../../i18n/locale'
 import { clamp, formatCountdown } from '../../utils/time'
 import { formatInTz } from '../../utils/datetime'
 import type { WaitGame } from '../../types/wait'
@@ -29,11 +31,17 @@ export const WaitCard: FC<WaitGame> = ({
 }) => {
   const now = useNow()
   const { tz } = useAuth()
+  const { t } = useT()
+  const locale = useLocale()
 
   const total = endTime - startTime
   const elapsedFrac = total > 0 ? clamp((now - startTime) / total, 0, 1) : 1
   const betCloseFrac = total > 0 ? clamp((betCloseTime - startTime) / total, 0, 1) : 1
   const isLeading = mine.rank === 1
+
+  // Sentinel-підхід: отримуємо шаблон без інтерполяції і розбиваємо по {{percent}}
+  const deviationTpl = t('game.yourPredictedPrice')
+  const [devBefore, devAfter] = deviationTpl.split('{{percent}}')
 
   return (
     <PixelCard className="mx-7" contentClassName="items-center gap-4 px-7 py-4">
@@ -46,7 +54,7 @@ export const WaitCard: FC<WaitGame> = ({
         elapsedFrac={elapsedFrac}
         betCloseFrac={betCloseFrac}
         time={formatCountdown(endTime - now)}
-        date={formatInTz(endTime, tz)}
+        date={formatInTz(endTime, tz, locale)}
         reward={reward}
       />
 
@@ -56,9 +64,7 @@ export const WaitCard: FC<WaitGame> = ({
             <WaitBetLine bet={mine} />
             {deviationPercent !== undefined ? (
               <p className="text-center font-body text-[13px] text-text-secondary">
-                Your predicted price is{' '}
-                <span className="font-bold text-text-focus">{deviationPercent}%</span> away from the
-                current market value
+                {devBefore}<span className="font-bold text-text-focus">{deviationPercent}</span>{devAfter}
               </p>
             ) : null}
           </>
@@ -74,7 +80,7 @@ export const WaitCard: FC<WaitGame> = ({
         )}
       </div>
 
-      <PredictionButton to={`/game/${id}`} label="Show details" />
+      <PredictionButton to={`/game/${id}`} label={t('game.showDetails')} />
     </PixelCard>
   )
 }

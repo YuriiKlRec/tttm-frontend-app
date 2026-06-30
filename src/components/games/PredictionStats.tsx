@@ -1,4 +1,5 @@
 import type { FC } from 'react'
+import { useT } from '../../i18n/useT'
 import trophyIcon from '../../assets/icon-trophy.svg'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import ticketRedIcon from '../../assets/icon-ticket-red.svg'
@@ -42,39 +43,43 @@ export const PredictionStats: FC<PredictionStatsProps> = ({
   ticketsTaken,
   ticketsMine,
   players,
-}) => (
-  <div className="flex gap-6 px-6 py-3">
-    <span className="flex flex-col items-start gap-3">
-      <StatLabel>Reward</StatLabel>
-      <StatBox>
-        <img src={trophyIcon} alt="" aria-hidden="true" className="h-4 w-4" />
-        <StatValue>{reward}</StatValue>
-      </StatBox>
-    </span>
+}) => {
+  const { t } = useT()
 
-    <span className="flex flex-col items-start gap-3">
-      <StatLabel>Tickets</StatLabel>
-      <StatBox>
-        <span className="flex items-center gap-[9px]">
-          <span className="flex items-center gap-2">
-            <img src={ticketRedIcon} alt="" aria-hidden="true" className="h-4 w-4" />
-            <StatValue>{ticketsTaken}</StatValue>
-          </span>
-          <span className="h-3 w-px bg-[rgba(255,255,255,0.25)]" aria-hidden="true" />
-          <span className="flex items-center gap-2">
-            <img src={ticketIcon} alt="" aria-hidden="true" className="h-4 w-4" />
-            <StatValue>{ticketsMine}</StatValue>
-          </span>
-        </span>
-      </StatBox>
-    </span>
+  return (
+    <div className="flex gap-6 px-6 py-3">
+      <span className="flex flex-col items-start gap-3">
+        <StatLabel>{t('predictions.statsReward')}</StatLabel>
+        <StatBox>
+          <img src={trophyIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+          <StatValue>{reward}</StatValue>
+        </StatBox>
+      </span>
 
-    <span className="flex flex-col items-start gap-3">
-      <StatLabel>Players</StatLabel>
-      <StatBox>
-        <img src={userIcon} alt="" aria-hidden="true" className="h-4 w-4" />
-        <StatValue>{players}</StatValue>
-      </StatBox>
-    </span>
-  </div>
-)
+      <span className="flex flex-col items-start gap-3">
+        <StatLabel>{t('predictions.statsTickets')}</StatLabel>
+        <StatBox>
+          <span className="flex items-center gap-[9px]">
+            <span className="flex items-center gap-2">
+              <img src={ticketRedIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+              <StatValue>{ticketsTaken}</StatValue>
+            </span>
+            <span className="h-3 w-px bg-[rgba(255,255,255,0.25)]" aria-hidden="true" />
+            <span className="flex items-center gap-2">
+              <img src={ticketIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+              <StatValue>{ticketsMine}</StatValue>
+            </span>
+          </span>
+        </StatBox>
+      </span>
+
+      <span className="flex flex-col items-start gap-3">
+        <StatLabel>{t('predictions.statsPlayers')}</StatLabel>
+        <StatBox>
+          <img src={userIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+          <StatValue>{players}</StatValue>
+        </StatBox>
+      </span>
+    </div>
+  )
+}

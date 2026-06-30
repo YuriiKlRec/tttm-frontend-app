@@ -1,6 +1,7 @@
 import type { FC } from 'react'
 import { WaitBetLine } from './WaitBetLine'
 import { PredictionButton } from '../ui/PredictionButton'
+import { useT } from '../../i18n/useT'
 import type { WaitBet } from '../../types/wait'
 import type { ViewMode } from '../../types/game'
 import moonImg from '../../assets/moon.png'
@@ -32,9 +33,14 @@ export const ClosestPredictions: FC<ClosestPredictionsProps> = ({
   viewMode,
   onChangeView,
 }) => {
+  const { t } = useT()
   const isLeading = mine.rank === 1
   const onList = viewMode === 'bets'
-  const ctaLabel = onList ? 'Show chart' : 'Show all'
+  const ctaLabel = onList ? t('game.showChart') : t('game.showAll')
+
+  // Sentinel-підхід: отримуємо шаблон без інтерполяції і розбиваємо по {{percent}}
+  const deviationTpl = t('game.yourPredictedPrice')
+  const [devBefore, devAfter] = deviationTpl.split('{{percent}}')
 
   return (
     <footer
@@ -48,7 +54,7 @@ export const ClosestPredictions: FC<ClosestPredictionsProps> = ({
         className="pointer-events-none absolute -top-2 right-4 h-16 w-16 opacity-60"
       />
 
-      <p className="font-mono text-[15px] font-bold text-text-secondary">Closest predictions</p>
+      <p className="font-mono text-[15px] font-bold text-text-secondary">{t('game.closestPredictions')}</p>
 
       <div className="flex flex-col gap-4">
         {isLeading ? (
@@ -56,9 +62,7 @@ export const ClosestPredictions: FC<ClosestPredictionsProps> = ({
             <WaitBetLine bet={mine} />
             {deviationPercent !== undefined ? (
               <p className="font-body text-[13px] text-text-secondary">
-                Your predicted price is{' '}
-                <span className="font-bold text-text-focus">{deviationPercent}%</span> away from the
-                current market value
+                {devBefore}<span className="font-bold text-text-focus">{deviationPercent}%</span>{devAfter}
               </p>
             ) : null}
           </>

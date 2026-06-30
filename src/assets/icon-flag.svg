@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="flag-checkered-solid" clip-path="url(#clip0_0_139)">
+<path id="Vector" d="M3.66895 1.00034V1.66635H4.33594V3.00034H9.00293V3.66635H12.3359V3.00034H13.6689V2.33334H15.0029V11.0003H14.3359V11.6664H13.0029V12.3333H8.33594V11.6664H4.33594V12.3333H3.66895V15.0003H1.66895V3.66635H1.00293V1.66635H1.66895V1.00034H3.66895ZM4.33594 9.00034H3.66895V10.3333H7.66895V8.33334H4.33594V9.00034ZM13.0029 5.00034H9.66895V7.00034H12.3359V6.33334H13.6689V4.33334H13.0029V5.00034Z" fill="var(--fill-0, #EF9723)" stroke="var(--stroke-0, #212121)" stroke-width="0.666667"/>
+</g>
+<defs>
+<clipPath id="clip0_0_139">
+<rect width="16" height="16" fill="white"/>
+</clipPath>
+</defs>
+</svg>

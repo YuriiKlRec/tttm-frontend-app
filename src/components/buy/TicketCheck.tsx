@@ -1,6 +1,7 @@
 import type { FC } from 'react'
 import { TicketRow } from './TicketRow'
 import { CheckTeeth } from './CheckTeeth'
+import { useT } from '../../i18n/useT'
 import type { Check } from '../../types/buyTickets'
 import type { CheckSummary } from '../../hooks/useTicketChecks'
 import ticketIcon from '../../assets/icon-ticket.svg'
@@ -29,12 +30,14 @@ export const TicketCheck: FC<TicketCheckProps> = ({
   onToggleTicket,
   onTicketInfo,
 }) => {
+  const { t } = useT()
+
   return (
     <div className="relative flex flex-col gap-8 bg-surface pt-8 pb-12">
       <div className="flex items-center gap-[9px] px-7">
         <img src={ticketIcon} alt="" aria-hidden="true" className="h-4 w-6" />
         <span className="font-mono text-[15px] font-bold text-text-primary">
-          Booked predictions:
+          {t('buy.bookedPredictions')}
         </span>
       </div>
 
@@ -56,11 +59,11 @@ export const TicketCheck: FC<TicketCheckProps> = ({
         </div>
 
         <div className="flex items-center justify-between px-7 font-mono text-[16px] font-bold text-text-primary">
-          <span>Total:</span>
+          <span>{t('buy.total')}</span>
           <span>{summary.activeCount}</span>
         </div>
         <div className="flex items-center justify-between px-7 font-mono text-[16px] font-bold">
-          <span className="text-text-primary">Pay:</span>
+          <span className="text-text-primary">{t('buy.pay')}</span>
           <span className="text-text-focus">{summary.payTon}</span>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { PrizePoolControl } from '../components/create-game/PrizePoolControl'
 import { CreateFooter } from '../components/create-game/CreateFooter'
 import { ConfirmModal } from '../components/buy/ConfirmModal'
 import { useCreateGameForm } from '../hooks/useCreateGameForm'
+import { useT } from '../i18n/useT'
 import { createGameTransaction, createGame } from '../services/gameApi'
 import { saveWallet } from '../services/walletApi'
 import { env } from '../config/env'
@@ -33,6 +34,7 @@ const TX_VALID_SECONDS = 600
 const CreateGamePage: FC = () => {
   const navigate = useNavigate()
   const form = useCreateGameForm()
+  const { t } = useT()
   const [tonConnectUI] = useTonConnectUI()
   const address = useTonAddress()
 
@@ -137,14 +139,14 @@ const CreateGamePage: FC = () => {
           return
         }
 
-        setTxError(err instanceof Error ? err.message : 'Помилка створення гри')
+        setTxError(err instanceof Error ? err.message : t('errors.gameCreationFailed'))
       } finally {
         setSubmitting(false)
       }
     }
 
     void run()
-  }, [address, form, tonConnectUI, submitting, navigate])
+  }, [address, form, tonConnectUI, submitting, navigate, t])
 
   // Скасування виходу: лишитись на сторінці.
   const cancelLeave = useCallback((): void => setConfirmOpen(false), [])
@@ -163,9 +165,9 @@ const CreateGamePage: FC = () => {
 
       <main className="scrollbar-hide flex-1 overflow-y-auto px-7 pb-8">
         <div className="flex flex-col items-center gap-3 pt-6 pb-1 text-center">
-          <h1 className="font-display text-[24px] text-text-primary">New prediction game</h1>
+          <h1 className="font-display text-[24px] text-text-primary">{t('createGame.title')}</h1>
           <p className="font-body text-[16px] text-text-secondary">
-            Set up time, deadline, and ticket price
+            {t('createGame.subtitle')}
           </p>
         </div>
 
@@ -179,7 +181,7 @@ const CreateGamePage: FC = () => {
           <PairDisplay />
           <DateTimeField
             id="prediction-time"
-            label="Prediction time"
+            label={t('createGame.predictionTimeLabel')}
             value={form.predictionTime}
             onChange={form.setPredictionTime}
             error={form.timeError}
@@ -223,11 +225,11 @@ const CreateGamePage: FC = () => {
       {confirmOpen && (
         <ConfirmModal
           emblem={thinkingBadge}
-          title="LEAVE PAGE?"
-          message="Are you sure you want to leave? Your changes will be lost"
+          title={t('createGame.leavePageTitle')}
+          message={t('createGame.leavePageMessage')}
           actions={[
-            { label: 'Cancel', variant: 'inverse', onClick: cancelLeave },
-            { label: 'OK', variant: 'primary', onClick: confirmLeave },
+            { label: t('common.cancel'), variant: 'inverse', onClick: cancelLeave },
+            { label: t('common.ok'), variant: 'primary', onClick: confirmLeave },
           ]}
         />
       )}

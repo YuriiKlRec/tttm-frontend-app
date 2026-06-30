@@ -3,6 +3,8 @@ import { ViewSelector } from './ViewSelector'
 import { Glyph } from '../ui/Glyph'
 import { useNow } from '../../hooks/useNow'
 import { useAuth } from '../../hooks/useAuth'
+import { useT } from '../../i18n/useT'
+import { useLocale } from '../../i18n/locale'
 import { formatCountdown } from '../../utils/time'
 import { formatInTz } from '../../utils/datetime'
 import type { ViewMode } from '../../types/game'
@@ -51,6 +53,8 @@ export const GameHeader: FC<GameHeaderProps> = ({
 }) => {
   const now = useNow()
   const { tz } = useAuth()
+  const { t } = useT()
+  const locale = useLocale()
   const countdown = formatCountdown(endTime - now)
 
   return (
@@ -65,7 +69,7 @@ export const GameHeader: FC<GameHeaderProps> = ({
           {viewMode === 'bets' && (
             <button
               type="button"
-              aria-label="Show only my tickets"
+              aria-label={t('game.showOnlyMyTicketsAria')}
               aria-pressed={mineOnly}
               onClick={onToggleMine}
               className={`flex h-7 w-7 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
@@ -84,7 +88,7 @@ export const GameHeader: FC<GameHeaderProps> = ({
         {finished ? (
           <>
             <span className="font-mono text-[13px] text-text-primary">
-              {formatInTz(endTime, tz)}
+              {formatInTz(endTime, tz, locale)}
             </span>
             <span className="flex items-center gap-1.5 font-mono text-[15px] font-bold text-text-focus">
               <img src={btcIcon} alt="" aria-hidden="true" className="h-4 w-4" />
@@ -95,7 +99,7 @@ export const GameHeader: FC<GameHeaderProps> = ({
           <>
             <span className="font-mono text-[16px] font-bold text-text-primary">{countdown}</span>
             <span className="font-mono text-[13px] text-text-secondary">
-              {formatInTz(endTime, tz)}
+              {formatInTz(endTime, tz, locale)}
             </span>
           </>
         )}

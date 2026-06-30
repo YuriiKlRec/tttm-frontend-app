@@ -5,19 +5,13 @@ import { ConfettiBurst } from '../buy/ConfettiBurst'
 import { ResultBetLine } from './ResultBetLine'
 import { ResultStatusLine } from './ResultStatusLine'
 import { useAuth } from '../../hooks/useAuth'
+import { useT } from '../../i18n/useT'
+import { useLocale } from '../../i18n/locale'
 import type { ResultGame, ResultStatus } from '../../types/results'
 import { formatInTz } from '../../utils/datetime'
 import trophyImg from '../../assets/trophy.png'
 import receiptIcon from '../../assets/icon-receipt.svg'
 import btcIcon from '../../assets/icon-btc.svg'
-
-/** Текст-підпис стану під трофеєм (processing — без тексту). */
-const STATE_TEXT: Record<ResultStatus, string | null> = {
-  won: 'You won',
-  lost: 'You miss this one',
-  cancelled: 'Nobody bought a ticket',
-  processing: null,
-}
 
 /** Золотий трофей для виграшних/активних станів, срібний — для програшних. */
 const isGoldTrophy = (status: ResultStatus): boolean =>
@@ -46,10 +40,25 @@ export const ResultCard: FC<ResultGame> = ({
   deviationPercent,
 }) => {
   const { tz } = useAuth()
-  const stateText = STATE_TEXT[status]
+  const { t } = useT()
+  const locale = useLocale()
   const isGold = isGoldTrophy(status)
   const isCancelled = status === 'cancelled'
   const isWon = status === 'won'
+
+  // Ключи i18n тексту стану (null для processing — без тексту)
+  const stateTextKey: Record<ResultStatus, string | null> = {
+    won: 'results.won',
+    lost: 'results.lost',
+    cancelled: 'results.cancelled',
+    processing: null,
+  }
+  const stateKey = stateTextKey[status]
+  const stateText = stateKey ? t(stateKey) : null
+
+  // Sentinel-підхід для rich-text відхилення від ринку
+  const deviationTpl = t('game.yourPredictedPrice')
+  const [devBefore, devAfter] = deviationTpl.split('{{percent}}')
 
   return (
     <PixelCard className="mx-7" contentClassName="items-center gap-4 px-7 py-4">
@@ -62,7 +71,7 @@ export const ResultCard: FC<ResultGame> = ({
           href={`${EXPLORER_URL}/${contractAddress}`}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="View smart contract"
+          aria-label={t('common.viewSmartContract')}
           className="relative flex h-9 w-7 shrink-0 items-center justify-center bg-[#ef9723] outline-none"
         >
           <span className="absolute inset-y-1 -inset-x-1 bg-[#ef9723]" aria-hidden="true" />
@@ -90,7 +99,7 @@ export const ResultCard: FC<ResultGame> = ({
         <>
           <div className="flex w-full items-center justify-between">
             <span className="font-mono text-[15px] font-bold text-text-primary">
-              {formatInTz(finishedAt, tz)}
+              {formatInTz(finishedAt, tz, locale)}
             </span>
             {finalPrice ? (
               <span className="flex items-center gap-2">
@@ -109,9 +118,7 @@ export const ResultCard: FC<ResultGame> = ({
                 {mine ? <ResultBetLine bet={mine} /> : null}
                 {deviationPercent !== undefined ? (
                   <p className="text-center font-body text-[13px] text-text-secondary">
-                    Your predicted price is{' '}
-                    <span className="font-bold text-text-focus">{deviationPercent}%</span> away from
-                    the current market value
+                    {devBefore}<span className="font-bold text-text-focus">{deviationPercent}%</span>{devAfter}
                   </p>
                 ) : null}
               </>
@@ -129,7 +136,7 @@ export const ResultCard: FC<ResultGame> = ({
 
           <PredictionButton
             to={`/game/${id}?view=predictions`}
-            label="All tickets"
+            label={t('results.allTickets')}
             variant="inverse"
           />
         </>

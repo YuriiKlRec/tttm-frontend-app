@@ -5,6 +5,7 @@
  *   GameDto → Game (картка гри)
  *   GameDto → GameDetail (детальна сторінка)
  *   TicketDto → Bet (рядок ставки)
+ *   ProfileDto → Profile (сторінка профілю)
  *
  * Одиниці:
  *   nanoTON → TON-рядок через nanoToTon
@@ -14,10 +15,13 @@
 
 import type { GameDto } from './dto/game.dto';
 import type { TicketDto } from './dto/ticket.dto';
+import type { ProfileDto } from './dto/profile.dto';
 import type { Game, GameDetail, Bet } from '../types/game';
 import type { ResultGame, ResultBet } from '../types/results';
 import type { WaitGame, WaitBet } from '../types/wait';
+import type { Profile, ProfileGame } from '../types/profile';
 import { nanoToTon, centsToUsd } from '../utils/units';
+import { shortenHash, explorerUrl } from '../utils/explorer';
 
 // ─────────────────────────────────────────
 // deriveResultState
@@ -278,6 +282,60 @@ export function toResultCard(dto: GameDto, myUserId: string | null): ResultGame 
     ticketsCount,
     leader,
     mine,
+  };
+}
+
+// ─────────────────────────────────────────
+// toProfile
+// ─────────────────────────────────────────
+
+/**
+ * Перетворює ProfileDto у view-модель Profile.
+ *
+ * @param dto      — відповідь GET /api/me/profile
+ * @param nickname — нік поточного користувача (з useAuth), додається префікс '@'
+ * @returns Profile (view-модель сторінки профілю)
+ *
+ * Правила маппінгу:
+ *   rewards/amount: nanoTON → рядок + ' GRAM'
+ *   contractShort/contractUrl: доступні лише для win/miss з ненульовою адресою
+ *   date: epoch ms лише для pending; null інакше
+ *   pattern: ЗАГЛУШКА — формула рейтингу не реалізована, буде додано пізніше
+ */
+export function toProfile(dto: ProfileDto, nickname: string): Profile {
+  const games: ProfileGame[] = dto.games.map((g) => {
+    const isFinalized = g.status !== 'pending';
+    const hasContract = g.contractAddress !== null;
+
+    const contractShort =
+      isFinalized && hasContract ? shortenHash(g.contractAddress as string) : null;
+    const contractUrl =
+      isFinalized && hasContract ? explorerUrl(g.contractAddress as string) : null;
+
+    // date: показується лише для pending-ігор (час завершення у epoch ms)
+    const date = g.status === 'pending' ? Date.parse(g.date) : null;
+
+    return {
+      id: g.id,
+      name: g.name,
+      predictions: g.predictions,
+      amount: `${nanoToTon(g.amount)} GRAM`,
+      status: g.status,
+      contractShort,
+      contractUrl,
+      date,
+    };
+  });
+
+  return {
+    nickname: `@${nickname}`,
+    rewards: `${nanoToTon(dto.rewards)} GRAM`,
+    gamesCount: dto.gamesCount,
+    winCount: dto.winCount,
+    ticketsCount: dto.ticketsCount,
+    games,
+    // ЗАГЛУШКА: патерн гравця — формула рейтингу буде реалізована пізніше
+    pattern: { type: 'neutral', level: 0.5 },
   };
 }
 

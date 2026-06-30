@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useT } from '../i18n/useT'
 import { clamp } from '../utils/time'
 import { ceilToHour, HOUR_MS, MINUTE_MS } from '../utils/datetime'
 
@@ -60,6 +61,7 @@ export interface CreateGameForm {
  * межі offset перераховуються від тривалості (predictionTime − now).
  */
 export const useCreateGameForm = (): CreateGameForm => {
+  const { t } = useT()
   const [now] = useState(() => Date.now())
   const [name, setNameRaw] = useState('')
   const [predictionTime, setPredictionTimeRaw] = useState(initialPredictionTime)
@@ -95,7 +97,7 @@ export const useCreateGameForm = (): CreateGameForm => {
 
   const setPredictionTime = useCallback((epochMs: number) => {
     setPredictionTimeRaw(epochMs)
-    setTouched((t) => ({ ...t, time: true }))
+    setTouched((s) => ({ ...s, time: true }))
     setDirty(true)
   }, [])
 
@@ -109,8 +111,8 @@ export const useCreateGameForm = (): CreateGameForm => {
     setDirty(true)
   }, [])
 
-  const blurName = useCallback(() => setTouched((t) => ({ ...t, name: true })), [])
-  const blurPrice = useCallback(() => setTouched((t) => ({ ...t, price: true })), [])
+  const blurName = useCallback(() => setTouched((s) => ({ ...s, name: true })), [])
+  const blurPrice = useCallback(() => setTouched((s) => ({ ...s, price: true })), [])
 
   const onSetPool = useCallback((value: number) => {
     setPool(value)
@@ -123,9 +125,9 @@ export const useCreateGameForm = (): CreateGameForm => {
   const priceValid = Number.isFinite(priceNum) && priceNum >= MIN_TICKET_PRICE
   const timeValid = predictionTime - now >= MIN_LEAD_MINUTES * MINUTE_MS
 
-  const nameError = touched.name && !nameValid ? 'Must contain at least 3 characters' : null
-  const priceError = touched.price && !priceValid ? 'Cannot be less than 0.1 GRAM' : null
-  const timeError = touched.time && !timeValid ? 'Cannot be less than 10 minutes' : null
+  const nameError = touched.name && !nameValid ? t('createGame.nameError') : null
+  const priceError = touched.price && !priceValid ? t('createGame.priceError') : null
+  const timeError = touched.time && !timeValid ? t('createGame.timeError') : null
 
   const isValid = nameValid && priceValid && timeValid
 

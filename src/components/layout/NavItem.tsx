@@ -1,6 +1,7 @@
 import type { FC } from 'react'
 import { NavLink } from 'react-router-dom'
 import type { NavTab } from '../../types/navigation'
+import { useT } from '../../i18n/useT'
 
 interface NavItemProps {
   tab: NavTab
@@ -21,7 +22,8 @@ const Badge: FC<{ value: number; active: boolean }> = ({ value, active }) => (
 
 /** Пункт нижньої навігації: іконка + підпис + опційний бейдж. */
 export const NavItem: FC<NavItemProps> = ({ tab, badge }) => {
-  const { path, label, Icon } = tab
+  const { path, Icon } = tab
+  const { t } = useT()
   // Динамічне значення (з пропа) має пріоритет над статичним tab.badge.
   const value = badge !== undefined ? badge : tab.badge
 
@@ -29,7 +31,7 @@ export const NavItem: FC<NavItemProps> = ({ tab, badge }) => {
     <NavLink
       to={path}
       end={path === '/'}
-      className="flex w-[108px] flex-col items-center gap-1.5 py-4"
+      className="flex flex-1 flex-col items-center gap-1.5 py-4"
     >
       {({ isActive }) => (
         <>
@@ -45,7 +47,7 @@ export const NavItem: FC<NavItemProps> = ({ tab, badge }) => {
               isActive ? 'text-text-focus' : 'text-text-primary'
             }`}
           >
-            {label}
+            {t(`nav.${tab.key}`)}
           </span>
         </>
       )}

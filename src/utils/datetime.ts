@@ -5,12 +5,13 @@
  * Якщо tz === null або рядок порожній — використовує локальний TZ браузера.
  *
  * @example
- * formatInTz('2025-01-01T10:00:00Z', 'America/New_York') // "Jan 1, 17:00"
- * formatInTz('2025-01-01T10:00:00Z', null)               // локальний TZ
+ * formatInTz('2025-01-01T10:00:00Z', 'America/New_York', 'en-US') // "Jan 1, 17:00"
+ * formatInTz('2025-01-01T10:00:00Z', null, 'uk-UA')               // локальний TZ, укр. місяці
  */
 export function formatInTz(
   iso: string | number,
   tz: string | null,
+  locale: string,
   opts?: Intl.DateTimeFormatOptions,
 ): string {
   const defaults: Intl.DateTimeFormatOptions = {
@@ -20,7 +21,7 @@ export function formatInTz(
     minute: '2-digit',
     hour12: false,
   }
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale, {
     ...defaults,
     ...opts,
     ...(tz ? { timeZone: tz } : {}),
@@ -47,11 +48,15 @@ export const ceilToHour = (epochMs: number): number => {
 
 /**
  * Форматує epoch ms як повний рядок «24 Jun 2026 20:00:00».
+ * Назва місяця локалізується через `locale`.
  * Секунди виносяться окремо (`seconds`), бо в макеті вони сірі.
  */
-export const formatDateTimeFull = (epochMs: number): { main: string; seconds: string } => {
+export const formatDateTimeFull = (
+  epochMs: number,
+  locale: string,
+): { main: string; seconds: string } => {
   const date = new Date(epochMs)
-  const month = date.toLocaleString('en-US', { month: 'short' })
+  const month = date.toLocaleString(locale, { month: 'short' })
   const main = `${pad2(date.getDate())} ${month} ${date.getFullYear()} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`
   return { main, seconds: `:${pad2(date.getSeconds())}` }
 }

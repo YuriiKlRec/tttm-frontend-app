@@ -1,6 +1,7 @@
 import { useEffect, useRef, type FC } from 'react'
 import { FieldLabel } from './FieldLabel'
 import { FieldError } from './FieldError'
+import { useT } from '../../i18n/useT'
 
 /** Пропси поля назви гри. */
 interface GameNameFieldProps {
@@ -24,6 +25,7 @@ const stateClass = (hasError: boolean): string =>
  */
 export const GameNameField: FC<GameNameFieldProps> = ({ value, onChange, onBlur, error }) => {
   const inputRef = useRef<HTMLInputElement>(null)
+  const { t } = useT()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -31,7 +33,7 @@ export const GameNameField: FC<GameNameFieldProps> = ({ value, onChange, onBlur,
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <FieldLabel htmlFor="game-name">Game name</FieldLabel>
+      <FieldLabel htmlFor="game-name">{t('createGame.gameNameLabel')}</FieldLabel>
       <input
         id="game-name"
         ref={inputRef}

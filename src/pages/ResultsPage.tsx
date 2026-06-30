@@ -4,6 +4,8 @@ import { ResultCard } from '../components/games/ResultCard'
 import { groupByDate } from '../utils/groupByDate'
 import { useInfiniteGames, PER_PAGE } from '../hooks/useInfiniteGames'
 import { useAuth } from '../hooks/useAuth'
+import { useT } from '../i18n/useT'
+import { useLocale } from '../i18n/locale'
 import { listResults } from '../services/gameApi'
 
 /**
@@ -12,6 +14,8 @@ import { listResults } from '../services/gameApi'
  */
 const ResultsPage: FC = () => {
   const { user, ready } = useAuth()
+  const { t } = useT()
+  const locale = useLocale()
   const myUserId = user?.id ?? null
 
   const fetchPage = useCallback(
@@ -24,8 +28,13 @@ const ResultsPage: FC = () => {
 
   // groupByDate — чиста функція, тому useMemo дає нам оптимізацію при великих списках
   const groups = useMemo(
-    () => groupByDate(items, (game) => game.finishedAt),
-    [items],
+    () =>
+      groupByDate(items, (game) => game.finishedAt, {
+        locale,
+        todayLabel: t('date.today'),
+        yesterdayLabel: t('date.yesterday'),
+      }),
+    [items, locale, t],
   )
 
   // Чекаємо ініціалізації AuthProvider

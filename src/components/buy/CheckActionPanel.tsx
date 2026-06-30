@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import { PredictionButton } from '../ui/PredictionButton'
+import { useT } from '../../i18n/useT'
 
 /** Тип основної дії підвалу (визначає підпис і варіант CTA). */
 export type CheckCta =
@@ -22,14 +23,6 @@ interface CheckActionPanelProps {
   splitNote?: string
 }
 
-/** Підпис і варіант кольору CTA за типом дії. */
-const ctaView: Record<CheckCta['kind'], { label: string; variant: 'primary' | 'inverse' }> = {
-  connect: { label: 'Connect wallet', variant: 'primary' },
-  pay: { label: 'Pay with wallet', variant: 'primary' },
-  next: { label: 'Pay next check', variant: 'inverse' },
-  back: { label: 'Back to game', variant: 'inverse' },
-}
-
 /**
  * Фіксований підвал сторінки оплати: основна CTA (контекстна) та текст-кнопка
  * «Add more predictions». Враховує safe-area знизу.
@@ -41,6 +34,16 @@ export const CheckActionPanel: FC<CheckActionPanelProps> = ({
   onAddMore,
   splitNote,
 }) => {
+  const { t } = useT()
+
+  /** Підпис і варіант кольору CTA за типом дії. */
+  const ctaView: Record<CheckCta['kind'], { label: string; variant: 'primary' | 'inverse' }> = {
+    connect: { label: t('buy.connectWallet'), variant: 'primary' },
+    pay: { label: t('buy.payWithWallet'), variant: 'primary' },
+    next: { label: t('buy.payNextCheck'), variant: 'inverse' },
+    back: { label: t('buy.backToGame'), variant: 'inverse' },
+  }
+
   const { label, variant } = ctaView[cta.kind]
 
   return (
@@ -60,7 +63,7 @@ export const CheckActionPanel: FC<CheckActionPanelProps> = ({
           onClick={onAddMore}
           className="font-mono text-[15px] font-bold text-text-focus outline-none"
         >
-          Add more predictions
+          {t('buy.addMorePredictions')}
         </button>
       )}
     </div>

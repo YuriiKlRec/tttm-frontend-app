@@ -10,4 +10,6 @@ export interface UserDto {
   wallets: WalletDto[];
   /** true якщо Telegram надав дозвіл надсилати повідомлення цьому користувачу. */
   canNotify?: boolean;
+  /** Код мови інтерфейсу користувача (ISO 639-1, напр. «uk», «en»). */
+  language?: string;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FC } from 'react'
 import type { ViewMode } from '../../types/game'
 import { Glyph, type GlyphName } from '../ui/Glyph'
+import { useT } from '../../i18n/useT'
 
 /** Пропси дропдауну вибору виду центральної області. */
 interface ViewSelectorProps {
@@ -10,13 +11,6 @@ interface ViewSelectorProps {
   onChange: (value: ViewMode) => void
   /** Доступні види (для завершеної гри — без графіка). */
   options?: ViewMode[]
-}
-
-/** Людиночитні лейбли видів. */
-const LABELS: Record<ViewMode, string> = {
-  chart: 'Chart',
-  bets: 'Predictions',
-  details: 'Details',
 }
 
 /** Гліф кожного виду (перефарбовується через currentColor). */
@@ -36,6 +30,14 @@ const ALL_OPTIONS: ViewMode[] = ['chart', 'bets', 'details']
 export const ViewSelector: FC<ViewSelectorProps> = ({ value, onChange, options = ALL_OPTIONS }) => {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const { t } = useT()
+
+  /** Людиночитні лейбли видів (через t()). */
+  const labels: Record<ViewMode, string> = {
+    chart: t('game.viewChart'),
+    bets: t('nav.predictions'),
+    details: t('game.viewDetails'),
+  }
 
   useEffect(() => {
     if (!open) {
@@ -74,7 +76,7 @@ export const ViewSelector: FC<ViewSelectorProps> = ({ value, onChange, options =
         className="flex h-7 items-center gap-2 bg-[#ef9723] px-2 text-[#323232] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
       >
         <Glyph name={ICONS[value]} className="h-4 w-4" />
-        <span className="font-mono text-[13px] font-bold">{LABELS[value]}</span>
+        <span className="font-mono text-[13px] font-bold">{labels[value]}</span>
         <Glyph name="caret" className="h-[5px] w-2" />
       </button>
 
@@ -94,7 +96,7 @@ export const ViewSelector: FC<ViewSelectorProps> = ({ value, onChange, options =
                 }`}
               >
                 <Glyph name={ICONS[mode]} className="h-4 w-4" />
-                {LABELS[mode]}
+                {labels[mode]}
               </button>
             </li>
           ))}

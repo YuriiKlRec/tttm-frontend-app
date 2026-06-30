@@ -8,8 +8,8 @@ export interface NicknameValidation {
   error: string
 }
 
-/** Текст помилки невірного формату. */
-const FORMAT_ERROR = 'Use 3-20 letters, digits or _'
+/** Ключ i18n для помилки невірного формату — відображається через t() у виклику. */
+const FORMAT_ERROR = 'errors.nicknameFormat'
 
 /** Формат: 3–20 символів, лише латиниця/цифри/`_`, перший символ — літера. */
 const NICKNAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]{2,19}$/

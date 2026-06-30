@@ -3,6 +3,7 @@ import { TonConnectUIProvider } from '@tonconnect/ui-react'
 import { BrowserRouter } from 'react-router-dom'
 import { AppRoutes } from './router'
 import { AuthProvider } from '../context/AuthProvider'
+import { I18nProvider } from '../i18n/I18nProvider'
 import { BookedCartProvider } from '../context/BookedCartProvider'
 import { useSafeArea } from '../hooks/useSafeArea'
 import { useTelegramSetup } from '../hooks/useTelegramSetup'
@@ -27,11 +28,13 @@ const App: FC = () => {
       }}
     >
       <AuthProvider>
-        <BookedCartProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </BookedCartProvider>
+        <I18nProvider>
+          <BookedCartProvider>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </BookedCartProvider>
+        </I18nProvider>
       </AuthProvider>
     </TonConnectUIProvider>
   )

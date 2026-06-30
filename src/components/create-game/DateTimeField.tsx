@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { FieldLabel } from './FieldLabel'
 import { FieldError } from './FieldError'
 import { formatDateTimeFull, toDateTimeLocalValue } from '../../utils/datetime'
+import { useLocale } from '../../i18n/locale'
 
 /** Пропси стилізованого поля дати/часу з нативним пікером. */
 interface DateTimeFieldProps {
@@ -36,7 +37,8 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
   error = null,
   id,
 }) => {
-  const { main, seconds } = formatDateTimeFull(value)
+  const locale = useLocale()
+  const { main, seconds } = formatDateTimeFull(value, locale)
   const hasError = Boolean(error)
 
   const onInput = (raw: string): void => {

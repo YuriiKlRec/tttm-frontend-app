@@ -26,24 +26,39 @@ const dateKey = (epochMs: number): string => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
+/** Локалізаційні параметри для підписів груп. */
+export interface GroupByDateOptions {
+  /** BCP-47 локаль для назви місяця (напр. «uk-UA»). */
+  locale: string
+  /** Локалізований підпис «Сьогодні». */
+  todayLabel: string
+  /** Локалізований підпис «Вчора». */
+  yesterdayLabel: string
+}
+
 /**
- * Формує підпис дати відносно «сьогодні»: «Today», «Yesterday»
- * або коротка дата «Jun 6» (без року).
+ * Формує підпис дати відносно «сьогодні»: todayLabel, yesterdayLabel
+ * або коротка локалізована дата «Jun 6» / «6 черв.» (без року).
  */
-const dateLabel = (epochMs: number, todayStart: number): string => {
+const dateLabel = (epochMs: number, todayStart: number, opts: GroupByDateOptions): string => {
   const diffDays = Math.round((todayStart - startOfDay(epochMs)) / DAY_MS)
-  if (diffDays === 0) return 'Today'
-  if (diffDays === 1) return 'Yesterday'
+  if (diffDays === 0) return opts.todayLabel
+  if (diffDays === 1) return opts.yesterdayLabel
   const date = new Date(epochMs)
-  return `${date.toLocaleString('en-US', { month: 'short' })} ${date.getDate()}`
+  return `${date.toLocaleString(opts.locale, { month: 'short' })} ${date.getDate()}`
 }
 
 /**
  * Групує елементи за календарною датою (спадання — новіші зверху).
  * `getTime` витягує epoch ms з елемента; групи сортуються від найновішої.
+ * `opts` несе локаль і локалізовані підписи «Сьогодні»/«Вчора».
  * Чиста функція без побічних ефектів — придатна для useMemo.
  */
-export const groupByDate = <T>(items: T[], getTime: (item: T) => number): DateGroup<T>[] => {
+export const groupByDate = <T>(
+  items: T[],
+  getTime: (item: T) => number,
+  opts: GroupByDateOptions,
+): DateGroup<T>[] => {
   const todayStart = startOfDay(Date.now())
   const map = new Map<string, DateGroup<T>>()
 
@@ -54,7 +69,7 @@ export const groupByDate = <T>(items: T[], getTime: (item: T) => number): DateGr
     if (group) {
       group.items.push(item)
     } else {
-      map.set(key, { key, label: dateLabel(time, todayStart), items: [item] })
+      map.set(key, { key, label: dateLabel(time, todayStart, opts), items: [item] })
     }
   }
 

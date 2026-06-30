@@ -1,65 +1,80 @@
-import { useState, type FC } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { PredictionButton } from '../components/ui/PredictionButton'
-import { NicknameField } from '../components/onboarding/NicknameField'
-import { useNicknameInput } from '../hooks/useNicknameInput'
-import { useAuth } from '../hooks/useAuth'
-import { updateNickname } from '../services/meApi'
-import { ValidationError } from '../services/http'
-
-// TOP PLAYER (лідерборд) приховано до появи формули розрахунку — повернути пізніше
+import { type FC } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ProfileStats } from '../components/profile/ProfileStats'
+import { GameHistoryList } from '../components/profile/GameHistoryList'
+import { PlayerPatternPanel } from '../components/profile/PlayerPatternPanel'
+import { useProfile } from '../hooks/useProfile'
+import { useT } from '../i18n/useT'
 
 /**
- * Завершальний екран онбордингу `/profile`: поле вводу нікнейму по центру
- * (з клієнтською та серверною валідацією) і CTA «Continue» унизу.
- * Нік зберігається через PUT /api/me перед переходом на головну.
- * Поле попередньо заповнюється поточним ніком користувача (якщо є).
+ * Сторінка перегляду профілю `/profile` (read-only).
+ *
+ * Структура:
+ *   - Прокручуваний контент: заголовок (@nick + посилання Edit),
+ *     блок статистики, розділювач, список останніх ігор.
+ *   - Фіксований футер: PlayerPatternPanel з кнопкою «Go back».
+ *
+ * Під час завантаження рендерить порожній fullscreen-shell без flash-контенту.
  */
 const ProfilePage: FC = () => {
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const nickname = useNicknameInput(user?.nickname)
-  const [submitting, setSubmitting] = useState(false)
-  const [serverError, setServerError] = useState<string>('')
+  const { profile, loading } = useProfile()
+  const { t } = useT()
 
-  const handleContinue = async (): Promise<void> => {
-    if (!nickname.valid || submitting) return
+  /** Обробник кнопки «Go back» у PlayerPatternPanel. */
+  const handleGoBack = (): void => {
+    navigate(-1)
+  }
 
-    setSubmitting(true)
-    setServerError('')
-
-    try {
-      await updateNickname(nickname.nick)
-      navigate('/')
-    } catch (err) {
-      if (err instanceof ValidationError) {
-        setServerError(err.errors[0] ?? 'Помилка збереження нікнейму')
-      } else {
-        setServerError('Не вдалось зберегти нікнейм. Спробуйте ще раз.')
-      }
-    } finally {
-      setSubmitting(false)
-    }
+  // Під час завантаження або відсутності профілю — порожній shell (без flash)
+  if (loading || !profile) {
+    return (
+      <div className="mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
+        <div className="flex-1" />
+      </div>
+    )
   }
 
   return (
-    <div className="relative mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
-      {/* Центр: заголовок + поле вводу ніка. */}
-      <div className="absolute inset-x-7 top-1/2 flex -translate-y-1/2 flex-col items-center gap-5">
-        <h1 className="text-center font-display text-[24px] text-text-primary">
-          Enter Your nickname:
-        </h1>
-        <NicknameField input={nickname} serverError={serverError} />
+    <div className="mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
+      {/* Фіксована шапка: нік + посилання на редагування */}
+      <div
+        className="flex shrink-0 items-center justify-between px-7 pb-6"
+        style={{ paddingTop: 'calc(var(--app-safe-top) + 16px)' }}
+      >
+        <span className="font-body text-[18px] font-bold text-text-primary">
+          {profile.nickname}
+        </span>
+        <Link
+          to="/edit-profile"
+          className="font-mono text-[15px] font-bold text-text-focus outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-focus"
+        >
+          {t('common.edit')}
+        </Link>
       </div>
 
-      {/* Низ: продовження (активне лише за валідного ніка і поки не виконується запит). */}
-      <div className="absolute inset-x-0 bottom-0 border-t border-border-dashed bg-surface px-8 py-4 pb-[calc(var(--app-safe-bottom)+1rem)]">
-        <PredictionButton
-          label={submitting ? 'Saving…' : 'Continue'}
-          variant="primary"
-          disabled={!nickname.valid || submitting}
-          onClick={() => void handleContinue()}
-        />
+      {/* Прокручуваний контент */}
+      <div className="scrollbar-hide flex-1 overflow-y-auto px-7 pb-6">
+        <div className="flex flex-col gap-8">
+          {/* Статистика гравця */}
+          <ProfileStats
+            rewards={profile.rewards}
+            gamesCount={profile.gamesCount}
+            winCount={profile.winCount}
+            ticketsCount={profile.ticketsCount}
+          />
+
+          {/* Розділювач */}
+          <div className="h-px w-full bg-border-dashed" />
+
+          {/* Список останніх ігор */}
+          <GameHistoryList games={profile.games} />
+        </div>
+      </div>
+
+      {/* Фіксований футер: патерн гравця + кнопка «Go back» */}
+      <div className="shrink-0">
+        <PlayerPatternPanel pattern={profile.pattern} onGoBack={handleGoBack} />
       </div>
     </div>
   )

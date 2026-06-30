@@ -12,8 +12,10 @@ import GamePage from '../pages/GamePage'
 import WelcomePage from '../pages/WelcomePage'
 import TermsPage from '../pages/TermsPage'
 import ProfilePage from '../pages/ProfilePage'
+import EditProfilePage from '../pages/EditProfilePage'
 import BuyTicketsPage from '../pages/BuyTicketsPage'
 import CreateGamePage from '../pages/CreateGamePage'
+import LeaderboardPage from '../pages/LeaderboardPage'
 
 /** Маршрути застосунку під спільним AppLayout. */
 export const AppRoutes: FC = () => {
@@ -42,7 +44,7 @@ export const AppRoutes: FC = () => {
       {/* Онбординг: окремі fullscreen-екрани поза OnboardingGate */}
       <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/terms" element={<TermsPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/edit-profile" element={<EditProfilePage />} />
 
       {/* Захищені маршрути: OnboardingGate перевіряє ready + termsAccepted */}
       <Route element={<OnboardingGate />}>
@@ -51,8 +53,10 @@ export const AppRoutes: FC = () => {
           <Route path="/" element={<PredictionsPage />} />
           <Route path="/waiting" element={<WaitingPage />} />
           <Route path="/results" element={<ResultsPage />} />
+          <Route path="/leaders" element={<LeaderboardPage />} />
         </Route>
         {/* Окремі fullscreen-маршрути без AppLayout, але за онбординг-ґейтом */}
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/game/:id" element={<GamePage />} />
         <Route path="/buy" element={<BuyTicketsPage />} />
         <Route path="/create-game" element={<CreateGamePage />} />

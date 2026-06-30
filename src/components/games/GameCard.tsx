@@ -5,6 +5,8 @@ import { IconButton } from '../ui/IconButton'
 import { Timer } from './Timer'
 import { useNow } from '../../hooks/useNow'
 import { useAuth } from '../../hooks/useAuth'
+import { useT } from '../../i18n/useT'
+import { useLocale } from '../../i18n/locale'
 import { clamp, formatCountdown } from '../../utils/time'
 import { formatInTz } from '../../utils/datetime'
 import type { Game } from '../../types/game'
@@ -40,6 +42,8 @@ export const GameCard: FC<Game> = ({
 }) => {
   const now = useNow()
   const { tz } = useAuth()
+  const { t } = useT()
+  const locale = useLocale()
 
   const total = endTime - startTime
   const elapsedFrac = total > 0 ? clamp((now - startTime) / total, 0, 1) : 1
@@ -47,8 +51,8 @@ export const GameCard: FC<Game> = ({
 
   const bettingClosed = now >= betCloseTime
   const betLabel = bettingClosed
-    ? 'Betting closed'
-    : `Make prediction | ${formatCountdown(betCloseTime - now)}`
+    ? t('game.bettingClosed')
+    : t('game.makePrediction', { countdown: formatCountdown(betCloseTime - now) })
 
   return (
     <PixelCard className="mx-7" contentClassName="items-center gap-3 px-7 py-4">
@@ -59,7 +63,7 @@ export const GameCard: FC<Game> = ({
         </div>
         {/* копіювання посилання — доступно авторам */}
         {isAuthor ? (
-          <IconButton icon={linkIcon} label="Copy game link" onClick={() => copyGameLink(id)} />
+          <IconButton icon={linkIcon} label={t('game.copyGameLink')} onClick={() => copyGameLink(id)} />
         ) : null}
       </div>
 
@@ -67,7 +71,7 @@ export const GameCard: FC<Game> = ({
         elapsedFrac={elapsedFrac}
         betCloseFrac={betCloseFrac}
         time={formatCountdown(endTime - now)}
-        date={formatInTz(endTime, tz)}
+        date={formatInTz(endTime, tz, locale)}
       />
 
       <div className="flex w-full max-w-[270px] items-center justify-between">
@@ -84,7 +88,9 @@ export const GameCard: FC<Game> = ({
       {/* кнопка-посилання на сторінку гри (маршрут /game/:id поки заглушка) */}
       <PredictionButton to={`/game/${id}`} label={betLabel} />
 
-      <p className="font-body text-[15px] text-text-focus">You have {ticketsCount} tickets</p>
+      <p className="font-body text-[15px] text-text-focus">
+        {t('game.youHaveTickets', { count: ticketsCount })}
+      </p>
     </PixelCard>
   )
 }

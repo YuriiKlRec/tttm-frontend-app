@@ -1,6 +1,7 @@
 import type { FC } from 'react'
 import { FieldLabel } from './FieldLabel'
 import { FieldError } from './FieldError'
+import { useT } from '../../i18n/useT'
 
 /** Пропси поля ціни квитка. */
 interface TicketPriceFieldProps {
@@ -24,10 +25,11 @@ const stateClass = (hasError: boolean): string =>
  */
 export const TicketPriceField: FC<TicketPriceFieldProps> = ({ value, onChange, onBlur, error }) => {
   const hasError = Boolean(error)
+  const { t } = useT()
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <FieldLabel htmlFor="ticket-price">Ticket price</FieldLabel>
+      <FieldLabel htmlFor="ticket-price">{t('createGame.ticketPriceLabel')}</FieldLabel>
       <div
         className={`flex h-12 w-full items-center justify-between border px-4 ${stateClass(hasError)}`}
       >
@@ -44,7 +46,7 @@ export const TicketPriceField: FC<TicketPriceFieldProps> = ({ value, onChange, o
           aria-describedby={hasError ? 'ticket-price-error' : undefined}
           className="min-w-0 flex-1 bg-transparent font-mono text-[18px] font-bold text-text-primary focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
-        <span className="ml-2 font-mono text-[18px] font-bold text-text-secondary">GRAM</span>
+        <span className="ml-2 font-mono text-[18px] font-bold text-text-secondary">{t('createGame.gramSuffix')}</span>
       </div>
       <FieldError id="ticket-price-error" message={error} />
     </div>

@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import { ConfirmModal } from './ConfirmModal'
+import { useT } from '../../i18n/useT'
 import type { ActiveModal } from '../../hooks/useBuyTicketsFlow'
 import badgeSad from '../../assets/badge-face-sad.svg'
 import badgeThinking from '../../assets/badge-face-thinking.svg'
@@ -19,13 +20,15 @@ interface BuyModalsProps {
  * через перевикористовуваний ConfirmModal.
  */
 export const BuyModals: FC<BuyModalsProps> = ({ active, onClose, onConfirmUncompleted }) => {
+  const { t } = useT()
+
   if (active === 'taken') {
     return (
       <ConfirmModal
         emblem={badgeSad}
-        title="ALREADY TAKEN"
-        message="Another player has already paid for this prediction. Be faster next time."
-        actions={[{ label: 'OK', onClick: onClose }]}
+        title={t('buy.takenTitle')}
+        message={t('buy.takenMessage')}
+        actions={[{ label: t('common.ok'), onClick: onClose }]}
       />
     )
   }
@@ -34,11 +37,11 @@ export const BuyModals: FC<BuyModalsProps> = ({ active, onClose, onConfirmUncomp
     return (
       <ConfirmModal
         emblem={badgeThinking}
-        title="UNCOMPLETED ORDER"
-        message="Your cancelled predictions will be discarded. Return to the game?"
+        title={t('buy.uncompletedTitle')}
+        message={t('buy.uncompletedMessage')}
         actions={[
-          { label: 'Cancel', variant: 'inverse', onClick: onClose },
-          { label: 'OK', onClick: onConfirmUncompleted },
+          { label: t('common.cancel'), variant: 'inverse', onClick: onClose },
+          { label: t('common.ok'), onClick: onConfirmUncompleted },
         ]}
       />
     )

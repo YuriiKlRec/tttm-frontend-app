@@ -213,6 +213,8 @@ export interface LiveState {
   connectedUsers: number;
   /** true, якщо WebSocket-з'єднання активне. */
   socketConnected: boolean;
+  /** Лічильник-сигнал оновлення лідерборду (інкремент на подію leaderboard:updated). */
+  leaderboardVersion: number;
   setGame: (d: GameDetail) => void;
   setMyUserId: (id: string | null, nickname?: string | null) => void;
   ingest: (event: { type: string; payload: unknown }) => void;
@@ -220,6 +222,8 @@ export interface LiveState {
   setConnectedUsers: (n: number) => void;
   /** Оновлює стан WebSocket-з'єднання. */
   setSocketConnected: (b: boolean) => void;
+  /** Інкрементує leaderboardVersion — тригер рефетчу лідерборду (realtime). */
+  bumpLeaderboard: () => void;
 }
 
 export const useLiveStore = create<LiveState>((set) => ({
@@ -229,6 +233,7 @@ export const useLiveStore = create<LiveState>((set) => ({
   myNickname: null,
   connectedUsers: 0,
   socketConnected: false,
+  leaderboardVersion: 0,
 
   /** Встановлює або оновлює GameDetail у сторі за id. */
   setGame(d) {
@@ -252,6 +257,11 @@ export const useLiveStore = create<LiveState>((set) => ({
   /** Оновлює прапор активності WebSocket-з'єднання. */
   setSocketConnected(b) {
     set({ socketConnected: b });
+  },
+
+  /** Інкрементує сигнал оновлення лідерборду (подія leaderboard:updated). */
+  bumpLeaderboard() {
+    set((state) => ({ leaderboardVersion: state.leaderboardVersion + 1 }));
   },
 
   /**

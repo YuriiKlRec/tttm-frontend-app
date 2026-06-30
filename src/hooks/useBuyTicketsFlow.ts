@@ -7,6 +7,7 @@ import { prepareTicketTx, createTickets } from '../services/ticketApi'
 import { ValidationError } from '../services/http'
 import { isUserRejection } from '../utils/isUserRejection'
 import { chunk } from '../utils/chunk'
+import { useT } from '../i18n/useT'
 import type { CheckCta } from '../components/buy/CheckActionPanel'
 
 /** Тип відкритої модалки на сторінці оплати. */
@@ -56,6 +57,7 @@ export const useBuyTicketsFlow = (
   ticketPrice: string,
   takenPrices: number[],
 ): BuyTicketsFlow => {
+  const { t } = useT()
   const navigate = useNavigate()
   const cart = useBookedCart()
   const checks = useTicketChecks(prices, ticketPrice, takenPrices)
@@ -109,7 +111,7 @@ export const useBuyTicketsFlow = (
 
     const gameId = cart.gameId
     if (!gameId) {
-      setPayError('gameId невідомий — поверніться до гри')
+      setPayError(t('errors.gameIdUnknown'))
       return
     }
 
@@ -183,11 +185,11 @@ export const useBuyTicketsFlow = (
         return
       }
 
-      setPayError(err instanceof Error ? err.message : 'Помилка оплати')
+      setPayError(err instanceof Error ? err.message : t('errors.paymentFailed'))
     } finally {
       setPaying(false)
     }
-  }, [activeCheck, summary, paying, cart.gameId, tonConnectUI, checks])
+  }, [activeCheck, summary, paying, cart, tonConnectUI, checks, t])
 
   const openTakenModal = useCallback(() => setActiveModal('taken'), [])
   const openUncompleted = useCallback(() => setActiveModal('uncompleted'), [])

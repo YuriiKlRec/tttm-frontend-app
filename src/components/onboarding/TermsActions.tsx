@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import { PredictionButton } from '../ui/PredictionButton'
+import { useT } from '../../i18n/useT'
 
 /** Пропси панелі дій угоди. */
 interface TermsActionsProps {
@@ -27,17 +28,19 @@ export const TermsActions: FC<TermsActionsProps> = ({
   onScrollBottom,
   onScrollTop,
 }) => {
+  const { t } = useT()
+
   if (!reachedEnd) {
-    return <PredictionButton variant="inverse" label="Scroll bottom" onClick={onScrollBottom} />
+    return <PredictionButton variant="inverse" label={t('terms.scrollBottom')} onClick={onScrollBottom} />
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <PredictionButton label="Accept and Continue" onClick={onAccept} />
+      <PredictionButton label={t('terms.acceptAndContinue')} onClick={onAccept} />
       {atBottom ? (
-        <PredictionButton variant="inverse" label="Scroll top" onClick={onScrollTop} />
+        <PredictionButton variant="inverse" label={t('terms.scrollTop')} onClick={onScrollTop} />
       ) : (
-        <PredictionButton variant="inverse" label="Scroll bottom" onClick={onScrollBottom} />
+        <PredictionButton variant="inverse" label={t('terms.scrollBottom')} onClick={onScrollBottom} />
       )}
     </div>
   )

@@ -79,6 +79,8 @@ export interface ChartDrawState {
   icons: ChartIcons | null
   /** Інтерактивний режим: false для завершеної гри (без Y-контролера). */
   interactive: boolean
+  /** BCP-47 локаль для підписів дат на осі (напр. «uk-UA»). */
+  locale: string
 }
 
 /** Передзавантажені растрові іконки для canvas. */

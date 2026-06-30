@@ -3,6 +3,7 @@ import type { Bet } from '../../types/game'
 import { PredictionStats } from './PredictionStats'
 import { BetLine } from './BetLine'
 import { CurrencyPricePlate } from './CurrencyPricePlate'
+import { useT } from '../../i18n/useT'
 import sortIcon from '../../assets/icon-sort.svg'
 
 /** Статистика гри для верхньої панелі. */
@@ -49,6 +50,8 @@ export const PredictionsView: FC<PredictionsViewProps> = ({
   sortMode,
   onToggleSort,
 }) => {
+  const { t } = useT()
+
   // «Лише мої»: бекенд уже повертає лише мої тікети (mine=true), тож тут
   // лишаємо і 'mine', і 'win' — моя ВИГРАШНА ставка має variant 'win'
   // (win перекриває mine у toBet) і не повинна випадати з фільтра.
@@ -63,11 +66,13 @@ export const PredictionsView: FC<PredictionsViewProps> = ({
         <PredictionStats {...stats} />
 
         <div className="flex items-center justify-between px-6">
-          <h2 className="font-body text-[15px] font-bold text-text-primary">Tickets</h2>
+          <h2 className="font-body text-[15px] font-bold text-text-primary">
+            {t('predictions.ticketsHeader')}
+          </h2>
           {/* Перемикач сортування: за місцем (близькість до ціни) ↔ за датою. */}
           <button
             type="button"
-            aria-label={sortMode === 'place' ? 'Sort by date' : 'Sort by place'}
+            aria-label={sortMode === 'place' ? t('predictions.sortByDateAria') : t('predictions.sortByPlaceAria')}
             aria-pressed={sortMode === 'date'}
             onClick={onToggleSort}
             className="flex h-7 w-7 items-center justify-center transition-opacity active:opacity-60"

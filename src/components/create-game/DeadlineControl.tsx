@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { FieldLabel } from './FieldLabel'
 import { RangeSlider } from './RangeSlider'
 import { DateTimeField } from './DateTimeField'
+import { useT } from '../../i18n/useT'
 import { formatDuration } from '../../utils/datetime'
 import clockIcon from '../../assets/icon-clock.svg'
 
@@ -39,6 +40,7 @@ export const DeadlineControl: FC<DeadlineControlProps> = ({
   max,
   onChange,
 }) => {
+  const { t } = useT()
   // Інверсія: позиція праворуч = ближче до prediction time = менший offset.
   // sliderValue = (min + max) − offset, тож max→min і навпаки.
   const sliderValue = min + max - offset
@@ -46,19 +48,19 @@ export const DeadlineControl: FC<DeadlineControlProps> = ({
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <FieldLabel>Prediction deadline</FieldLabel>
+      <FieldLabel>{t('createGame.predictionDeadlineLabel')}</FieldLabel>
       <RangeSlider
         value={sliderValue}
         min={min}
         max={max}
         onChange={onSlider}
-        ariaLabel="Prediction deadline offset"
+        ariaLabel={t('createGame.deadlineOffsetAria')}
         thumb={<ClockThumb />}
       />
       <DateTimeField id="deadline" value={deadline} editable={false} />
       <div className="flex w-full flex-col items-center bg-[rgba(255,255,255,0.05)] py-3">
         <span className="font-body text-[12px] text-text-secondary">
-          {formatDuration(offset)} before prediction time
+          {t('createGame.beforePredictionTime', { duration: formatDuration(offset) })}
         </span>
       </div>
     </div>

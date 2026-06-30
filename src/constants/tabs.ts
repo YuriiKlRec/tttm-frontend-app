@@ -1,13 +1,15 @@
 import { PredictionsIcon } from '../components/icons/PredictionsIcon'
 import { WaitingIcon } from '../components/icons/WaitingIcon'
 import { ResultsIcon } from '../components/icons/ResultsIcon'
+import { LeadersIcon } from '../components/icons/LeadersIcon'
 import type { NavTab } from '../types/navigation'
 
 /** Конфігурація вкладок нижньої навігації. Порядок = індекс для напрямку slide. */
 export const NAV_TABS: readonly NavTab[] = [
-  { key: 'predictions', path: '/', label: 'Predictions', Icon: PredictionsIcon, badge: 0 },
-  { key: 'waiting', path: '/waiting', label: 'Waiting', Icon: WaitingIcon, badge: 0 },
-  { key: 'results', path: '/results', label: 'Results', Icon: ResultsIcon, badge: null },
+  { key: 'predictions', path: '/', label: 'nav.predictions', Icon: PredictionsIcon, badge: 0 },
+  { key: 'waiting', path: '/waiting', label: 'nav.waiting', Icon: WaitingIcon, badge: 0 },
+  { key: 'results', path: '/results', label: 'nav.results', Icon: ResultsIcon, badge: null },
+  { key: 'leaders', path: '/leaders', label: 'nav.leaders', Icon: LeadersIcon, badge: null },
 ]
 
 /** Індекс вкладки за поточним шляхом (для напрямку переходу) */

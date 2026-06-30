@@ -70,6 +70,11 @@ function subscribeEvents(s: Socket): void {
   s.on('stats:updated', (d: { connectedUsers: number }) => {
     useLiveStore.getState().setConnectedUsers(d.connectedUsers);
   });
+
+  // Сигнал оновлення лідерборду (після фіналізації гри) — тригер рефетчу на сторінці
+  s.on('leaderboard:updated', () => {
+    useLiveStore.getState().bumpLeaderboard();
+  });
 }
 
 // ─────────────────────────────────────────

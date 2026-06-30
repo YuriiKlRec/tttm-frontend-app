@@ -110,11 +110,11 @@ const drawTimeLabels = (
 
   // Зліва — перша видима точка часу (ліва межа вікна).
   ctx.textAlign = 'left'
-  ctx.fillText(`< ${formatDateTime(leftTime)}`, 4, 4)
+  ctx.fillText(`< ${formatDateTime(leftTime, state.locale)}`, 4, 4)
 
   // Мітка на межі betClose.
   ctx.textAlign = 'center'
-  ctx.fillText(formatDateTime(state.game.betCloseTime), betCloseX, 4)
+  ctx.fillText(formatDateTime(state.game.betCloseTime, state.locale), betCloseX, 4)
 }
 
 /** Малює лінію ціни (line mode) за реальним часом свічок. */

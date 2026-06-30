@@ -1,7 +1,7 @@
 import type { FC, SVGProps } from 'react'
 
 /** Ключі вкладок нижньої навігації (порядок = індекс для slide-переходів) */
-export type TabKey = 'predictions' | 'waiting' | 'results'
+export type TabKey = 'predictions' | 'waiting' | 'results' | 'leaders'
 
 /** Опис одного пункту нижньої навігації */
 export interface NavTab {

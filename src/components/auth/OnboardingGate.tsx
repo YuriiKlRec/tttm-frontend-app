@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useT } from '../../i18n/useT';
 
 /**
  * Лейаут-маршрут, що охороняє захищені сторінки:
@@ -11,12 +12,13 @@ import { useAuth } from '../../hooks/useAuth';
  */
 const OnboardingGate: FC = () => {
   const { user, ready } = useAuth();
+  const { t } = useT();
 
   // Чекаємо завершення ініціалізації — не мигаємо контентом
   if (!ready) {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-background">
-        <span className="font-body text-[15px] text-text-secondary">Завантаження…</span>
+        <span className="font-body text-[15px] text-text-secondary">{t('onboarding.loading')}</span>
       </div>
     );
   }
@@ -26,7 +28,7 @@ const OnboardingGate: FC = () => {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-background px-8">
         <p className="text-center font-body text-[15px] text-text-secondary">
-          Авторизація недоступна. Відкрийте застосунок у Telegram.
+          {t('onboarding.authUnavailable')}
         </p>
       </div>
     );

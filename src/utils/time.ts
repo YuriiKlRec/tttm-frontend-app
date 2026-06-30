@@ -19,10 +19,10 @@ export const formatCountdown = (ms: number): string => {
   return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`
 }
 
-/** Форматує epoch ms як коротку дату/час, напр. "Jan 1, 10:00". */
-export const formatDateTime = (epochMs: number): string => {
+/** Форматує epoch ms як коротку дату/час, напр. "Jan 1, 10:00". Місяць — за `locale`. */
+export const formatDateTime = (epochMs: number, locale: string): string => {
   const date = new Date(epochMs)
-  const month = date.toLocaleString('en-US', { month: 'short' })
+  const month = date.toLocaleString(locale, { month: 'short' })
   const day = date.getDate()
   return `${month} ${day}, ${pad2(date.getHours())}:${pad2(date.getMinutes())}`
 }

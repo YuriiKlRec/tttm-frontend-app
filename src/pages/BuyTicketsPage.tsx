@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FC } from 'react'
+import { useEffect, useMemo, useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BuyHeader } from '../components/buy/BuyHeader'
 import { CheckSlides } from '../components/buy/CheckSlides'
@@ -9,6 +9,7 @@ import { useBuyTicketsFlow } from '../hooks/useBuyTicketsFlow'
 import { useBookedCart } from '../context/BookedCartProvider'
 import { useTelegramBackButton } from '../hooks/useTelegramBackButton'
 import { useLiveStore } from '../store/liveStore'
+import { useT } from '../i18n/useT'
 import { getGame } from '../services/gameApi'
 import { formatCountdown } from '../utils/time'
 import { env } from '../config/env'
@@ -25,18 +26,18 @@ import type { GameDetail } from '../types/game'
 const BuyTicketsPage: FC = () => {
   const cart = useBookedCart()
   const navigate = useNavigate()
+  const { t } = useT()
 
   // ─── Редирект: тільки при монтуванні (не реагуємо на подальші зміни корзини) ──
   // Після оплати cart.prices порожніє, але користувач ще на success-екрані —
-  // реактивний редирект закидував би його на головну. Тому перевіряємо стан
-  // лише один раз через ref, а useEffect спрацьовує без залежностей від cart.
-  const shouldRedirect = useRef(cart.prices.length === 0 || !cart.gameId)
+  // реактивний редирект закидував би його на головну. Ініціалізуємо один раз
+  // через useState (не ref, щоб уникнути доступу до ref під час рендеру).
+  const [shouldRedirect] = useState(cart.prices.length === 0 || !cart.gameId)
   useEffect(() => {
-    if (shouldRedirect.current) {
+    if (shouldRedirect) {
       navigate('/', { replace: true })
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate])
+  }, [shouldRedirect, navigate])
 
   // ─── Реальна ціна квитка та зайняті ставки ────────────────────────────────
   // Спочатку шукаємо вже завантажений GameDetail у live-сторі.
@@ -108,7 +109,7 @@ const BuyTicketsPage: FC = () => {
   // Не рендеримо лише коли корзина була порожня НА МОНТУВАННІ (редирект уже
   // запущено). Не реагуємо на живий cart.prices: після оплати кошик
   // спорожняється (removeMany), але success-екран має лишитись видимим.
-  if (shouldRedirect.current) return null
+  if (shouldRedirect) return null
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
@@ -133,7 +134,7 @@ const BuyTicketsPage: FC = () => {
         onCta={flow.handleCta}
         showAddMore={flow.showAddMore}
         onAddMore={flow.leaveToGame}
-        splitNote={multipleChecks ? `Splitted into ${checks.checks.length} payments` : undefined}
+        splitNote={multipleChecks ? t('buy.splitNote', { count: checks.checks.length }) : undefined}
       />
 
       {flow.payError && (

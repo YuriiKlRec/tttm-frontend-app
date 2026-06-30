@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import type { WaitBet } from '../../types/wait'
+import { useT } from '../../i18n/useT'
 import crownIcon from '../../assets/icon-crown.svg'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import ticketRedIcon from '../../assets/icon-ticket-red.svg'
@@ -16,6 +17,7 @@ interface WaitBetLineProps {
  */
 export const WaitBetLine: FC<WaitBetLineProps> = ({ bet }) => {
   const color = bet.mine ? 'text-text-focus' : 'text-text-primary'
+  const { t } = useT()
 
   return (
     <div className="flex items-center justify-between">
@@ -28,7 +30,7 @@ export const WaitBetLine: FC<WaitBetLineProps> = ({ bet }) => {
           {bet.rank === 1 ? (
             <img
               src={crownIcon}
-              alt="Leader"
+              alt={t('game.leaderAlt')}
               className="absolute left-[-10px] top-[-4px] h-4 w-4 -rotate-[30deg]"
             />
           ) : null}

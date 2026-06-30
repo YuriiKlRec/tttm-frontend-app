@@ -11,6 +11,8 @@ import { useNow } from '../hooks/useNow'
 import { useBookedCart } from '../context/BookedCartProvider'
 import { useAuth } from '../hooks/useAuth'
 import { useGameLive } from '../hooks/useGameLive'
+import { useT } from '../i18n/useT'
+import { useLocale } from '../i18n/locale'
 import { useLiveStore } from '../store/liveStore'
 import { centsToUsd } from '../utils/units'
 import { formatInTz } from '../utils/datetime'
@@ -45,6 +47,8 @@ function computePhase(betCloseTime: number, endTime: number, now: number): GameP
  * Для завершеної гри додає першу групу з результатами.
  * Поля, що не заповнені — пропускаються.
  * @param tz — часовий пояс користувача (з useAuth); null → браузерний TZ.
+ * @param locale — BCP-47 локаль для назв місяців (з useLocale()).
+ * @param t  — функція перекладу з useT().
  */
 function buildDetailGroups(
   game: {
@@ -61,6 +65,8 @@ function buildDetailGroups(
   },
   finished: boolean,
   tz: string | null,
+  locale: string,
+  t: (key: string) => string,
 ): DetailGroup[] {
   const groups: DetailGroup[] = []
 
@@ -68,13 +74,13 @@ function buildDetailGroups(
   if (finished) {
     const resultGroup: DetailGroup = []
     if (game.winnerNickname) {
-      resultGroup.push({ label: 'Winner', value: game.winnerNickname })
+      resultGroup.push({ label: t('game.detailWinner'), value: game.winnerNickname })
     }
     if (game.finalPrice) {
-      resultGroup.push({ label: 'BTC/USDT price', value: game.finalPrice })
+      resultGroup.push({ label: t('game.detailBtcPrice'), value: game.finalPrice })
     }
     if (game.winnerTicketPrice) {
-      resultGroup.push({ label: 'Winner ticket', value: game.winnerTicketPrice })
+      resultGroup.push({ label: t('game.detailWinnerTicket'), value: game.winnerTicketPrice })
     }
     if (resultGroup.length > 0) {
       groups.push(resultGroup)
@@ -84,21 +90,21 @@ function buildDetailGroups(
   // Часова група — дати через formatInTz для консистентного TZ
   const timeGroup: DetailGroup = [
     {
-      label: 'Price prediction date/time',
-      value: formatInTz(game.endTime, tz),
+      label: t('game.detailPredictionDateTime'),
+      value: formatInTz(game.endTime, tz, locale),
     },
     {
-      label: 'Stop receiving predictions',
-      value: formatInTz(game.betCloseTime, tz),
+      label: t('game.detailStopReceiving'),
+      value: formatInTz(game.betCloseTime, tz, locale),
     },
-    { label: 'Oracle / price source', value: 'Binance' },
+    { label: t('game.detailOracleSource'), value: 'Binance' },
   ]
   groups.push(timeGroup)
 
   // Група призу
   const prizeGroup: DetailGroup = []
   if (game.prize) {
-    prizeGroup.push({ label: 'Reward', value: game.prize })
+    prizeGroup.push({ label: t('game.detailReward'), value: game.prize })
 
     // Розподіл призового фонду між переможцем та організатором.
     // Формула відповідає старому фронтенду (frontend/src/hooks/useGameCalc.ts):
@@ -109,20 +115,20 @@ function buildDetailGroups(
       if (Number.isFinite(pool)) {
         const organizerShare = pool * game.authorPercent / 100
         const winnerShare = pool - organizerShare
-        prizeGroup.push({ label: "Winner's share", value: `${winnerShare.toFixed(2)} TON` })
-        prizeGroup.push({ label: "Organizer's share", value: `${organizerShare.toFixed(2)} TON` })
+        prizeGroup.push({ label: t('game.detailWinnersShare'), value: `${winnerShare.toFixed(2)} TON` })
+        prizeGroup.push({ label: t('game.detailOrganizersShare'), value: `${organizerShare.toFixed(2)} TON` })
       }
     }
   }
   if (game.ticketsTotal !== undefined) {
-    prizeGroup.push({ label: 'Number of tickets', value: String(game.ticketsTotal) })
+    prizeGroup.push({ label: t('game.detailNumberOfTickets'), value: String(game.ticketsTotal) })
   }
-  prizeGroup.push({ label: 'Ticket price', value: `${game.ticketPrice} TON` })
+  prizeGroup.push({ label: t('game.detailTicketPrice'), value: `${game.ticketPrice} TON` })
   groups.push(prizeGroup)
 
   // Організатор
   if (game.organizer) {
-    groups.push([{ label: 'Organizer', value: game.organizer }])
+    groups.push([{ label: t('game.detailOrganizer'), value: game.organizer }])
   }
 
   return groups
@@ -136,6 +142,8 @@ function buildDetailGroups(
 const GamePage: FC = () => {
   const { id = '' } = useParams<{ id: string }>()
   const { user, tz } = useAuth()
+  const { t } = useT()
+  const locale = useLocale()
   const myUserId = user?.id ?? null
 
   const { game, ready } = useGameLive(id, myUserId)
@@ -234,11 +242,11 @@ const GamePage: FC = () => {
     [game?.startTime, game?.betOpenTime, game?.betCloseTime, game?.endTime],
   )
 
-  // Детальні групи (деталі гри)
+  // Детальні групи (деталі гри) — t передається як параметр, бо buildDetailGroups не хук
   const gameInfo: DetailGroup[] = useMemo(() => {
     if (!game) return []
-    return buildDetailGroups(game, finished, tz)
-  }, [game, finished, tz])
+    return buildDetailGroups(game, finished, tz, locale, t)
+  }, [game, finished, tz, locale, t])
 
   // Статистика для вигляду «Predictions»
   const stats = useMemo(() => {

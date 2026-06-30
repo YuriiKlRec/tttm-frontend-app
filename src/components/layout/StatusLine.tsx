@@ -1,11 +1,13 @@
 import type { FC } from 'react'
 import { useLiveStore } from '../../store/liveStore'
+import { useT } from '../../i18n/useT'
 
 /** Рядок статусу: Live-індикатор та кількість користувачів онлайн. */
 export const StatusLine: FC = () => {
   // Примітивні селектори — не створюють нових обʼєктів, безпечні для перерендеру
   const connectedUsers = useLiveStore((s) => s.connectedUsers)
   const socketConnected = useLiveStore((s) => s.socketConnected)
+  const { t } = useT()
 
   return (
     <div className="mx-3 mt-3 flex items-center justify-between border border-dashed border-border-dashed bg-background px-4 py-1">
@@ -18,13 +20,13 @@ export const StatusLine: FC = () => {
         <span
           className={`font-mono text-[13px] font-bold ${socketConnected ? 'text-green-400' : 'text-gray-500'}`}
         >
-          {socketConnected ? 'Live' : 'Connecting'}
+          {socketConnected ? t('layout.live') : t('layout.connecting')}
         </span>
       </div>
       <span
         className={`font-mono text-[13px] font-bold ${socketConnected ? 'text-text-success' : 'text-gray-500'}`}
       >
-        {connectedUsers} USERS ONLINE
+        {t('layout.usersOnline', { count: connectedUsers })}
       </span>
     </div>
   )

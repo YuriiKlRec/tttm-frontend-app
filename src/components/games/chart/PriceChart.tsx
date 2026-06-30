@@ -13,6 +13,7 @@ import { drawChart } from './drawChart'
 import { ChartOverlays } from './ChartOverlays'
 import { useChartIcons } from './useChartIcons'
 import { useChartGestures } from './useChartGestures'
+import { useLocale } from '../../../i18n/locale'
 
 /** Пропси інтерактивного графіка ціни. */
 interface PriceChartProps {
@@ -82,6 +83,7 @@ export const PriceChart: FC<PriceChartProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const size = useElementSize(containerRef)
   const icons = useChartIcons()
+  const locale = useLocale()
 
   const [mode, setMode] = useState<ChartMode>('line')
   const [priceRange, setPriceRange] = useState<PriceRange>({ min: 0, max: 1 })
@@ -192,8 +194,9 @@ export const PriceChart: FC<PriceChartProps> = ({
       controllerState,
       icons,
       interactive,
+      locale,
     })
-  }, [size, candles, visibleCount, currentPrice, priceRange, mode, game, bets, selectedPrice, controllerState, icons, interactive])
+  }, [size, candles, visibleCount, currentPrice, priceRange, mode, game, bets, selectedPrice, controllerState, icons, interactive, locale])
 
   const loading = candles.length === 0
 

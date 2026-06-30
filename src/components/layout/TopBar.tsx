@@ -2,12 +2,14 @@ import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 import { WalletButton } from '../wallet/WalletButton'
 import { IconButton } from '../ui/IconButton'
+import { useT } from '../../i18n/useT'
 import plusIcon from '../../assets/icon-plus.svg'
 import { useAuth } from '../../hooks/useAuth'
 
 /** Верхня панель: ім'я користувача + кнопка гаманця + створення гри. Фіксована, з safe-area зверху. */
 export const TopBar: FC = () => {
   const { user } = useAuth()
+  const { t } = useT()
 
   return (
     <header className="flex items-center justify-between border-b border-border-solid bg-background px-5 py-4 pt-[calc(var(--app-safe-top)+1rem)]">
@@ -21,7 +23,7 @@ export const TopBar: FC = () => {
       <div className="flex items-center gap-3">
         <WalletButton />
         {/* створення гри — доступно авторам (маршрут /create-game поки заглушка) */}
-        <IconButton as="link" to="/create-game" icon={plusIcon} label="Create game" />
+        <IconButton as="link" to="/create-game" icon={plusIcon} label={t('layout.createGameAria')} />
       </div>
     </header>
   )

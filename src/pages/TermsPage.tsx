@@ -3,7 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { TermsActions } from '../components/onboarding/TermsActions'
 import { useScrollToEnd } from '../hooks/useScrollToEnd'
 import { useAuth } from '../hooks/useAuth'
-import { termsParagraphs } from '../mocks/terms'
+import { useT } from '../i18n/useT'
 import { acceptTerms } from '../services/meApi'
 import iconTimes from '../assets/icon-times.svg'
 
@@ -16,13 +16,11 @@ import iconTimes from '../assets/icon-times.svg'
 const TermsPage: FC = () => {
   const navigate = useNavigate()
   const { user, refreshUser } = useAuth()
+  const { t, content } = useT()
+  const paragraphs = content('terms').split(/\n\s*\n/).filter(Boolean)
   const bodyRef = useRef<HTMLDivElement>(null)
+  // Всі хуки — безумовно, до будь-яких умовних return
   const { atBottom, reachedEnd, scrollToBottom, scrollToTop } = useScrollToEnd(bodyRef)
-
-  // Якщо умови вже прийнято — не показуємо цю сторінку
-  if (user?.termsAccepted) {
-    return <Navigate to="/" replace />
-  }
 
   // Поява «Accept and Continue» зменшує висоту тіла на ~висоту кнопки, тож після
   // першого досягнення низу доскролюємо решту — користувач лишається в самому
@@ -33,17 +31,22 @@ const TermsPage: FC = () => {
     }
   }, [reachedEnd, scrollToBottom])
 
+  // Якщо умови вже прийнято — не показуємо цю сторінку (після всіх хуків)
+  if (user?.termsAccepted) {
+    return <Navigate to="/" replace />
+  }
+
   return (
     <div className="mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
       {/* Шапка: заголовок по центру + закриття. */}
       <header className="relative flex shrink-0 items-center justify-center border-b border-border-solid bg-background px-12 pb-4 pt-[calc(var(--app-safe-top)+1rem)]">
         <h1 className="font-body text-[15px] font-bold text-text-primary">
-          End User License Agreement
+          {t('terms.title')}
         </h1>
         <button
           type="button"
           onClick={() => navigate('/welcome')}
-          aria-label="Close"
+          aria-label={t('terms.closeAria')}
           className="absolute right-5 top-[calc(var(--app-safe-top)+1rem)] flex h-6 w-6 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           <img src={iconTimes} alt="" aria-hidden="true" className="h-4 w-4" />
@@ -55,7 +58,7 @@ const TermsPage: FC = () => {
         ref={bodyRef}
         className="scrollbar-hide flex-1 space-y-4 overflow-y-auto px-7 py-6 font-body text-[15px] text-text-secondary"
       >
-        {termsParagraphs.map((paragraph, index) => (
+        {paragraphs.map((paragraph, index) => (
           <p key={index}>{paragraph}</p>
         ))}
       </div>
@@ -72,7 +75,7 @@ const TermsPage: FC = () => {
               try {
                 await acceptTerms();
                 await refreshUser();
-                navigate('/profile');
+                navigate('/edit-profile', { state: { from: 'onboarding' } });
               } catch (err: unknown) {
                 console.error('[TermsPage] acceptTerms or refreshUser failed:', err);
               }

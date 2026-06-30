@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import type { BetLineVariant } from '../../types/game'
+import { useT } from '../../i18n/useT'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import ticketRedIcon from '../../assets/icon-ticket-red.svg'
 import crownIcon from '../../assets/icon-crown.svg'
@@ -27,6 +28,7 @@ const textColor = (variant: BetLineVariant): string =>
  */
 export const BetLine: FC<BetLineProps> = ({ rank, user, price, variant }) => {
   const color = textColor(variant)
+  const { t } = useT()
 
   return (
     <div className="flex items-center justify-between">
@@ -38,7 +40,7 @@ export const BetLine: FC<BetLineProps> = ({ rank, user, price, variant }) => {
           {variant === 'win' ? (
             <img
               src={crownIcon}
-              alt="Winner"
+              alt={t('game.winnerAlt')}
               className="absolute left-[-10px] top-[-4px] h-4 w-4 -rotate-[30deg]"
             />
           ) : null}
