@@ -88,7 +88,7 @@ export const GameCard: FC<Game> = ({
             {hasTickets ? (
               <span
                 aria-hidden="true"
-                className="absolute -right-1.5 -top-1.5 flex h-3 min-w-[14px] items-center justify-center rounded-md border border-surface bg-text-primary px-1 text-[10px] font-bold text-surface"
+                className="absolute -bottom-1.5 -right-1.5 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-text-primary px-0.5 font-mono text-[10px] font-bold leading-none text-surface"
               >
                 {ticketsCount}
               </span>
