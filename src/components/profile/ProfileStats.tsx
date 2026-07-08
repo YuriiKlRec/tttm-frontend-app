@@ -2,7 +2,6 @@ import type { FC } from 'react'
 import { useT } from '../../i18n/useT'
 import trophyIcon from '../../assets/icon-trophy.svg'
 import gamesIcon from '../../assets/icon-games.svg'
-import flagIcon from '../../assets/icon-flag.svg'
 import ticketIcon from '../../assets/icon-ticket.svg'
 
 /** Пропси блоку статистики профілю гравця. */
@@ -51,7 +50,7 @@ export const ProfileStats: FC<ProfileStatsProps> = ({
         <div className="flex flex-col gap-3">
           <span className="font-mono text-[11px] font-bold text-text-secondary">{t('profile.statsWin')}</span>
           <div className="flex items-center gap-2 bg-[rgba(50,50,50,0.75)] px-2 py-2.5">
-            <img src={flagIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+            <img src={trophyIcon} alt="" aria-hidden="true" className="h-4 w-4" />
             <span className="font-mono text-[15px] text-text-primary">{winCount}</span>
           </div>
         </div>
