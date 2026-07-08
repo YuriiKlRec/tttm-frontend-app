@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react'
 import { useTicketChecks, CHUNK_SIZE } from './useTicketChecks'
 import { useBookedCart } from '../context/BookedCartProvider'
+import { useLiveStore } from '../store/liveStore'
 import { prepareTicketTx, createTickets } from '../services/ticketApi'
 import { ValidationError } from '../services/http'
 import { isUserRejection } from '../utils/isUserRejection'
@@ -163,6 +164,16 @@ export const useBuyTicketsFlow = (
             return
           }
           throw postErr
+        }
+
+        // Захист від гонки/кешу (див. liveStore.ts:mergeConfirmedMine): щойно
+        // createTickets підтвердив оплату — позначаємо кожну ціну групи як
+        // "мою" в liveStore. Це гарантує, що жоден майбутній REST-рефетч чи
+        // socket-подія (навіть застарілі/поза чергою) більше НІКОЛИ не
+        // покажуть цю ставку як зайняту чужу чи "не оплачену" — незалежно від
+        // того, чи gameId уже завантажений у liveStore на цей момент.
+        for (const price of group) {
+          useLiveStore.getState().confirmMyTicket(gameId, price)
         }
       }
 

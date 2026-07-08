@@ -198,6 +198,37 @@ export function applyTicketCreated(
   return next;
 }
 
+/**
+ * Домішує підтверджено-мої ціни (щойно оплачені) у GameDetail: гарантує, що
+ * `yourTickets` завжди містить кожну підтверджену ціну, а `takenByOthers`
+ * ніколи її не містить — незалежно від того, що прийшло у самому знімку
+ * (REST-рефетч чи стара/кешована відповідь).
+ *
+ * Навіщо: `setGame` — unconditional replace усього GameDetail (див. нижче), і
+ * REST-відповіді можуть прийти ПОЗА ЧЕРГОЮ (напр. застарілий fetch з
+ * попереднього mount /game/:id, що розв'язався пізніше свіжого — класична
+ * гонка з несканельованим async-ефектом; є й окремий фікс у useGameLive.ts)
+ * АБО бути кешованими на бекенді з лагом. Обидва випадки — поза контролем
+ * фронтенду в момент REST-виклику, тож гарантія «мій щойно куплений тікет
+ * ніколи не показується зайнятим» тримається ТУТ, на рівні мержу, а не лише
+ * на рівні коректного порядку fetch-ів.
+ */
+export function mergeConfirmedMine(detail: GameDetail, confirmed: Set<number> | undefined): GameDetail {
+  if (!confirmed || confirmed.size === 0) return detail;
+
+  const toCents = (price: number): number => Math.round(price * 100);
+  const yourCentsSet = new Set(detail.yourTickets.map(toCents));
+  const missingPrices = Array.from(confirmed)
+    .filter((cents) => !yourCentsSet.has(cents))
+    .map((cents) => cents / 100);
+
+  return {
+    ...detail,
+    yourTickets: missingPrices.length > 0 ? [...detail.yourTickets, ...missingPrices] : detail.yourTickets,
+    takenByOthers: detail.takenByOthers.filter((price) => !confirmed.has(toCents(price))),
+  };
+}
+
 // ─────────────────────────────────────────
 // Стан і стор
 // ─────────────────────────────────────────
@@ -205,6 +236,15 @@ export function applyTicketCreated(
 export interface LiveState {
   games: Map<string, GameDetail>;
   ticketsByGame: Map<string, Bet[]>;
+  /**
+   * Ціни, щойно ОПЛАЧЕНІ поточним користувачем, за gameId (у центах — ціле
+   * число, уникає похибок float при порівнянні). Заповнюється з
+   * useBuyTicketsFlow одразу після успішного createTickets і НІКОЛИ не
+   * очищується під час сесії гри — кожен наступний setGame() домішує ці ціни
+   * у yourTickets/takenByOthers (mergeConfirmedMine), тож «оплачено» не може
+   * відкотитися застарілим/кешованим знімком гри.
+   */
+  myConfirmedTicketsByGame: Map<string, Set<number>>;
   /** Id поточного користувача; встановлюється ззовні (провайдером). */
   myUserId: string | null;
   /** Нік поточного користувача — для підпису СВОЇХ live-ставок (socket не шле нік). */
@@ -216,6 +256,8 @@ export interface LiveState {
   /** Лічильник-сигнал оновлення лідерборду (інкремент на подію leaderboard:updated). */
   leaderboardVersion: number;
   setGame: (d: GameDetail) => void;
+  /** Позначає ціну як щойно оплачену МНОЮ у грі gameId (захист від гонки/кешу). */
+  confirmMyTicket: (gameId: string, price: number) => void;
   setMyUserId: (id: string | null, nickname?: string | null) => void;
   ingest: (event: { type: string; payload: unknown }) => void;
   /** Оновлює кількість підключених користувачів із stats:updated. */
@@ -229,18 +271,47 @@ export interface LiveState {
 export const useLiveStore = create<LiveState>((set) => ({
   games: new Map(),
   ticketsByGame: new Map(),
+  myConfirmedTicketsByGame: new Map(),
   myUserId: null,
   myNickname: null,
   connectedUsers: 0,
   socketConnected: false,
   leaderboardVersion: 0,
 
-  /** Встановлює або оновлює GameDetail у сторі за id. */
+  /**
+   * Встановлює або оновлює GameDetail у сторі за id. Перед записом домішує
+   * підтверджено-мої ціни (myConfirmedTicketsByGame) — див. mergeConfirmedMine.
+   */
   setGame(d) {
     set((state) => {
+      const confirmed = state.myConfirmedTicketsByGame.get(d.id);
       const next = new Map(state.games);
-      next.set(d.id, d);
+      next.set(d.id, mergeConfirmedMine(d, confirmed));
       return { games: next };
+    });
+  },
+
+  /**
+   * Позначає ціну як щойно оплачену мною: додає у ledger І одразу мержить у
+   * вже закешований GameDetail (якщо є), щоб UI оновився негайно, не чекаючи
+   * наступного setGame().
+   */
+  confirmMyTicket(gameId, price) {
+    set((state) => {
+      const priceCents = Math.round(price * 100);
+      const prevSet = state.myConfirmedTicketsByGame.get(gameId);
+      const nextSet = new Set(prevSet);
+      nextSet.add(priceCents);
+      const nextConfirmed = new Map(state.myConfirmedTicketsByGame);
+      nextConfirmed.set(gameId, nextSet);
+
+      const existing = state.games.get(gameId);
+      if (!existing) {
+        return { myConfirmedTicketsByGame: nextConfirmed };
+      }
+      const nextGames = new Map(state.games);
+      nextGames.set(gameId, mergeConfirmedMine(existing, nextSet));
+      return { myConfirmedTicketsByGame: nextConfirmed, games: nextGames };
     });
   },
 

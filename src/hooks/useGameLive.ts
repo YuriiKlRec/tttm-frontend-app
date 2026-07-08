@@ -31,8 +31,6 @@ export function useGameLive(
   myUserId?: string | null,
 ): { game: GameDetail | null; ready: boolean } {
   const [ready, setReady] = useState(false);
-  // Захист від повторного fetch у StrictMode (подвійний mount)
-  const fetchedRef = useRef(false);
   // Захист від подвійного join у StrictMode — окремий ref для socket-операцій
   const joinedRef = useRef(false);
 
@@ -40,15 +38,34 @@ export function useGameLive(
   const game = useLiveStore((s) => s.games.get(id) ?? null);
 
   useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
+    // cancelled — стандартний React-патерн "ignore stale response" (той самий,
+    // що й у BuyTicketsPage.tsx для fetchedGame): якщо ефект перезапускається
+    // (реальний unmount+remount — напр. користувач іде на /buy й повертається
+    // НАЗАД до того самого /game/:id — АБО синтетичний подвійний виклик
+    // StrictMode у dev), попередній fetch не скасовується мережею — його
+    // .then() все одно спрацює пізніше. Без цього прапорця пізня відповідь
+    // ПОПЕРЕДНЬОГО виклику unconditionally викликала б setGame() зі
+    // ЗАСТАРІЛИМ знімком (напр. без щойно купленого тікета), перезаписуючи
+    // свіжий стан від нового fetch — саме такий механізм лежить в основі
+    // «оплачено, але показує зайняту чужу» (див. round12-report.md, п.5).
+    //
+    // ВАЖЛИВО: раніше тут був fetchedRef-гейт ("не рефетчити у StrictMode"),
+    // який ЛАМАВ саме цей cancelled-патерн — StrictMode виконує ефект двічі
+    // (mount→cleanup→mount) на ОДНОМУ логічному екрані, і fetchedRef.current,
+    // будучи ref-ом (переживає подвійний виклик), блокував ДРУГИЙ виклик від
+    // старту власного fetch, тоді як cleanup ПЕРШОГО виклику вже встиг
+    // виставити cancelled=true — відповідь єдиного fetch губилась назавжди,
+    // ready ніколи не ставало true. Прибрано: подвійний fetch у dev-режимі —
+    // прийнятна, добре задокументована ціна стандартного React-патерну
+    // (у продакшн-білді StrictMode подвійного виклику не робить).
+    let cancelled = false;
 
     const init = async (): Promise<void> => {
       try {
         const detail = await getGame(id, myUserId);
-        setGame(detail);
+        if (!cancelled) setGame(detail);
       } finally {
-        setReady(true);
+        if (!cancelled) setReady(true);
       }
     };
 
@@ -63,12 +80,13 @@ export function useGameLive(
     }
 
     return () => {
+      cancelled = true;
       leaveGame(id);
       // Скидаємо joinedRef, щоб реальний remount міг переприєднатись
       joinedRef.current = false;
       // Socket залишається відкритим — disconnectRealtime() викликається тільки при логауті
     };
-  }, [id, setGame]);
+  }, [id, myUserId, setGame]);
 
   return { game, ready };
 }
