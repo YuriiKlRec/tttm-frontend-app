@@ -266,6 +266,13 @@ export interface LiveState {
   setSocketConnected: (b: boolean) => void;
   /** Інкрементує leaderboardVersion — тригер рефетчу лідерборду (realtime). */
   bumpLeaderboard: () => void;
+  /**
+   * Повне скидання стану, повʼязаного з попереднім користувачем.
+   * Викликається AuthProvider-ом при виявленні зміни Telegram-акаунта —
+   * live-кеші (ігри, ставки, підтверджені тікети) належали попередній сесії
+   * і не повинні протікати у сесію нового користувача.
+   */
+  resetSession: () => void;
 }
 
 export const useLiveStore = create<LiveState>((set) => ({
@@ -333,6 +340,18 @@ export const useLiveStore = create<LiveState>((set) => ({
   /** Інкрементує сигнал оновлення лідерборду (подія leaderboard:updated). */
   bumpLeaderboard() {
     set((state) => ({ leaderboardVersion: state.leaderboardVersion + 1 }));
+  },
+
+  /** Скидає всі live-кеші попереднього користувача (див. опис у LiveState). */
+  resetSession() {
+    set({
+      games: new Map(),
+      ticketsByGame: new Map(),
+      myConfirmedTicketsByGame: new Map(),
+      myUserId: null,
+      myNickname: null,
+      socketConnected: false,
+    });
   },
 
   /**

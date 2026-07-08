@@ -8,7 +8,7 @@ import {
   type FC,
   type ReactNode,
 } from 'react';
-import { retrieveRawInitData, requestWriteAccess } from '@telegram-apps/sdk';
+import { retrieveRawInitData, retrieveLaunchParams, requestWriteAccess } from '@telegram-apps/sdk';
 import { env } from '../config/env';
 import { setToken } from '../services/http';
 import {
@@ -25,6 +25,9 @@ import {
   getStoredRefreshToken,
   isAccessTokenValid,
   isRefreshTokenValid,
+  getStoredTgUserId,
+  storeTgUserId,
+  clearTgUserId,
 } from '../services/token-storage';
 import type { UserDto } from '../services/dto/user.dto';
 import { useLiveStore } from '../store/liveStore';
@@ -62,8 +65,42 @@ function readTelegramInitData(): string | undefined {
 }
 
 /**
+ * Розширений тип для захисного доступу до launch params Telegram.
+ * SDK v3 не гарантує наявності tgWebAppData у всіх оточеннях (той самий патерн,
+ * що й у I18nProvider.getTelegramLangCode).
+ */
+interface TgLaunchParamsLoose {
+  tgWebAppData?: {
+    user?: {
+      id?: number | string;
+    };
+  };
+}
+
+/**
+ * Спробувати отримати Telegram user.id з поточних launch params (СВІЖИЙ initData,
+ * а не збережений у localStorage — саме те, з чим прийшов юзер ЗАРАЗ).
+ * Повертає рядок або undefined поза Telegram-оточенням чи при будь-якій помилці SDK.
+ */
+function readTelegramUserId(): string | undefined {
+  try {
+    const lp = retrieveLaunchParams() as unknown as TgLaunchParamsLoose;
+    const id = lp?.tgWebAppData?.user?.id;
+    return id === undefined || id === null ? undefined : String(id);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Провайдер автентифікації.
  * Порядок спроб при mount:
+ *   0. Інваріант: якщо є Telegram initData І збережена сесія (токени) — звірити
+ *      tg user.id з initData зі збереженим tg_user_id. Розбіжність (у т.ч.
+ *      відсутність маркера — legacy-сесія без нього) → повне очищення сесії
+ *      (токени + tg_user_id + liveStore) і одразу крок 3 (без спроб 1/2).
+ *      Захищає від витоку сесії між Telegram-акаунтами на одному пристрої —
+ *      localStorage WebView спільний для всіх акаунтів.
  *   1. Якщо є валідний access-токен у localStorage → setToken + GET /api/me.
  *   2. Якщо є валідний refresh-токен → refresh-on-401 у http.ts впорається автоматично.
  *   3. Якщо є Telegram initData → POST /api/me/auth.
@@ -100,6 +137,12 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     if (initData) {
       const dto = await authWithTelegram(initData, tz);
       applyAuthResponse(dto);
+      // Фіксуємо, ЯКОМУ tg-акаунту належить щойно збережена сесія — окремо від
+      // токенів (JWT містить БД-id, не tg id). Це єдине джерело правди для
+      // виявлення зміни акаунта на наступному старті (localStorage спільний
+      // для всіх акаунтів у Telegram WebView одного пристрою).
+      const tgUserId = readTelegramUserId();
+      if (tgUserId) storeTgUserId(tgUserId);
       return;
     }
 
@@ -128,6 +171,33 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
     const initializeAuth = async (): Promise<void> => {
       try {
+        // Інваріант безпеки: сесія завжди належить АКТУАЛЬНОМУ tg-користувачу.
+        // localStorage у Telegram WebView спільний для всіх акаунтів на пристрої —
+        // якщо юзер перемкнув акаунт у Telegram, збережені токени належать
+        // ПОПЕРЕДНЬОМУ акаунту. Порівнюємо tg user.id зі СВІЖОГО initData з
+        // tg user.id, збереженим під час логіну, що видав поточні токени.
+        // Якщо збереженої сесії взагалі немає — порівнювати нема з чим, пропускаємо
+        // (звичайний перший запуск піде звичним шляхом нижче).
+        const currentTgUserId = readTelegramUserId();
+        const hasStoredSession = Boolean(getStoredAccessToken() || getStoredRefreshToken());
+        if (currentTgUserId && hasStoredSession) {
+          const storedTgUserId = getStoredTgUserId();
+          // Розбіжність АБО відсутність маркера (сесія збережена до цього фікса,
+          // коли tg_user_id ще не писався) — довіряти токену не можна.
+          if (storedTgUserId !== currentTgUserId) {
+            clearTokens();
+            clearTgUserId();
+            setToken(null);
+            disconnectRealtime();
+            useLiveStore.getState().resetSession();
+            // Повна реавторизація по СВІЖОМУ initData поточного акаунта.
+            // Бекенд поверне termsAccepted=false для нового користувача —
+            // OnboardingGate сам поведе на /welcome.
+            await login();
+            return;
+          }
+        }
+
         // Спроба 1: є валідний збережений access-токен
         const storedAccess = getStoredAccessToken();
         if (storedAccess && isAccessTokenValid()) {

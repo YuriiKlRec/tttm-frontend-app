@@ -4,6 +4,14 @@ const KEYS = {
   refreshToken: 'refreshToken',
   accessTokenExpiresAt: 'accessTokenExpiresAt',
   refreshTokenExpiresAt: 'refreshTokenExpiresAt',
+  /**
+   * Telegram user.id, ЗБЕРЕЖЕНИЙ ОКРЕМО від токенів у момент логіну через initData.
+   * JWT-токени містять БД-id користувача (не tg id), тому саме цей ключ —
+   * єдине джерело правди про те, ЯКОМУ tg-акаунту належить збережена сесія.
+   * localStorage у Telegram WebView СПІЛЬНИЙ для всіх акаунтів на пристрої —
+   * без цього ключа неможливо виявити перемикання акаунта (див. AuthProvider).
+   */
+  tgUserId: 'tgUserId',
 } as const;
 
 /** Тип, який містить обидва токени та їх часи закінчення (у UNIX-секундах). */
@@ -62,4 +70,19 @@ export function isRefreshTokenValid(): boolean {
   const expiresAt = localStorage.getItem(KEYS.refreshTokenExpiresAt);
   if (!token || !expiresAt) return false;
   return Date.now() < parseInt(expiresAt, 10);
+}
+
+/** Зберігає tg user.id, з яким виконано логін через Telegram initData. */
+export function storeTgUserId(id: string): void {
+  localStorage.setItem(KEYS.tgUserId, id);
+}
+
+/** Повертає tg user.id, збережений під час останнього логіну через initData, або null. */
+export function getStoredTgUserId(): string | null {
+  return localStorage.getItem(KEYS.tgUserId);
+}
+
+/** Видаляє збережений tg user.id (частина повного очищення сесії при зміні акаунта). */
+export function clearTgUserId(): void {
+  localStorage.removeItem(KEYS.tgUserId);
 }
