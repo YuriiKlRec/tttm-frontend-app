@@ -34,12 +34,24 @@ const LeaderboardPage: FC = () => {
           </p>
         </PixelCard>
       ) : (
-        /* Список лідерів */
-        <ul className="w-full px-7 flex flex-col gap-[2px]">
-          {leaders.map((leader) => (
-            <LeaderboardRow key={leader.id} leader={leader} isMe={leader.id === user?.id} />
-          ))}
-        </ul>
+        /* Заголовки колонок + список лідерів (Figma 1655:18169) */
+        <div className="w-full px-7 flex flex-col gap-[2px]">
+          <div
+            aria-hidden="true"
+            className="flex items-center justify-between pb-2 pl-2 pr-5 font-mono text-[13px] text-text-secondary"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-5 text-center">№</span>
+              <span>{t('leaderboard.colPlayer')}</span>
+            </div>
+            <span>{t('leaderboard.colWins')}</span>
+          </div>
+          <ul className="flex flex-col gap-[2px]">
+            {leaders.map((leader) => (
+              <LeaderboardRow key={leader.id} leader={leader} isMe={leader.id === user?.id} />
+            ))}
+          </ul>
+        </div>
       )}
     </>
   )
