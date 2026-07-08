@@ -22,11 +22,29 @@ export interface NicknameInput {
  * `value` завжди містить провідний `@`, який не можна стерти.
  * Помилка показується тільки після того, як користувач почав вводити.
  * @param initialNick — початкове значення (напр. поточний нік користувача); `@`-префікс обрізається.
+ *
+ * `initialNick` часто ще не готовий на момент першого рендеру (auth асинхронний, напр.
+ * при прямому переході на /edit-profile) — тоді useState-ініціалізатор захоплює порожній
+ * рядок назавжди. Синхронізуємо `nick`, коли `initialNick` з'являється/змінюється, прямо
+ * під час рендеру (паттерн React "adjusting state during render" — без ефекту й зайвого
+ * ре-рендеру), але лише поки користувач ще не почав редагувати поле сам (`touched`) —
+ * інакше вже введений текст затерло б пізнім оновленням `user` з AuthProvider.
  */
 export const useNicknameInput = (initialNick?: string): NicknameInput => {
   const [nick, setNick] = useState<string>(() => stripAt(initialNick ?? ''))
+  // Попереднє значення initialNick — щоб виявити його зміну прямо під час рендеру.
+  const [prevInitialNick, setPrevInitialNick] = useState(initialNick)
+  const [touched, setTouched] = useState(false)
+
+  if (initialNick !== prevInitialNick) {
+    setPrevInitialNick(initialNick)
+    if (!touched && initialNick) {
+      setNick(stripAt(initialNick))
+    }
+  }
 
   const onChange = useCallback((raw: string): void => {
+    setTouched(true)
     setNick(stripAt(raw))
   }, [])
 
