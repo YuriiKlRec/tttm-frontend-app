@@ -9,13 +9,9 @@ interface NavItemProps {
   badge?: number | null
 }
 
-/** Бейдж лічильника над іконкою. Активний — помаранчевий, неактивний — білий. */
-const Badge: FC<{ value: number; active: boolean }> = ({ value, active }) => (
-  <span
-    className={`absolute -right-2 -top-1 min-w-[14px] rounded-md px-1 text-center text-[10px] font-bold text-[#0b0b0b] ${
-      active ? 'bg-btc' : 'bg-white'
-    }`}
-  >
+/** Бейдж лічильника над іконкою (Figma 1360:11314) — завжди error-червоний, білий текст. */
+const Badge: FC<{ value: number }> = ({ value }) => (
+  <span className="absolute -right-2 -top-1 flex h-3 min-w-[14px] items-center justify-center rounded-md bg-text-error px-1 text-center text-[10px] font-bold text-text-primary">
     {value}
   </span>
 )
@@ -40,7 +36,7 @@ export const NavItem: FC<NavItemProps> = ({ tab, badge }) => {
               className={`h-6 w-6 ${isActive ? 'text-text-focus' : 'text-text-primary'}`}
               aria-hidden="true"
             />
-            {value !== null && value > 0 && <Badge value={value} active={isActive} />}
+            {value !== null && value > 0 && <Badge value={value} />}
           </span>
           <span
             className={`font-mono text-[13px] font-bold ${
