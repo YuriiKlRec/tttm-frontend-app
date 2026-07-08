@@ -3,7 +3,7 @@ import { calcPrizeSplit, calcBreakEven, formatPercent } from '../../utils/prizeP
 import { useT } from '../../i18n/useT'
 import starIcon from '../../assets/icon-star.svg'
 import rocketIcon from '../../assets/icon-rocket.svg'
-import trophyIcon from '../../assets/icon-trophy.svg'
+import trophyIcon from '../../assets/icon-trophy-muted.svg'
 
 /** Пропси розкладки призового фонду. */
 interface PrizeSplitProps {

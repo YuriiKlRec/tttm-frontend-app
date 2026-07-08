@@ -18,6 +18,10 @@ interface DateTimeFieldProps {
   error?: string | null
   /** id для зв'язку label/error. */
   id: string
+  /** Нижня межа вибору (epoch ms) — обмежує нативний пікер. */
+  min?: number
+  /** Верхня межа вибору (epoch ms) — обмежує нативний пікер. */
+  max?: number
 }
 
 /** Класи рамки/фону за станом (норма / помилка). */
@@ -36,6 +40,8 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
   editable = true,
   error = null,
   id,
+  min,
+  max,
 }) => {
   const locale = useLocale()
   const { main, seconds } = formatDateTimeFull(value, locale)
@@ -64,6 +70,8 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
             type="datetime-local"
             value={toDateTimeLocalValue(value)}
             onChange={(event) => onInput(event.target.value)}
+            min={min !== undefined ? toDateTimeLocalValue(min) : undefined}
+            max={max !== undefined ? toDateTimeLocalValue(max) : undefined}
             aria-invalid={hasError}
             aria-describedby={hasError ? `${id}-error` : undefined}
             className="absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent opacity-0"

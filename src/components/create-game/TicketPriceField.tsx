@@ -20,12 +20,25 @@ const stateClass = (hasError: boolean): string =>
   hasError ? 'border-[#e5484d] bg-[rgba(229,72,77,0.1)]' : 'border-text-primary bg-[rgba(255,255,255,0.1)]'
 
 /**
- * Поле ціни квитка: числовий ввід із суфіксом «GRAM».
- * Мін. 0.1; помилка показується після blur.
+ * Дозволяє лише цифри та щонайбільше один десятковий розділювач
+ * (крапку або кому) у проміжному вводі, напр. «1», «1.», «1.5», «1,5».
+ */
+const isPartialDecimal = (raw: string): boolean => /^\d*[.,]?\d*$/.test(raw)
+
+/**
+ * Поле ціни квитка: текстовий ввід (type="text" + inputMode="decimal") із
+ * суфіксом «GRAM». Приймає і крапку, і кому як десятковий розділювач —
+ * кома нормалізується у крапку одразу при вводі. Мін. 0.1; помилка
+ * показується після blur.
  */
 export const TicketPriceField: FC<TicketPriceFieldProps> = ({ value, onChange, onBlur, error }) => {
   const hasError = Boolean(error)
   const { t } = useT()
+
+  const handleChange = (raw: string): void => {
+    if (!isPartialDecimal(raw)) return
+    onChange(raw.replace(',', '.'))
+  }
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -35,16 +48,14 @@ export const TicketPriceField: FC<TicketPriceFieldProps> = ({ value, onChange, o
       >
         <input
           id="ticket-price"
-          type="number"
+          type="text"
           inputMode="decimal"
-          min={0.1}
-          step={0.1}
           value={value}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => handleChange(event.target.value)}
           onBlur={onBlur}
           aria-invalid={hasError}
           aria-describedby={hasError ? 'ticket-price-error' : undefined}
-          className="min-w-0 flex-1 bg-transparent font-mono text-[18px] font-bold text-text-primary focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="min-w-0 flex-1 bg-transparent font-mono text-[18px] font-bold text-text-primary focus:outline-none"
         />
         <span className="ml-2 font-mono text-[18px] font-bold text-text-secondary">{t('createGame.gramSuffix')}</span>
       </div>

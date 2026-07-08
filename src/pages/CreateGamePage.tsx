@@ -1,4 +1,4 @@
-import { useCallback, useState, type FC } from 'react'
+import { useCallback, useEffect, useRef, useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react'
 import { CreateGameHeader } from '../components/create-game/CreateGameHeader'
@@ -26,6 +26,12 @@ const NANO_PER_TON = 1_000_000_000
 const TX_VALID_SECONDS = 600
 
 /**
+ * Затримка (мс) перед поверненням блоку підтвердження після blur поля.
+ * Захищає від блимання при переході фокусу між сусідніми полями.
+ */
+const FOCUS_BLUR_DEBOUNCE_MS = 150
+
+/**
  * Сторінка «New prediction game» — окремий fullscreen-лайаут (поза AppLayout):
  * фіксована шапка та підвал, скрол-тіло з полями форми. Логіка винесена у
  * useCreateGameForm; вихід зі змінами підтверджується модалкою.
@@ -44,6 +50,37 @@ const CreateGamePage: FC = () => {
   const [txError, setTxError] = useState<string | null>(null)
   // Чи виконується транзакція.
   const [submitting, setSubmitting] = useState(false)
+
+  // Чи є фокус на якомусь полі форми — ховаємо блок підтвердження, поки
+  // клавіатура відкрита (менше боротьби за екранний простір на мобільних).
+  const [fieldFocused, setFieldFocused] = useState(false)
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Фокус на будь-якому полі всередині форми: миттєво ховаємо блок підтвердження,
+  // скасувавши відкладене повернення, якщо воно було заплановане.
+  const handleFormFocus = useCallback((): void => {
+    if (blurTimerRef.current) {
+      clearTimeout(blurTimerRef.current)
+      blurTimerRef.current = null
+    }
+    setFieldFocused(true)
+  }, [])
+
+  // Втрата фокусу: повертаємо блок підтвердження з невеликою затримкою,
+  // щоб перехід фокусу між сусідніми полями не викликав блимання.
+  const handleFormBlur = useCallback((): void => {
+    if (blurTimerRef.current) clearTimeout(blurTimerRef.current)
+    blurTimerRef.current = setTimeout(() => {
+      setFieldFocused(false)
+      blurTimerRef.current = null
+    }, FOCUS_BLUR_DEBOUNCE_MS)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current)
+    }
+  }, [])
 
   // «Go back»: за наявності змін — спершу підтвердження, інакше вихід одразу.
   const handleBack = useCallback((): void => {
@@ -163,7 +200,11 @@ const CreateGamePage: FC = () => {
     <div className="relative mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
       <CreateGameHeader />
 
-      <main className="scrollbar-hide flex-1 overflow-y-auto px-7 pb-8">
+      <main
+        className="scrollbar-hide flex-1 overflow-y-auto px-7 pb-8"
+        onFocus={handleFormFocus}
+        onBlur={handleFormBlur}
+      >
         <div className="flex flex-col items-center gap-3 pt-6 pb-1 text-center">
           <h1 className="font-display text-[24px] text-text-primary">{t('createGame.title')}</h1>
           <p className="font-body text-[16px] text-text-secondary">
@@ -216,11 +257,20 @@ const CreateGamePage: FC = () => {
         </div>
       </main>
 
-      <CreateFooter
-        canPay={canPay}
-        onPay={handlePay}
-        onBack={handleBack}
-      />
+      {/* Grid-rows 0fr↔1fr плавно згортає/розгортає блок підтвердження без
+          вимірювання висоти в JS; при фокусі поля — 0fr (сховано), інакше 1fr. */}
+      <div
+        className="grid shrink-0 transition-[grid-template-rows] duration-200 ease-out"
+        style={{ gridTemplateRows: fieldFocused ? '0fr' : '1fr' }}
+      >
+        <div className="overflow-hidden">
+          <CreateFooter
+            canPay={canPay}
+            onPay={handlePay}
+            onBack={handleBack}
+          />
+        </div>
+      </div>
 
       {confirmOpen && (
         <ConfirmModal

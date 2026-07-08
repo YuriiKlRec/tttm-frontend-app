@@ -16,8 +16,8 @@ interface PrizePoolControlProps {
 }
 
 /**
- * Контроль призового фонду: слайдер host-долі [5..30]% та розкладка
- * Host/Platform/Winner із точкою беззбитковості.
+ * Контроль призового фонду: розкладка Host/Platform/Winner із точкою
+ * беззбитковості та слайдер host-долі [5..30]% під нею.
  */
 export const PrizePoolControl: FC<PrizePoolControlProps> = ({ pool, onChange, ticketPrice }) => {
   const { t } = useT()
@@ -25,6 +25,7 @@ export const PrizePoolControl: FC<PrizePoolControlProps> = ({ pool, onChange, ti
   return (
     <div className="flex w-full flex-col gap-3">
       <FieldLabel>{t('createGame.prizePoolLabel')}</FieldLabel>
+      <PrizeSplit pool={pool} ticketPrice={ticketPrice} />
       <RangeSlider
         value={pool}
         min={POOL_MIN}
@@ -32,7 +33,6 @@ export const PrizePoolControl: FC<PrizePoolControlProps> = ({ pool, onChange, ti
         onChange={onChange}
         ariaLabel={t('createGame.prizePoolHostShareAria')}
       />
-      <PrizeSplit pool={pool} ticketPrice={ticketPrice} />
     </div>
   )
 }
