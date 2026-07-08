@@ -1,5 +1,6 @@
 import { useRef, type FC, type KeyboardEvent } from 'react'
 import type { Language } from '../../services/i18nApi'
+import { CheckIcon } from '../icons/CheckIcon'
 
 /** Пропси списку вибору мови інтерфейсу. */
 interface LanguageListProps {
@@ -69,9 +70,10 @@ export const LanguageList: FC<LanguageListProps> = ({ languages, value, onChange
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(lng.code)}
             onKeyDown={(event) => handleKeyDown(event, index)}
-            className={`h-12 w-full border px-4 text-left font-mono text-[18px] font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${optionClass(selected)}`}
+            className={`flex h-12 w-full items-center justify-between border px-4 text-left font-mono text-[18px] font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${optionClass(selected)}`}
           >
             {lng.name}
+            {selected && <CheckIcon aria-hidden="true" className="h-4 w-4 shrink-0" />}
           </button>
         )
       })}

@@ -62,26 +62,30 @@ const EditProfilePage: FC = () => {
       >
         <h1 className="text-center font-display text-[24px] text-text-primary">{title}</h1>
 
-        <div className="flex w-full flex-col items-center gap-16">
+        <div className="flex w-full flex-col items-center gap-8">
           <NicknameField
             input={nickname}
             serverError={serverError}
             description={t('onboarding.nicknameVisible')}
           />
 
-          {/* Вибір мови інтерфейсу — список пунктів (ARIA listbox) */}
+          {/* Вибір мови інтерфейсу — список пунктів (ARIA listbox), відділений
+              розділювачем-бордером від секції ніка (за макетом 1907:23303) */}
           {languages.length > 0 && (
-            <div className="w-full">
-              <p id="language-label" className="mb-3 font-mono text-[15px] text-text-primary">
-                {t('profile.language')}
-              </p>
-              <LanguageList
-                languages={languages}
-                value={lang}
-                onChange={setLang}
-                labelId="language-label"
-              />
-            </div>
+            <>
+              <div className="w-full border-t border-border-dashed" aria-hidden="true" />
+              <div className="w-full">
+                <p id="language-label" className="mb-3 font-mono text-[15px] text-text-primary">
+                  {t('profile.language')}
+                </p>
+                <LanguageList
+                  languages={languages}
+                  value={lang}
+                  onChange={setLang}
+                  labelId="language-label"
+                />
+              </div>
+            </>
           )}
         </div>
       </div>
