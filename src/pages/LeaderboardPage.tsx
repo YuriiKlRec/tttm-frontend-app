@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { useLeaderboard } from '../hooks/useLeaderboard'
 import { useAuth } from '../hooks/useAuth'
 import { LeaderboardRow } from '../components/leaderboard/LeaderboardRow'
+import { PixelCard } from '../components/ui/PixelCard'
 import { useT } from '../i18n/useT'
 import trophyIcon from '../assets/icon-trophy.svg'
 
@@ -26,14 +27,12 @@ const LeaderboardPage: FC = () => {
 
       {leaders.length === 0 ? (
         /* Порожній стан */
-        <div className="w-full px-7">
-          <div className="bg-surface flex flex-col items-center justify-center gap-2 py-10">
-            <img src={trophyIcon} className="h-6 w-6" alt="" aria-hidden="true" />
-            <p className="font-body text-center text-[15px] text-text-secondary">
-              {t('leaderboard.empty')}
-            </p>
-          </div>
-        </div>
+        <PixelCard className="mx-7" contentClassName="items-center justify-center gap-3 px-6 py-[104px]">
+          <img src={trophyIcon} className="h-6 w-6" alt="" aria-hidden="true" />
+          <p className="w-36 text-center font-body text-[15px] text-text-primary">
+            {t('leaderboard.empty')}
+          </p>
+        </PixelCard>
       ) : (
         /* Список лідерів */
         <ul className="w-full px-7 flex flex-col gap-[2px]">

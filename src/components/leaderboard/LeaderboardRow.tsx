@@ -30,7 +30,7 @@ export const LeaderboardRow: FC<LeaderboardRowProps> = ({ leader, isMe }) => {
       {/* Права частина: іконка кубка + кількість перемог */}
       <div className="flex items-center gap-2">
         <img src={trophyIcon} className="h-4 w-4" alt="" aria-hidden="true" />
-        <span className={`font-mono text-[15px] font-bold ${valueColor}`}>{wins}W</span>
+        <span className={`font-mono text-[15px] font-bold ${valueColor}`}>{wins}</span>
       </div>
     </li>
   )
