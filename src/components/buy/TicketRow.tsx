@@ -6,8 +6,8 @@ import timesIcon from '../../assets/icon-times.svg'
 import plusIcon from '../../assets/icon-step-plus.svg'
 import infoIcon from '../../assets/icon-info-circle.svg'
 
-/** Ціна одного квитка в TON (показується в рядку). */
-const ROW_TON = '0.1 TON'
+/** Ціна одного квитка в GRAM (показується в рядку). */
+const ROW_TON = '0.1 GRAM'
 
 /** Пропси рядка ставки. */
 interface TicketRowProps {
@@ -30,8 +30,8 @@ const priceClass: Record<TicketStatus, string> = {
 
 /**
  * Рядок заброньованої ставки. Три стани:
- * - active: біла ціна, «0.1 TON», дія ✕ (зробити inactive);
- * - inactive: сіра закреслена ціна/TON, дія + (повернути в active);
+ * - active: біла ціна, «0.1 GRAM», дія ✕ (зробити inactive);
+ * - inactive: сіра закреслена ціна/GRAM, дія + (повернути в active);
  * - taken: червона закреслена ціна, «Already taken», дія ℹ (модалка).
  */
 export const TicketRow: FC<TicketRowProps> = ({ price, status, onToggle, onInfo }) => {

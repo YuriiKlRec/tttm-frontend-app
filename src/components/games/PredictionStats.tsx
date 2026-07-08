@@ -7,7 +7,7 @@ import userIcon from '../../assets/icon-user.svg'
 
 /** Пропси рядка статистики гри. */
 interface PredictionStatsProps {
-  /** Призовий фонд (напр. "2.4 TON"). */
+  /** Призовий фонд (напр. "2.4 GRAM"). */
   reward: string
   /** Кількість усіх зайнятих квитків (напр. "24"). */
   ticketsTaken: string

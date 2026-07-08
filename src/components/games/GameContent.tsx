@@ -44,7 +44,7 @@ interface GameContentProps {
   game: ChartGame
   /** Ставки для маркерів графіка. */
   chartBets: ChartBet[]
-  /** Виграшний пул (напр. "2.4 TON"). */
+  /** Виграшний пул (напр. "2.4 GRAM"). */
   winningPool: string
   /** Вибір ціни Y-контролером графіка. */
   onPriceSelect: (price: number) => void

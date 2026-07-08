@@ -86,7 +86,7 @@ export interface GameDetail {
 
   /** Організатор гри (нік, напр. "@user_name"). */
   organizer?: string
-  /** Загальний призовий фонд у TON (напр. "2.4 TON"). */
+  /** Загальний призовий фонд у GRAM (напр. "2.4 GRAM"). */
   prize?: string
   /** Кількість унікальних тікетів у грі. */
   ticketsTotal?: number

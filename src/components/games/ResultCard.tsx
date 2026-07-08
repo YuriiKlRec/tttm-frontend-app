@@ -21,7 +21,7 @@ const isGoldTrophy = (status: ResultStatus): boolean =>
  * Картка завершеної гри (Results): шапка, трофей (золото/срібло, конфеті для won),
  * текст стану, сума, рядок фінальних даних, короткий рейтинг ставок, кнопка
  * «All tickets» та підсумковий статус. Стан `cancelled` показує лише трофей,
- * текст і суму «0.0 TON» без ставок/кнопки.
+ * текст і суму «0.0 GRAM» без ставок/кнопки.
  */
 /** Базовий URL TON-explorer (тестнет — гра в розробці на testnet). */
 const EXPLORER_URL = 'https://testnet.tonviewer.com'

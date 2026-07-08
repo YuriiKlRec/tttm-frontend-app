@@ -118,15 +118,15 @@ function buildDetailGroups(
       if (Number.isFinite(pool)) {
         const organizerShare = pool * game.authorPercent / 100
         const winnerShare = pool - organizerShare
-        prizeGroup.push({ label: t('game.detailWinnersShare'), value: `${winnerShare.toFixed(2)} TON` })
-        prizeGroup.push({ label: t('game.detailOrganizersShare'), value: `${organizerShare.toFixed(2)} TON` })
+        prizeGroup.push({ label: t('game.detailWinnersShare'), value: `${winnerShare.toFixed(2)} GRAM` })
+        prizeGroup.push({ label: t('game.detailOrganizersShare'), value: `${organizerShare.toFixed(2)} GRAM` })
       }
     }
   }
   if (game.ticketsTotal !== undefined) {
     prizeGroup.push({ label: t('game.detailNumberOfTickets'), value: String(game.ticketsTotal) })
   }
-  prizeGroup.push({ label: t('game.detailTicketPrice'), value: `${game.ticketPrice} TON` })
+  prizeGroup.push({ label: t('game.detailTicketPrice'), value: `${game.ticketPrice} GRAM` })
   groups.push(prizeGroup)
 
   // Організатор

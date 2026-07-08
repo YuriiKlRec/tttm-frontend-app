@@ -100,7 +100,7 @@ export const BetPanel: FC<BetPanelProps> = ({
         {bookedCount === 0 ? (
           <p className="flex items-center justify-center gap-2">
             <img src={ticketIcon} alt="" aria-hidden="true" className="w-6" />
-            <span className="font-mono text-[15px] text-text-primary">= {ticketPrice} TON</span>
+            <span className="font-mono text-[15px] text-text-primary">= {ticketPrice} GRAM</span>
           </p>
         ) : (
           <button

@@ -20,7 +20,7 @@ export interface WaitGame {
   title: string
   /** Організатор. */
   author: string
-  /** Винагорода (напр. "2.4 TON"). */
+  /** Винагорода (напр. "2.4 GRAM"). */
   reward: string
   /** Старт гри (epoch ms) — для прогресу кільця. */
   startTime: number

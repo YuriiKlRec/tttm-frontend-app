@@ -27,7 +27,7 @@ export interface ResultGame {
   contractAddress: string
   /** Підсумковий стан гри. */
   status: ResultStatus
-  /** Винагорода (напр. "2.4 TON" / "0.0 TON"). */
+  /** Винагорода (напр. "2.4 GRAM" / "0.0 GRAM"). */
   reward: string
   /** Дата/час завершення (epoch ms) — для групування та рядка фінальних даних. */
   finishedAt: number

@@ -18,9 +18,9 @@ export const parsePrice = (input: string): number => {
 /** Ключ для стабільного порівняння цін (уникає похибок float). */
 const priceKey = (value: number): string => value.toFixed(2)
 
-/** Сума корзини у TON: кількість квитків × ціна квитка (напр. "0.3 TON"). */
+/** Сума корзини у GRAM: кількість квитків × ціна квитка (напр. "0.3 GRAM"). */
 export const totalTon = (count: number, ticketPrice: string): string =>
-  `${(count * Number(ticketPrice)).toFixed(1)} TON`
+  `${(count * Number(ticketPrice)).toFixed(1)} GRAM`
 
 /** Форматує число-ціну у вигляд "$65,000.00". */
 export const formatUsd = (value: number): string =>

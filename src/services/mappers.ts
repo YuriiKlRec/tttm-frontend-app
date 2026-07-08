@@ -118,7 +118,7 @@ export function toGameDetail(dto: GameDto, myUserId?: string | null): GameDetail
 
   // Призовий фонд: ticketAmount (nanoTON) × кількість тікетів
   const totalNano = Number(BigInt(dto.ticketAmount) * BigInt(dto.tickets.length));
-  const prize = dto.tickets.length > 0 ? `${nanoToTon(totalNano)} TON` : undefined;
+  const prize = dto.tickets.length > 0 ? `${nanoToTon(totalNano)} GRAM` : undefined;
 
   const finalPrice =
     dto.oracleFinalPrice !== null ? centsToUsd(dto.oracleFinalPrice) : null;
@@ -219,7 +219,7 @@ export function toBet(ticket: TicketDto, opts: ToBetOpts): Bet {
  */
 export function toResultCard(dto: GameDto, myUserId: string | null): ResultGame {
   const totalNano = Number(BigInt(dto.ticketAmount) * BigInt(dto.tickets.length));
-  const reward = `${nanoToTon(totalNano)} TON`;
+  const reward = `${nanoToTon(totalNano)} GRAM`;
   const finishedAt = Date.parse(dto.finalizedAt ?? dto.endTime);
   const status = deriveResultState(dto, myUserId);
   const finalPrice =
@@ -361,7 +361,7 @@ export function toWaitCard(
   livePriceCents?: number,
 ): WaitGame {
   const totalNano = Number(BigInt(dto.ticketAmount) * BigInt(dto.tickets.length));
-  const reward = `${nanoToTon(totalNano)} TON`;
+  const reward = `${nanoToTon(totalNano)} GRAM`;
 
   // PROVISIONAL: сортування тікетів — за близькістю до livePriceCents або за часом
   const sortedTickets = [...dto.tickets].sort((a, b) => {
