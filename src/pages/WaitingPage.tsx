@@ -32,8 +32,13 @@ const WaitingPage: FC = () => {
   return (
     <>
       {/* Закріплена плашка курсу — sticky top, як StatusLine у AppLayout: не скролиться
-          разом зі списком, лишається на тому самому місці одразу під ним. */}
-      <div className="sticky top-0 z-10 -mt-8 w-full px-3 pt-1.5 pb-3">
+          разом зі списком, лишається на тому самому місці одразу під ним.
+          z-20 (не z-10): PixelCard-картки самі мають внутрішній z-10 на контенті
+          (див. PixelCard.tsx) — за однакового z-index виграє порядок у DOM, і картка
+          при скролі малювалась би поверх плашки. z-20 узгоджено з іншими "хедер"-подібними
+          закріпленими елементами проєкту (GameHeader, BuyHeader, BetPanel — теж z-20 понад
+          z-10 контентом карток). */}
+      <div className="sticky top-0 z-20 -mt-8 w-full px-3 pt-1.5 pb-3">
         <CurrencyPricePlate price={priceStr} />
       </div>
       <div className="w-full">
