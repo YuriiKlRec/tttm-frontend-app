@@ -198,6 +198,15 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
           }
         }
 
+        // У Telegram-контексті ЗАВЖДИ реавторизуємось по свіжому initData
+        // (як старий frontend): бекенд щоразу верифікує підпис Telegram
+        // (verifyTelegramAuth) і видає токени саме поточному акаунту —
+        // збережені токени використовуються лише всередині сесії.
+        if (currentTgUserId) {
+          await login()
+          return
+        }
+
         // Спроба 1: є валідний збережений access-токен
         const storedAccess = getStoredAccessToken();
         if (storedAccess && isAccessTokenValid()) {
