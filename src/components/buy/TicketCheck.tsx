@@ -33,7 +33,7 @@ export const TicketCheck: FC<TicketCheckProps> = ({
   const { t } = useT()
 
   return (
-    <div className="relative flex flex-col gap-8 bg-surface pt-8 pb-12">
+    <div className="relative flex flex-col gap-8 bg-surface pt-8">
       <div className="flex items-center gap-[9px] px-7">
         <img src={ticketIcon} alt="" aria-hidden="true" className="h-4 w-6" />
         <span className="font-mono text-[15px] font-bold text-text-primary">
@@ -54,21 +54,33 @@ export const TicketCheck: FC<TicketCheckProps> = ({
           ))}
         </ul>
 
-        <div className="flex h-4 items-center">
-          <img src={dividerIcon} alt="" aria-hidden="true" className="h-4 w-full" />
-        </div>
+        {/*
+         * Підсумок (розділювач + Total + Pay) закріплений внизу скрол-області
+         * чека (sticky bottom-0, z-20 — той самий патерн, що й CurrencyPricePlate
+         * у WaitingPage.tsx): при довгому списку ставок (до 8 у чеку) на невисоких
+         * екранах Total/Pay інакше прокручувались би разом зі списком і зникали
+         * з екрана. relative — щоб CheckTeeth (position:absolute) позиціонувався
+         * відносно ЦЬОГО закріпленого блока (а не всього чека), лишаючись з ним
+         * в одному "стакані" під час скролу. bg-surface — суцільний фон, інакше
+         * рядки списку "просвічували" б крізь закріплений блок під час скролу.
+         */}
+        <div className="sticky bottom-0 z-20 relative flex flex-col gap-5 bg-surface pb-12 pt-2">
+          <div className="flex h-4 items-center">
+            <img src={dividerIcon} alt="" aria-hidden="true" className="h-4 w-full" />
+          </div>
 
-        <div className="flex items-center justify-between px-7 font-mono text-[16px] font-bold text-text-primary">
-          <span>{t('buy.total')}</span>
-          <span>{summary.activeCount}</span>
-        </div>
-        <div className="flex items-center justify-between px-7 font-mono text-[16px] font-bold">
-          <span className="text-text-primary">{t('buy.pay')}</span>
-          <span className="text-text-focus">{summary.payTon}</span>
+          <div className="flex items-center justify-between px-7 font-mono text-[16px] font-bold text-text-primary">
+            <span>{t('buy.total')}</span>
+            <span>{summary.activeCount}</span>
+          </div>
+          <div className="flex items-center justify-between px-7 font-mono text-[16px] font-bold">
+            <span className="text-text-primary">{t('buy.pay')}</span>
+            <span className="text-text-focus">{summary.payTon}</span>
+          </div>
+
+          <CheckTeeth />
         </div>
       </div>
-
-      <CheckTeeth />
     </div>
   )
 }
