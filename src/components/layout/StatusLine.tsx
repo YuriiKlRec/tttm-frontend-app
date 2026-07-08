@@ -10,11 +10,12 @@ export const StatusLine: FC = () => {
   const { t } = useT()
 
   return (
-    <div className="mx-3 mt-3 flex items-center justify-between border border-dashed border-border-dashed bg-background px-4 py-1">
+    <div className="mx-3 mt-3 flex items-center justify-between border border-dashed border-border-dashed bg-background px-4 py-1.5">
       <div className="flex items-center gap-2">
-        {/* Колір індикатора: зелений при активному зʼєднанні, сірий при очікуванні */}
+        {/* Колір індикатора: зелений при активному зʼєднанні, сірий при очікуванні.
+            Пульсація (opacity fade in/out) — animate-status-pulse, вимикається при prefers-reduced-motion */}
         <span
-          className={`h-2 w-2 ${socketConnected ? 'bg-green-400' : 'bg-gray-500'}`}
+          className={`h-2 w-2 animate-status-pulse ${socketConnected ? 'bg-green-400' : 'bg-gray-500'}`}
           aria-hidden="true"
         />
         <span
