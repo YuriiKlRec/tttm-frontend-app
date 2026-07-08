@@ -39,10 +39,12 @@ export const removePrice = (list: number[], value: number): number[] => {
 }
 
 /**
- * Санітизує сирий ввід: лишає цифри й одну крапку, обрізає до 2 знаків після коми.
+ * Санітизує сирий ввід: приймає і крапку, і кому як десятковий розділювач
+ * (кома нормалізується у крапку — той самий підхід, що й у TicketPriceField),
+ * лишає цифри й одну крапку, обрізає до 2 знаків після коми.
  */
 export const sanitizePriceInput = (raw: string): string => {
-  const cleaned = raw.replace(/[^\d.]/g, '')
+  const cleaned = raw.replace(/,/g, '.').replace(/[^\d.]/g, '')
   const firstDot = cleaned.indexOf('.')
   if (firstDot === -1) {
     return cleaned

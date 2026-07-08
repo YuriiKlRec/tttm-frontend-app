@@ -59,11 +59,11 @@ export const GameHeader: FC<GameHeaderProps> = ({
 
   return (
     <header
-      className="relative z-20 flex items-start justify-between gap-3 bg-background pr-6 pb-3 pl-6"
+      className="relative z-20 flex items-stretch justify-between gap-3 bg-background pr-6 pb-3 pl-6"
       style={{ paddingTop: 'calc(var(--app-safe-top) + 12px)' }}
     >
       <div className="flex min-w-0 flex-1 flex-col items-start gap-[9px]">
-        <h1 className="font-body text-[18px] font-bold break-words text-text-primary">{name}</h1>
+        <h1 className="font-body text-[15px] font-bold break-words text-text-primary">{name}</h1>
         <div className="flex items-start gap-[9px]">
           <ViewSelector value={viewMode} onChange={onViewChange} options={viewOptions} />
           {viewMode === 'bets' && (
@@ -84,7 +84,7 @@ export const GameHeader: FC<GameHeaderProps> = ({
         </div>
       </div>
 
-      <div className="relative top-[14px] right-[-10px] flex shrink-0 flex-col items-center justify-center gap-0.5 border border-white/50 bg-surface px-3 py-2">
+      <div className="relative right-[-10px] flex shrink-0 flex-col items-center justify-center gap-0.5 border border-white/50 bg-surface px-3 py-2">
         {finished ? (
           <>
             <span className="font-mono text-[13px] text-text-primary">
@@ -97,10 +97,12 @@ export const GameHeader: FC<GameHeaderProps> = ({
           </>
         ) : (
           <>
-            <span className="font-mono text-[16px] font-bold text-text-primary">{countdown}</span>
-            <span className="font-mono text-[13px] text-text-secondary">
+            {/* Дата (біла, акцент) зверху, таймер (сірий) під нею — кома в
+                форматі дати вже забезпечує formatInTz (Intl за замовчуванням). */}
+            <span className="font-mono text-[16px] font-bold text-text-primary">
               {formatInTz(endTime, tz, locale)}
             </span>
+            <span className="font-mono text-[13px] text-text-secondary">{countdown}</span>
           </>
         )}
       </div>
