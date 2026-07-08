@@ -2,6 +2,7 @@ import { useState, type FC } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { PredictionButton } from '../components/ui/PredictionButton'
 import { NicknameField } from '../components/onboarding/NicknameField'
+import { LanguageList } from '../components/onboarding/LanguageList'
 import { useNicknameInput } from '../hooks/useNicknameInput'
 import { useAuth } from '../hooks/useAuth'
 import { useT } from '../i18n/useT'
@@ -29,6 +30,8 @@ const EditProfilePage: FC = () => {
 
   // Визначаємо звідки прийшли: якщо з онбордингу — після збереження йдемо на головну
   const fromOnboarding = (location.state as { from?: string } | null)?.from === 'onboarding'
+  // Заголовок за макетом: крок онбордингу лишає свій текст, редагування з профілю — «Edit Profile»
+  const title = fromOnboarding ? t('onboarding.enterNickname') : t('profile.editTitle')
 
   const handleContinue = async (): Promise<void> => {
     if (!nickname.valid || submitting) return
@@ -52,40 +55,35 @@ const EditProfilePage: FC = () => {
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
-      {/* Центр: заголовок + поле вводу ніка. */}
-      <div className="absolute inset-x-7 top-1/2 flex -translate-y-1/2 flex-col items-center gap-5">
-        <h1 className="text-center font-display text-[24px] text-text-primary">
-          {t('onboarding.enterNickname')}
-        </h1>
-        <NicknameField
-          input={nickname}
-          serverError={serverError}
-          description={t('onboarding.nicknameVisible')}
-        />
+      {/* Верх: заголовок, поле ніка та вибір мови — закріплені зверху (не по центру екрана). */}
+      <div
+        className="flex flex-col items-center gap-8 px-7"
+        style={{ paddingTop: 'calc(var(--app-safe-top) + 16px)' }}
+      >
+        <h1 className="text-center font-display text-[24px] text-text-primary">{title}</h1>
 
-        {/* Вибір мови інтерфейсу */}
-        {languages.length > 0 && (
-          <div className="w-full">
-            <label
-              htmlFor="language-select"
-              className="mb-1.5 block font-mono text-[12px] font-bold text-text-secondary"
-            >
-              {t('profile.language')}
-            </label>
-            <select
-              id="language-select"
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
-              className="h-12 w-full appearance-none border border-text-primary bg-[rgba(255,255,255,0.1)] px-4 font-mono text-[15px] font-bold text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              {languages.map((lng) => (
-                <option key={lng.code} value={lng.code} className="bg-[#0b0b0b] text-text-primary">
-                  {lng.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div className="flex w-full flex-col items-center gap-16">
+          <NicknameField
+            input={nickname}
+            serverError={serverError}
+            description={t('onboarding.nicknameVisible')}
+          />
+
+          {/* Вибір мови інтерфейсу — список пунктів (ARIA listbox) */}
+          {languages.length > 0 && (
+            <div className="w-full">
+              <p id="language-label" className="mb-3 font-mono text-[15px] text-text-primary">
+                {t('profile.language')}
+              </p>
+              <LanguageList
+                languages={languages}
+                value={lang}
+                onChange={setLang}
+                labelId="language-label"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Низ: продовження (активне лише за валідного ніка і поки не виконується запит). */}

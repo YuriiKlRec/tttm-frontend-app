@@ -59,11 +59,11 @@ export const NicknameField: FC<NicknameFieldProps> = ({ input, serverError, desc
         )}`}
       />
       {hasError ? (
-        <p id="nickname-error" className="mt-2 text-center font-body text-[12px] text-[#e5484d]">
+        <p id="nickname-error" className="mt-3 text-center font-body text-[12px] text-[#e5484d]">
           {t(activeError)}
         </p>
       ) : description ? (
-        <p className="mt-2 text-center font-body text-[12px] font-normal text-text-secondary">
+        <p className="mt-3 text-center font-body text-[12px] font-normal text-text-secondary">
           {description}
         </p>
       ) : null}
