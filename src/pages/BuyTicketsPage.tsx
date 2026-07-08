@@ -11,7 +11,6 @@ import { useTelegramBackButton } from '../hooks/useTelegramBackButton'
 import { useLiveStore } from '../store/liveStore'
 import { useT } from '../i18n/useT'
 import { getGame } from '../services/gameApi'
-import { formatCountdown } from '../utils/time'
 import { env } from '../config/env'
 import type { GameDetail } from '../types/game'
 
@@ -73,19 +72,17 @@ const BuyTicketsPage: FC = () => {
   // ─── Ціни з корзини ───────────────────────────────────────────────────────
   const prices = useMemo(() => cart.prices, [cart.prices])
 
-  // ─── Реальний зворотний відлік ────────────────────────────────────────────
+  // ─── Таймаут оплати ────────────────────────────────────────────────────────
+  // Таймер більше не відображається в шапці (див. брифи), але дедлайн сесії
+  // оплати лишається: після timeoutMs користувача повертає до гри/на головну.
   // Час початку: фіксується одноразово при монтуванні компонента.
   const [startedAt] = useState<number>(() => Date.now())
   const timeoutMs = env.paymentTimeoutMinutes * 60 * 1000
-  const [remainingMs, setRemainingMs] = useState<number>(timeoutMs)
 
   useEffect(() => {
     const id = setInterval(() => {
       const elapsed = Date.now() - startedAt
-      const left = Math.max(0, timeoutMs - elapsed)
-      setRemainingMs(left)
-
-      if (left === 0) {
+      if (elapsed >= timeoutMs) {
         clearInterval(id)
         // Відлік вичерпано — повертаємось до гри або на головну
         const target = cart.gameId ? `/game/${cart.gameId}` : '/'
@@ -95,8 +92,6 @@ const BuyTicketsPage: FC = () => {
 
     return () => clearInterval(id)
   }, [startedAt, timeoutMs, cart.gameId, navigate])
-
-  const countdown = formatCountdown(remainingMs)
 
   // ─── Flow ─────────────────────────────────────────────────────────────────
   const flow = useBuyTicketsFlow(prices, ticketPrice, takenPrices)
@@ -113,7 +108,7 @@ const BuyTicketsPage: FC = () => {
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-[430px] flex-col overflow-hidden bg-background">
-      <BuyHeader countdown={countdown} />
+      <BuyHeader />
 
       <main className="relative z-10 flex-1 overflow-hidden">
         <CheckSlides checks={checks} onTicketInfo={flow.openTakenModal} />
