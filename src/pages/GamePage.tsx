@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type FC } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState, type FC } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { GameLayout } from '../components/layout/GameLayout'
 import { GameHeader } from '../components/games/GameHeader'
 import { BetPanel } from '../components/games/BetPanel'
@@ -11,11 +11,14 @@ import { useNow } from '../hooks/useNow'
 import { useBookedCart } from '../context/BookedCartProvider'
 import { useAuth } from '../hooks/useAuth'
 import { useGameLive } from '../hooks/useGameLive'
+import { useTelegramBackButton } from '../hooks/useTelegramBackButton'
 import { useT } from '../i18n/useT'
 import { useLocale } from '../i18n/locale'
 import { useLiveStore } from '../store/liveStore'
 import { centsToUsd } from '../utils/units'
 import { formatInTz } from '../utils/datetime'
+import { goBackOrFallback } from '../utils/navigation'
+import { confirmViaTelegram } from '../utils/telegramPopup'
 import type { Timeframe } from '../services/binance'
 import type { ViewMode, DetailGroup, Bet } from '../types/game'
 import type { WaitBet } from '../types/wait'
@@ -144,6 +147,7 @@ const GamePage: FC = () => {
   const { user, tz } = useAuth()
   const { t } = useT()
   const locale = useLocale()
+  const navigate = useNavigate()
   const myUserId = user?.id ?? null
 
   const { game, ready } = useGameLive(id, myUserId)
@@ -201,6 +205,30 @@ const GamePage: FC = () => {
   // cart стабільний (useCallback), реагуємо лише на id
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  // Детерміноване закриття гри: якщо є заброньовані, але ще не оплачені
+  // квитки — питаємо підтвердження (Telegram-попап, поза Telegram —
+  // window.confirm), інакше одразу виходимо. Крок назад в історії, якщо є
+  // куди (звідки прийшли — лобі, вкладка чи deep-link), інакше — на лобі.
+  // Кастомний хендлер тут ще й ховає глобальну кнопку хука в AppRoutes,
+  // щоб не було подвійного керування (той самий патерн, що й на /buy).
+  const handleGameBack = useCallback((): void => {
+    const leave = (): void => goBackOrFallback(navigate, '/')
+    if (cart.prices.length > 0) {
+      void confirmViaTelegram(t('game.leaveConfirmMessage')).then((confirmed) => {
+        if (confirmed) {
+          cart.clear()
+          leave()
+        }
+      })
+      return
+    }
+    leave()
+  // cart стабільний (useCallback у BookedCartProvider)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.prices.length, navigate, t])
+
+  useTelegramBackButton(handleGameBack)
 
   // Торгова пара береться з даних гри; FALLBACK_SYMBOL — якщо гра ще не завантажена
   const chartSymbol = game?.targetCurrency ?? FALLBACK_SYMBOL

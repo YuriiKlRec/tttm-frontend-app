@@ -8,6 +8,7 @@ import { prepareTicketTx, createTickets } from '../services/ticketApi'
 import { ValidationError } from '../services/http'
 import { isUserRejection } from '../utils/isUserRejection'
 import { chunk } from '../utils/chunk'
+import { goBackOrFallback } from '../utils/navigation'
 import { useT } from '../i18n/useT'
 import type { CheckCta } from '../components/buy/CheckActionPanel'
 
@@ -207,21 +208,25 @@ export const useBuyTicketsFlow = (
 
   // Безпечний вихід до гри: якщо є скасовані ставки — попередження,
   // інакше — одразу перехід. Оплачені вже видалені з корзини в payCurrentCheck.
+  // goBackOrFallback (крок назад в історії, а не push нового запису) —
+  // /buy завжди відкривається ЗІ сторінки гри, тож крок назад повертає саме
+  // на неї, не накопичуючи дублікатів у стеку (див. B1: інакше Back із гри
+  // після оплати знову впирався в /buy замість лобі).
   const leaveToGame = useCallback((): void => {
     if (checks.nonActivePrices.length > 0) {
       setActiveModal('uncompleted')
       return
     }
-    const route = cart.gameId ? `/game/${cart.gameId}` : GAME_ROUTE_FALLBACK
-    navigate(route)
+    const fallback = cart.gameId ? `/game/${cart.gameId}` : GAME_ROUTE_FALLBACK
+    goBackOrFallback(navigate, fallback)
   }, [checks.nonActivePrices, cart.gameId, navigate])
 
   // Підтвердження виходу: прибрати скасовані ставки (оплачені вже видалено).
   const confirmUncompleted = useCallback((): void => {
     cart.removeMany(checks.nonActivePrices)
     setActiveModal(null)
-    const route = cart.gameId ? `/game/${cart.gameId}` : GAME_ROUTE_FALLBACK
-    navigate(route)
+    const fallback = cart.gameId ? `/game/${cart.gameId}` : GAME_ROUTE_FALLBACK
+    goBackOrFallback(navigate, fallback)
   }, [cart, checks.nonActivePrices, navigate])
 
   const handleCta = useCallback((): void => {

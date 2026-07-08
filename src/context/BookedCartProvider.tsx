@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useState, type FC, type ReactNode } from 'react'
 import { includesPrice, removePrice } from '../utils/price'
+import { useTelegramClosingConfirmation } from '../hooks/useTelegramClosingConfirmation'
 
 /** Корзина заброньованих цін — глобальний стан (спільний для гри та сторінки оплати). */
 export interface BookedCart {
@@ -53,6 +54,10 @@ export const BookedCartProvider: FC<{ children: ReactNode }> = ({ children }) =>
   }, [])
 
   const has = useCallback((price: number): boolean => includesPrice(prices, price), [prices])
+
+  // Незавершений флоу — є заброньовані, але ще не оплачені квитки: просимо
+  // Telegram підтвердити закриття Mini App, щоб їх не втратити випадково.
+  useTelegramClosingConfirmation(prices.length > 0)
 
   return (
     <BookedCartContext.Provider value={{ gameId, prices, setGameId, add, remove, removeMany, clear, has }}>
