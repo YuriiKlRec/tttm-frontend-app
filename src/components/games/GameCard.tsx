@@ -1,4 +1,4 @@
-import type { FC } from 'react'
+import { useEffect, useRef, useState, type FC } from 'react'
 import { PixelCard } from '../ui/PixelCard'
 import { PredictionButton } from '../ui/PredictionButton'
 import { IconButton } from '../ui/IconButton'
@@ -15,19 +15,25 @@ import { gameDeepLink } from '../../utils/gameLink'
 import ticketIcon from '../../assets/icon-ticket.svg'
 import trophyIcon from '../../assets/icon-trophy.svg'
 import linkIcon from '../../assets/icon-link.svg'
+import checkIcon from '../../assets/icon-check.svg'
 
 /** Торгова пара, що показується підказкою в кільці таймера (єдина підтримувана зараз). */
 const PREDICTION_PAIR = 'BTC/USDT'
 
+/** Тривалість показу іконки-галочки після копіювання посилання (мс). */
+const COPY_FEEDBACK_MS = 3000
+
 /** Копіює deep-link на Mini App з id гри у буфер обміну (доступно авторам). */
-const copyGameLink = (id: string): void => {
+const copyGameLink = (id: string): boolean => {
   if (!navigator.clipboard) {
-    return
+    return false
   }
   try {
     void navigator.clipboard.writeText(gameDeepLink(id))
+    return true
   } catch {
     // буфер обміну недоступний — мовчазно ігноруємо
+    return false
   }
 }
 
@@ -59,6 +65,29 @@ export const GameCard: FC<Game> = ({
     : t('game.makePrediction', { countdown: formatCountdown(betCloseTime - now) })
   const hasTickets = ticketsCount > 0
 
+  // Підтвердження копіювання: іконка міняється на галочку на 3с, повторний клік
+  // перезапускає таймер; таймер чиститься при unmount.
+  const [copied, setCopied] = useState(false)
+  const copyTimeoutRef = useRef<number | undefined>(undefined)
+
+  useEffect(
+    () => () => {
+      if (copyTimeoutRef.current !== undefined) {
+        window.clearTimeout(copyTimeoutRef.current)
+      }
+    },
+    [],
+  )
+
+  const handleCopyLink = (): void => {
+    if (!copyGameLink(id)) return
+    setCopied(true)
+    if (copyTimeoutRef.current !== undefined) {
+      window.clearTimeout(copyTimeoutRef.current)
+    }
+    copyTimeoutRef.current = window.setTimeout(() => setCopied(false), COPY_FEEDBACK_MS)
+  }
+
   return (
     <PixelCard className="mx-7" contentClassName="items-center gap-3 px-7 py-3">
       <div className="flex w-full items-center gap-3">
@@ -66,9 +95,18 @@ export const GameCard: FC<Game> = ({
           <h2 className="font-body text-[18px] font-bold text-text-primary">{title}</h2>
           <p className="font-mono text-[15px] text-text-primary">{author}</p>
         </div>
-        {/* копіювання посилання — доступно авторам */}
+        {/* копіювання посилання — доступно авторам; після кліку 3с показує галочку */}
         {isAuthor ? (
-          <IconButton icon={linkIcon} label={t('game.copyGameLink')} onClick={() => copyGameLink(id)} />
+          <>
+            <IconButton
+              icon={copied ? checkIcon : linkIcon}
+              label={copied ? t('game.linkCopied') : t('game.copyGameLink')}
+              onClick={handleCopyLink}
+            />
+            <span className="sr-only" role="status" aria-live="polite">
+              {copied ? t('game.linkCopied') : ''}
+            </span>
+          </>
         ) : null}
       </div>
 
