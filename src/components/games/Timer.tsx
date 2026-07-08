@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import trophyIcon from '../../assets/icon-trophy.svg'
+import btcIcon from '../../assets/icon-btc.svg'
 
 /** Пропси таймера-таймлайну зворотного відліку. */
 interface TimerProps {
@@ -13,6 +14,11 @@ interface TimerProps {
   date: string
   /** Винагорода — якщо задано, показується блоком «🏆 Reward / X» над часом. */
   reward?: string
+  /**
+   * Торгова пара передбачення (напр. "BTC/USDT") — кругла підказка над датою/часом.
+   * Задається лише у картці списку ігор (GameCard); за замовчуванням не показується.
+   */
+  pair?: string
 }
 
 const SIZE = 200
@@ -46,7 +52,7 @@ const buildSegments = (elapsed: number, betClose: number): Segment[] => {
  * старт зверху, напрямок проти годинникової стрілки. По центру — зворотній
  * відлік до кінця гри та дата кінця.
  */
-export const Timer: FC<TimerProps> = ({ elapsedFrac, betCloseFrac, time, date, reward }) => {
+export const Timer: FC<TimerProps> = ({ elapsedFrac, betCloseFrac, time, date, reward, pair }) => {
   const segments = buildSegments(elapsedFrac, betCloseFrac)
 
   return (
@@ -77,24 +83,40 @@ export const Timer: FC<TimerProps> = ({ elapsedFrac, betCloseFrac, time, date, r
         </g>
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-[6px]">
-        {reward ? (
-          <span className="mb-1 flex flex-col items-center gap-0.5">
-            <span className="flex items-center gap-1.5">
-              <img src={trophyIcon} alt="" aria-hidden="true" className="h-4 w-4" />
-              <span className="font-mono text-[13px] text-text-secondary">Reward</span>
+        {pair ? (
+          // Список ігор (GameCard): підказка валютної пари над датою/часом, дата — акцент.
+          <div className="flex flex-col items-center gap-[20px]">
+            <span className="flex items-center gap-2">
+              <img src={btcIcon} alt="" aria-hidden="true" className="h-6 w-6" />
+              <span className="font-mono text-[16px] font-bold text-text-primary">{pair}</span>
             </span>
-            <span className="font-mono text-[16px] font-bold text-text-primary">{reward}</span>
-          </span>
-        ) : null}
-        {/* З винагородою (Wait) центр компактніший: час 18 / дата 15; інакше 28 / 18. */}
-        <span
-          className={`font-mono font-bold text-text-primary ${reward ? 'text-[18px]' : 'text-[28px]'}`}
-        >
-          {time}
-        </span>
-        <span className={`font-mono text-text-secondary ${reward ? 'text-[15px]' : 'text-[18px]'}`}>
-          {date}
-        </span>
+            <span className="flex flex-col items-center gap-[6px]">
+              <span className="font-mono text-[22px] font-bold text-text-primary">{date}</span>
+              <span className="font-mono text-[18px] font-bold text-text-secondary">{time}</span>
+            </span>
+          </div>
+        ) : (
+          <>
+            {reward ? (
+              <span className="mb-1 flex flex-col items-center gap-0.5">
+                <span className="flex items-center gap-1.5">
+                  <img src={trophyIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+                  <span className="font-mono text-[13px] text-text-secondary">Reward</span>
+                </span>
+                <span className="font-mono text-[16px] font-bold text-text-primary">{reward}</span>
+              </span>
+            ) : null}
+            {/* З винагородою (Wait) центр компактніший: час 18 / дата 15; інакше 28 / 18. */}
+            <span
+              className={`font-mono font-bold text-text-primary ${reward ? 'text-[18px]' : 'text-[28px]'}`}
+            >
+              {time}
+            </span>
+            <span className={`font-mono text-text-secondary ${reward ? 'text-[15px]' : 'text-[18px]'}`}>
+              {date}
+            </span>
+          </>
+        )}
       </div>
     </div>
   )
