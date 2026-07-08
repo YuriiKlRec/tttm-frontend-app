@@ -33,10 +33,23 @@ export const CheckSlider: FC<CheckSliderProps> = ({
   const [dragging, setDragging] = useState(false)
 
   if (count === 1) {
-    return <div className="h-full overflow-y-auto px-7 scrollbar-hide">{children}</div>
+    // pb-6 — див. коментар до SLIDE_CLASS у CheckSlides.tsx: без нього тло
+    // чека впритул торкається закріпленого нижнього блока в кінці скролу.
+    return <div className="h-full overflow-y-auto px-7 pb-6 scrollbar-hide">{children}</div>
   }
 
+  // Захоплюємо вказівник на pointerdown: без цього браузер веде hit-test за
+  // ФІЗИЧНОЮ позицією курсора/пальця, і природний вертикальний дрейф пальця
+  // під час горизонтального свайпу (типово поруч із закріпленим нижнім
+  // блоком) виводить курсор за межі треку — спрацьовує onPointerLeave,
+  // передчасно завершуючи драг (миттєвий стрибок трансформи + подальші
+  // pointermove вже ігноруються, бо dragging=false — жест «вмирає» до
+  // відпускання пальця). Це і є корінь дьоргання при свайпі чеків.
+  // setPointerCapture прив'язує ВСІ наступні події цього pointerId до треку
+  // незалежно від фізичної позиції — межові події (leave/out) більше не
+  // спрацьовують передчасно, жест лишається плавним аж до pointerup/cancel.
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>): void => {
+    e.currentTarget.setPointerCapture(e.pointerId)
     widthRef.current = trackRef.current?.clientWidth ?? 0
     startX.current = e.clientX
     setDragging(true)
@@ -49,9 +62,12 @@ export const CheckSlider: FC<CheckSliderProps> = ({
     setDrag(e.clientX - startX.current)
   }
 
-  const endDrag = (): void => {
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>): void => {
     if (!dragging) {
       return
+    }
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId)
     }
     const threshold = widthRef.current * SWIPE_RATIO
     if (drag <= -threshold && activeIndex < count - 1) {
@@ -73,7 +89,6 @@ export const CheckSlider: FC<CheckSliderProps> = ({
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        onPointerLeave={endDrag}
         className="flex h-full touch-pan-y"
         style={{
           transform: `translateX(${offset})`,
