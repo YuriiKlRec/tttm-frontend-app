@@ -59,10 +59,14 @@ export const GameHeader: FC<GameHeaderProps> = ({
 
   return (
     <header
-      className="relative z-20 flex items-stretch justify-between gap-3 bg-background pr-6 pb-3 pl-6"
+      className="relative z-20 flex items-stretch justify-between gap-3 bg-background pr-6 pl-6"
       style={{ paddingTop: 'calc(var(--app-safe-top) + 12px)' }}
     >
-      <div className="flex min-w-0 flex-1 flex-col items-start gap-[9px]">
+      {/* pb-3 живе тут (а не на <header>), щоб плашка дати/таймера праворуч
+          (items-stretch) тяглась на всю висоту ряду БЕЗ відступу знизу і
+          торкалась межі, що йде під нею, на будь-якій висоті (короткій і
+          довгій назві гри) — див. round14a. */}
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-[9px] pb-3">
         <h1 className="font-body text-[15px] font-bold break-words text-text-primary">{name}</h1>
         <div className="flex items-start gap-[9px]">
           <ViewSelector value={viewMode} onChange={onViewChange} options={viewOptions} />
