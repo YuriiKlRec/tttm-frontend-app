@@ -33,9 +33,9 @@ export const CheckSlider: FC<CheckSliderProps> = ({
   const [dragging, setDragging] = useState(false)
 
   if (count === 1) {
-    // pb-6 — див. коментар до SLIDE_CLASS у CheckSlides.tsx: без нього тло
-    // чека впритул торкається закріпленого нижнього блока в кінці скролу.
-    return <div className="h-full overflow-y-auto px-7 pb-6 scrollbar-hide">{children}</div>
+    // pb-10 — див. коментар до SLIDE_CLASS у CheckSlides.tsx: без нього тло
+    // чека впритул торкався б нижньої панелі в кінці скролу.
+    return <div className="h-full overflow-y-auto px-7 pb-10 scrollbar-hide">{children}</div>
   }
 
   // Захоплюємо вказівник на pointerdown: без цього браузер веде hit-test за
