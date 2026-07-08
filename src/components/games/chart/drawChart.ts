@@ -120,6 +120,7 @@ const drawPlotBounds = (
 /** Тип функції мапінгу реального часу (epoch ms) у X-піксель. */
 type TimeToX = (t: number) => number
 
+
 /** Малює мітки часу зверху. */
 const drawTimeLabels = (
   ctx: CanvasRenderingContext2D,
@@ -503,6 +504,7 @@ export const drawChart = (ctx: CanvasRenderingContext2D, state: ChartDrawState):
   // Верхня і нижня межові лінії зони графіка (A4) — малюємо ПІСЛЯ кривої,
   // щоб чітко відділяли зону навіть якщо крива торкається краю.
   drawPlotBounds(ctx, left, right, top, bottom)
+
 
   drawBetMarkers(ctx, state, right, top, bottom)
   drawCurrentPrice(ctx, state, left, right, top, bottom)

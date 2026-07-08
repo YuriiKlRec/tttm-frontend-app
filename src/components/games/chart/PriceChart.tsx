@@ -42,6 +42,23 @@ interface PriceChartProps {
 /** Дефолтна кількість видимих свічок (вікно зуму при завантаженні). */
 const DEFAULT_VISIBLE = 120
 
+/**
+ * Свічки у видимому ЧАСОВОМУ вікні — той самий розрахунок (`now - count*interval`
+ * .. `now`), що й `drawChart.ts`, а не просто "останні N елементів масиву" (14B):
+ * інакше index-зріз, яким рахується авто-діапазон цін, і time-зріз, яким
+ * малюється крива, трохи розходяться на межах гранулярності (різна довжина
+ * реальної історії за той самий N), що додає зайвий стрибок priceRange саме в
+ * момент переходу таймфрейму.
+ */
+const sliceVisibleByTime = (candles: Candle[], count: number, interval: number): Candle[] => {
+  if (candles.length <= count || interval <= 0) {
+    return candles
+  }
+  const now = Date.now()
+  const leftTime = now - count * interval
+  return candles.filter((c) => c.time >= leftTime && c.time <= now)
+}
+
 /** Хук resize-спостереження з DPR-aware розмірами. */
 const useElementSize = (
   ref: React.RefObject<HTMLDivElement | null>,
@@ -98,70 +115,108 @@ export const PriceChart: FC<PriceChartProps> = ({
   // A7: за перемикання таймфрейму (свайп-зум) зберігає видиму ЧАСОВУ тривалість
   // (мс) вікна, щоб після приходу нових даних відновити еквівалентний visibleCount
   // замість дефолтного — інакше вікно різко «стрибає» (1m→5m ×5 свічок замість span).
-  const pendingSpanMs = useRef<number | null>(null)
-
-  // Нова історія (зміна таймфрейму/перезавантаження) — дефолтне вікно зуму,
-  // щоб вікно ставок (хвилини) було видно поряд з історією. Якщо це перехід
-  // після свайп-перемикання таймфрейму (pendingSpanMs) — відновлюємо еквівалентний
-  // видимий діапазон замість скидання, щоб не було стрибка (A7).
-  useEffect(() => {
-    if (candles.length === 0) {
-      return
-    }
-    if (pendingSpanMs.current !== null) {
-      const interval = candles.length >= 2 ? candles[1].time - candles[0].time : TIMEFRAME_MS[timeframe]
-      const preserved = Math.round(pendingSpanMs.current / (interval || 1))
-      const next = Math.max(MIN_VISIBLE, Math.min(candles.length, preserved))
-      if (import.meta.env.DEV) {
-        // Покадровий лог позиції для верифікації A7 (безшовне перемикання таймфрейму).
-        console.debug('[chart:A7] viewport restored after timeframe switch', {
-          timeframe,
-          preservedSpanMs: pendingSpanMs.current,
-          intervalMs: interval,
-          visibleCount: next,
-        })
-      }
-      setVisibleCount(next)
-      pendingSpanMs.current = null
-      return
-    }
-    setVisibleCount(Math.min(candles.length, DEFAULT_VISIBLE))
-    // Залежність навмисно лише [candles] (без timeframe): PriceChart — нащадок
-    // GamePage, тож цей ефект комітиться РАНІШЕ за ефект useChartData, який
-    // власне міняє candles. Якби ефект залежав і від timeframe, він спрацював
-    // би одразу на зміну timeframe (ще зі СТАРИМИ candles/interval минулого
-    // таймфрейму) і передчасно «спожив» би pendingSpanMs неправильним
-    // інтервалом — вікно відновилося б один кадр із хибним числом, а тоді
-    // мовчки перескочило на DEFAULT_VISIBLE, коли реальні дані нарешті
-    // прийдуть (видимий «стрибок», якого A7 і мав позбутися). Читаємо
-    // timeframe із замикання лише як фолбек-інтервал для <2 свічок.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candles])
+  // 14B: стан (а не ref) — читається СИНХРОННО в блоці рендеру нижче (офіційний
+  // React-патерн «adjusting state when a prop changes», react.dev), а не в
+  // useEffect. Спроба з useEffect/useLayoutEffect емпірично НЕ рятує від ривка:
+  // ефект (навіть layout) виконується ПІСЛЯ того, як РЕАКТ уже закомітив кадр із
+  // новими candles, а конкурентні pointermove-задачі (окремі DOM-події жесту,
+  // useChartGestures) встигають примусово вставити СВІЙ commit+paint із своїм
+  // (ще не відновленим) visibleCount МІЖ цим комітом і запуском ефекту — виміряно
+  // покадровим логом (round14b-report.md): з useLayoutEffect зсув кривої лишався
+  // ~900-2300px, з синхронним блоком у рендері — впав до рівня звичайного шуму
+  // зуму. Синхронний блок рендеру не лишає такого вікна: він виконується в ТІЙ
+  // САМІЙ функції рендеру, що вперше отримує нові candles, до будь-якого коміту.
+  const [pendingSpanMs, setPendingSpanMs] = useState<number | null>(null)
   // Чи користувач уже рухав діапазон — щоб не перебивати ручний зум/пан.
-  const touchedRange = useRef(false)
+  const [touchedRange, setTouchedRange] = useState(false)
   // Чи контролер уже мав реальне значення (тап або зовнішня ціна) — окремо від
   // controllerVisible, бо controllerVisible — це React state (для рендеру),
-  // а тут потрібне синхронне читання в тому ж ефекті нижче.
-  const touchedController = useRef(controllerVisible)
+  // а тут потрібне синхронне читання нижче.
+  const [touchedController, setTouchedController] = useState(controllerVisible)
 
-  // Перерахунок діапазону при новій історії (поки користувач не зумив вручну).
-  useEffect(() => {
-    if (candles.length === 0 || touchedRange.current) {
-      return
-    }
-    const range = computeInitialRange(candles, currentPrice)
-    setPriceRange(range)
-    if (!touchedController.current) {
-      // Внутрішній базовий орієнтир для контролера — НЕ показується (controllerVisible=false),
-      // це лише стартова точка на випадок майбутнього drag одразу після першого тапу.
-      setSelectedPrice(Number((range.min + (range.max - range.min) * 0.1).toFixed(2)))
-    }
-  }, [candles, currentPrice])
+  // 14B: попередній `candles`, з яким уже узгоджено visibleCount/priceRange —
+  // стан (не ref), щоб порівняння коректно працювало під StrictMode.
+  const [syncedCandles, setSyncedCandles] = useState<Candle[]>(candles)
 
-  // Скидаємо ручний зум при зміні таймфрейму (нова шкала).
-  useEffect(() => {
-    touchedRange.current = false
-  }, [timeframe])
+  // Нова історія (зміна таймфрейму/перезавантаження): visibleCount І priceRange
+  // рахуємо СИНХРОННО в ТОМУ Ж рендері, що й новий `candles` (а не в useEffect,
+  // як було в 13A) — див. пояснення механізму вище. Покадровим логом
+  // (round14b-report.md) підтверджено: неузгоджений «стик» старого
+  // visibleCount/priceRange із НОВИМИ candles давав піксельний зсув кривої
+  // ~950-1050px (звичайний кадр зуму — 20-90px) — видимий «ривок» на переході
+  // таймфрейму.
+  if (candles !== syncedCandles) {
+    setSyncedCandles(candles)
+    if (candles.length > 0) {
+      const interval = candles.length >= 2 ? candles[1].time - candles[0].time : TIMEFRAME_MS[timeframe]
+      let nextVisible: number
+      if (pendingSpanMs !== null) {
+        const preserved = Math.round(pendingSpanMs / (interval || 1))
+        nextVisible = Math.max(MIN_VISIBLE, Math.min(candles.length, preserved))
+        if (import.meta.env.DEV) {
+          // Покадровий лог позиції для верифікації A7 (безшовне перемикання таймфрейму).
+          console.debug('[chart:A7] viewport restored after timeframe switch', {
+            timeframe,
+            preservedSpanMs: pendingSpanMs,
+            intervalMs: interval,
+            visibleCount: nextVisible,
+          })
+        }
+        setPendingSpanMs(null)
+      } else {
+        nextVisible = Math.min(candles.length, DEFAULT_VISIBLE)
+      }
+      setVisibleCount(nextVisible)
+
+      // Діапазон цін — з ВИДИМОГО ЧАСОВОГО вікна (той самий розрахунок, що й
+      // сама крива в drawChart.ts — sliceVisibleByTime), а не з усього
+      // завантаженого масиву (до 500 свічок): інакше на грубшій гранулярності
+      // (напр. 1h→4h) той самий масив довжини 500 покриває вже МІСЯЦІ історії
+      // замість годин — авто-діапазон ціни різко «роздувається» (виміряно:
+      // 61035–64971 → 55796–84854 саме на переході 1h→4h), крива стискається
+      // у вузьку смужку — ще одне (не race-based) джерело ривка на переході
+      // гранулярності.
+      if (!touchedRange) {
+        const visibleSlice = sliceVisibleByTime(candles, nextVisible, interval)
+        const range = computeInitialRange(visibleSlice, currentPrice)
+        setPriceRange(range)
+        if (!touchedController) {
+          // Внутрішній базовий орієнтир для контролера — НЕ показується (controllerVisible=false),
+          // це лише стартова точка на випадок майбутнього drag одразу після першого тапу.
+          setSelectedPrice(Number((range.min + (range.max - range.min) * 0.1).toFixed(2)))
+        }
+      }
+    }
+  }
+
+  // Живий тік ціни (без зміни candles) — і далі розширює авто-діапазон, поки
+  // користувач не зумив вручну. Так само СИНХРОННИЙ блок рендеру (не
+  // useEffect) — офіційний React-патерн «adjusting state when a prop
+  // changes»: рахунок і setState тут ідентичний до блоку вище, лише
+  // тригериться зміною currentPrice, а не candles.
+  const [syncedPrice, setSyncedPrice] = useState<number | null>(currentPrice)
+  if (currentPrice !== syncedPrice) {
+    setSyncedPrice(currentPrice)
+    if (candles.length > 0 && !touchedRange) {
+      const count = visibleCount || candles.length
+      const interval = candles.length >= 2 ? candles[1].time - candles[0].time : TIMEFRAME_MS[timeframe]
+      const visibleSlice = sliceVisibleByTime(candles, count, interval)
+      const range = computeInitialRange(visibleSlice, currentPrice)
+      setPriceRange(range)
+      if (!touchedController) {
+        setSelectedPrice(Number((range.min + (range.max - range.min) * 0.1).toFixed(2)))
+      }
+    }
+  }
+
+  // Скидаємо ручний зум при зміні таймфрейму (нова шкала) — синхронний блок
+  // рендеру замість useEffect (той самий React-патерн «resetting state when a
+  // prop changes»).
+  const [syncedTimeframe, setSyncedTimeframe] = useState(timeframe)
+  if (timeframe !== syncedTimeframe) {
+    setSyncedTimeframe(timeframe)
+    setTouchedRange(false)
+  }
 
   // Синк зовнішньої ціни (поле ставки → контролер). Звіряємо на однаковій
   // точності (toFixed(2)), щоб 64150 та 64150.00 не зациклювались: при drag
@@ -175,7 +230,7 @@ export const PriceChart: FC<PriceChartProps> = ({
       return
     }
     setSelectedPrice(externalPrice)
-    touchedController.current = true
+    setTouchedController(true)
     setControllerVisible(true)
     // Реагуємо лише на externalPrice; selectedPrice читаємо для звірки точності.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -183,32 +238,33 @@ export const PriceChart: FC<PriceChartProps> = ({
 
   /** Викликається тапом/драгом контролера (A1: перший тап ставить і показує його). */
   const handlePriceSelect = (price: number): void => {
-    touchedController.current = true
+    setTouchedController(true)
     setControllerVisible(true)
     setSelectedPrice(price)
     onPriceSelect(price)
   }
 
   const handleSetRange = (next: PriceRange): void => {
-    touchedRange.current = true
+    setTouchedRange(true)
     setPriceRange(next)
   }
 
   /** Обгортка над onTimeframeChange (A7): фіксує поточну видиму тривалість
-   * ПЕРЕД перемиканням, щоб ефект вище відновив еквівалентний visibleCount
+   * ПЕРЕД перемиканням, щоб блок рендеру вище відновив еквівалентний visibleCount
    * і швидка зміна гранулярності виглядала безшовно, без стрибка вікна. */
   const handleTimeframeChange = (tf: Timeframe): void => {
     if (tf !== timeframe) {
       const interval = candles.length >= 2 ? candles[1].time - candles[0].time : TIMEFRAME_MS[timeframe]
       const count = visibleCount || candles.length || 1
-      pendingSpanMs.current = count * interval
+      const span = count * interval
+      setPendingSpanMs(span)
       if (import.meta.env.DEV) {
         console.debug('[chart:A7] timeframe switch requested', {
           from: timeframe,
           to: tf,
           visibleCountBefore: count,
           intervalMsBefore: interval,
-          preservedSpanMs: pendingSpanMs.current,
+          preservedSpanMs: span,
         })
       }
     }
@@ -266,8 +322,9 @@ export const PriceChart: FC<PriceChartProps> = ({
       icons,
       interactive,
       locale,
+      timeframe,
     })
-  }, [size, candles, visibleCount, currentPrice, priceRange, mode, game, bets, selectedPrice, controllerState, controllerVisible, icons, interactive, locale])
+  }, [size, candles, visibleCount, currentPrice, priceRange, mode, game, bets, selectedPrice, controllerState, controllerVisible, icons, interactive, locale, timeframe])
 
   const loading = candles.length === 0
 
