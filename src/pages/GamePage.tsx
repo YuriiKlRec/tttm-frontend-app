@@ -251,7 +251,8 @@ const GamePage: FC = () => {
   // Статистика для вигляду «Predictions»
   const stats = useMemo(() => {
     if (!game) return { reward: '—', ticketsTaken: '—', ticketsMine: '—', players: '—' }
-    const taken = (game.takenByOthers?.length ?? 0) + (game.yourTickets?.length ?? 0)
+    // ticketsTaken (червона іконка) — квитки ІНШИХ гравців, не загальна кількість
+    const taken = game.takenByOthers?.length ?? 0
     const mine = game.yourTickets?.length ?? 0
     return {
       reward: game.prize ?? '—',
@@ -301,12 +302,12 @@ const GamePage: FC = () => {
     if (phase !== 'waiting' || bets.length === 0) return null
 
     const topBet = bets[0]
-    const myBet = bets.find((b) => b.variant === 'mine')
+    const myBet = bets.find((b) => b.mine)
     const fallback: WaitBet = {
       rank: 1,
       user: topBet.user,
       price: topBet.price,
-      mine: topBet.variant === 'mine' || topBet.variant === 'win',
+      mine: topBet.mine,
     }
 
     return {

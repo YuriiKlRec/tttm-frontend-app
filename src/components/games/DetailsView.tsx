@@ -1,7 +1,10 @@
-import type { FC } from 'react'
+import { Fragment, type FC } from 'react'
 import type { DetailGroup } from '../../types/game'
 import { useT } from '../../i18n/useT'
 import { CurrencyPricePlate } from './CurrencyPricePlate'
+
+/** Спільний клас штрихового розділювача (між групами і між рядками деталей). */
+const DIVIDER_CLASS = 'border-t border-dashed border-border-dashed'
 
 /** Пропси вигляду «Details». */
 interface DetailsViewProps {
@@ -30,19 +33,22 @@ export const DetailsView: FC<DetailsViewProps> = ({ groups, price, showPrice = t
         {groups.map((group, groupIndex) => (
           <div
             key={group[0]?.label ?? groupIndex}
-            className={
-              groupIndex === 0
-                ? 'space-y-5'
-                : 'mt-5 space-y-5 border-t border-dashed border-[rgba(255,255,255,0.25)] pt-5'
-            }
+            className={groupIndex === 0 ? 'space-y-5' : `mt-5 space-y-5 ${DIVIDER_CLASS} pt-5`}
           >
-            {group.map((row) => (
-              <div key={row.label} className="flex items-center justify-between gap-4">
-                <span className="font-mono text-[15px] text-text-primary">{row.label}</span>
-                <span className="font-mono text-[15px] font-bold text-text-primary">
-                  {row.value}
-                </span>
-              </div>
+            {group.map((row, rowIndex) => (
+              <Fragment key={row.label}>
+                {/* Розділювач між рядками всередині групи — той самий стиль, що між групами. */}
+                {rowIndex > 0 ? <div className={DIVIDER_CLASS} aria-hidden="true" /> : null}
+                <div className="flex items-start justify-between gap-4">
+                  <span className="min-w-0 font-mono text-[15px] text-text-primary">
+                    {row.label}
+                  </span>
+                  {/* Значення (дата тощо) не переноситься на новий рядок; лейбл стискається/переноситься. */}
+                  <span className="shrink-0 whitespace-nowrap font-mono text-[15px] font-bold text-text-primary">
+                    {row.value}
+                  </span>
+                </div>
+              </Fragment>
             ))}
           </div>
         ))}

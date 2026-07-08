@@ -13,21 +13,23 @@ interface BetLineProps {
   user: string
   /** Спрогнозована ціна. */
   price: string
-  /** Варіант відображення рядка. */
+  /** Варіант відображення рядка (лише для корони переможця). */
   variant: BetLineVariant
+  /** Чи належить ставка поточному користувачу — керує кольором тексту/іконки. */
+  mine: boolean
 }
 
-/** Колір тексту @user і ціни за варіантом (win і mine — оранжеві). */
-const textColor = (variant: BetLineVariant): string =>
-  variant === 'default' ? 'text-text-primary' : 'text-text-focus'
+/** Колір тексту @user і ціни: оранжевий лише для власної ставки. */
+const textColor = (mine: boolean): string => (mine ? 'text-text-focus' : 'text-text-primary')
 
 /**
  * Рядок ставки у списку прогнозів: зліва ранг і @user, справа тікет і ціна.
- * `mine` — оранжевий текст (своя ставка); `win` — переможець: оранжевий текст
- * і корона над знаком @.
+ * Колір тексту/іконки визначається лише належністю ставки користувачу (`mine`).
+ * `variant === 'win'` додає корону над знаком @ незалежно від кольору —
+ * переможець, який не є поточним користувачем, лишається звичайного кольору.
  */
-export const BetLine: FC<BetLineProps> = ({ rank, user, price, variant }) => {
-  const color = textColor(variant)
+export const BetLine: FC<BetLineProps> = ({ rank, user, price, variant, mine }) => {
+  const color = textColor(mine)
   const { t } = useT()
 
   return (
@@ -49,7 +51,7 @@ export const BetLine: FC<BetLineProps> = ({ rank, user, price, variant }) => {
       </span>
       <span className="flex items-center gap-2">
         <img
-          src={variant === 'default' ? ticketRedIcon : ticketIcon}
+          src={mine ? ticketIcon : ticketRedIcon}
           alt=""
           aria-hidden="true"
           className="h-4 w-4"

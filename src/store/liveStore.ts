@@ -149,7 +149,7 @@ function buildBetFromSocket(
   const variant = mine ? 'mine' : 'default';
 
   // createdAt — момент отримання події (точний час створення прийде при рефетчі)
-  return { rank, user, price, variant, priceCents, createdAt: Date.now() };
+  return { rank, user, price, variant, mine, priceCents, createdAt: Date.now() };
 }
 
 /**

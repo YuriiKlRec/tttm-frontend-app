@@ -199,6 +199,7 @@ export function toBet(ticket: TicketDto, opts: ToBetOpts): Bet {
     user,
     price,
     variant,
+    mine: opts.mine,
     // priceCents — завжди прогноз тікета (для сортування за близькістю), не final
     priceCents: ticket.price,
     createdAt: Date.parse(ticket.createdAt),

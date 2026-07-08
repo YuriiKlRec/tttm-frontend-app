@@ -6,6 +6,13 @@ import { CurrencyPricePlate } from './CurrencyPricePlate'
 import { useT } from '../../i18n/useT'
 import sortIcon from '../../assets/icon-sort.svg'
 
+/**
+ * Прапорець видимості UI-перемикача сортування — вимкнено за брифом round11A
+ * (Figma 1360:11439 не показує іконку сортування). Логіка сортування лишається
+ * робочою, вимкнено лише рендер кнопки.
+ */
+const SHOW_SORT_TOGGLE = false
+
 /** Статистика гри для верхньої панелі. */
 interface PredictionsStatsData {
   /** Призовий фонд. */
@@ -52,11 +59,10 @@ export const PredictionsView: FC<PredictionsViewProps> = ({
 }) => {
   const { t } = useT()
 
-  // «Лише мої»: бекенд уже повертає лише мої тікети (mine=true), тож тут
-  // лишаємо і 'mine', і 'win' — моя ВИГРАШНА ставка має variant 'win'
-  // (win перекриває mine у toBet) і не повинна випадати з фільтра.
+  // «Лише мої»: поле mine незалежне від variant (win лишає лише корону),
+  // тож моя виграшна ставка (variant='win', mine=true) не випадає з фільтра.
   const visibleBets = useMemo(
-    () => (mineOnly ? bets.filter((bet) => bet.variant === 'mine' || bet.variant === 'win') : bets),
+    () => (mineOnly ? bets.filter((bet) => bet.mine) : bets),
     [bets, mineOnly],
   )
 
@@ -69,16 +75,23 @@ export const PredictionsView: FC<PredictionsViewProps> = ({
           <h2 className="font-body text-[15px] font-bold text-text-primary">
             {t('predictions.ticketsHeader')}
           </h2>
-          {/* Перемикач сортування: за місцем (близькість до ціни) ↔ за датою. */}
-          <button
-            type="button"
-            aria-label={sortMode === 'place' ? t('predictions.sortByDateAria') : t('predictions.sortByPlaceAria')}
-            aria-pressed={sortMode === 'date'}
-            onClick={onToggleSort}
-            className="flex h-7 w-7 items-center justify-center transition-opacity active:opacity-60"
-          >
-            <img src={sortIcon} alt="" aria-hidden="true" className="h-4 w-4" />
-          </button>
+          {/*
+           * Перемикач сортування (за місцем ↔ за датою) — прихований поки що
+           * за макетом (Figma 1360:11439 не містить іконки сортування біля
+           * заголовка «Tickets»). Логіка сортування (sortMode/onToggleSort)
+           * лишається робочою на рівні GamePage — прибрано лише UI-контрол.
+           */}
+          {SHOW_SORT_TOGGLE ? (
+            <button
+              type="button"
+              aria-label={sortMode === 'place' ? t('predictions.sortByDateAria') : t('predictions.sortByPlaceAria')}
+              aria-pressed={sortMode === 'date'}
+              onClick={onToggleSort}
+              className="flex h-7 w-7 items-center justify-center transition-opacity active:opacity-60"
+            >
+              <img src={sortIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+            </button>
+          ) : null}
         </div>
 
         <div className="mt-3 h-px w-full bg-[rgba(255,255,255,0.25)]" aria-hidden="true" />
@@ -93,6 +106,7 @@ export const PredictionsView: FC<PredictionsViewProps> = ({
                 user={bet.user}
                 price={bet.price}
                 variant={bet.variant}
+                mine={bet.mine}
               />
             </li>
           ))}
