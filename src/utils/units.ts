@@ -21,3 +21,13 @@ export function centsToUsd(cents: number): string {
     maximumFractionDigits: 2,
   });
 }
+
+/**
+ * Форматує суму з суфіксом валюти (напр. "0.1 GRAM").
+ * Параметризовано, щоб не дублювати formatter для екранів, де сума лишається у TON.
+ * @param value — вже відформатоване число-рядок (напр. з nanoToTon)
+ * @param unit — суфікс валюти; за замовчуванням GRAM (картка гри в списку)
+ */
+export function formatAmount(value: string, unit: string = 'GRAM'): string {
+  return `${value} ${unit}`;
+}
