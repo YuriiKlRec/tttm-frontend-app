@@ -13,7 +13,8 @@ export const TopBar: FC = () => {
   const { t } = useT()
 
   return (
-    <header className="flex items-center justify-between border-b border-border-solid bg-background px-5 py-4 pt-[calc(var(--app-safe-top)+1rem)]">
+    // relative — фон #212121 малюється поверх PixelGrid (інакше крізь шапку видно сітку)
+    <header className="relative flex items-center justify-between border-b border-border-solid bg-background px-5 py-4 pt-[calc(var(--app-safe-top)+1rem)]">
       <Link
         to="/profile"
         className="flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"

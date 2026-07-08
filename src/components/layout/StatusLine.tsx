@@ -10,7 +10,8 @@ export const StatusLine: FC = () => {
   const { t } = useT()
 
   return (
-    <div className="mx-3 mt-3 flex items-center justify-between border border-dashed border-border-dashed bg-background px-4 py-1.5">
+    // relative — фон #212121 малюється поверх PixelGrid (інакше крізь плашку видно сітку)
+    <div className="relative mx-3 mt-3 flex items-center justify-between border border-dashed border-border-dashed bg-background px-4 py-1.5">
       <div className="flex items-center gap-2">
         {/* Колір індикатора: зелений при активному зʼєднанні, сірий при очікуванні.
             Пульсація (opacity fade in/out) — animate-status-pulse, вимикається при prefers-reduced-motion */}
