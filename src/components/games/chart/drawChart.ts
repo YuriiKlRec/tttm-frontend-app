@@ -2,6 +2,7 @@ import {
   AXIS_WIDTH,
   getPlotRect,
   priceToY,
+  resolveControllerPosition,
   type ChartDrawState,
   type PriceRange,
 } from './chartTypes'
@@ -94,6 +95,28 @@ const drawPriceAxis = (
   void width
 }
 
+/**
+ * Малює верхню й нижню межові лінії зони графіка (A4) — той самий стиль,
+ * що вертикальний розділювач правої осі (COLORS.bound), для візуального
+ * відділення тіла графіка від хедера (мітки часу) і легенди знизу.
+ */
+const drawPlotBounds = (
+  ctx: CanvasRenderingContext2D,
+  left: number,
+  right: number,
+  top: number,
+  bottom: number,
+): void => {
+  ctx.strokeStyle = COLORS.bound
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(left, Math.round(top) + 0.5)
+  ctx.lineTo(right, Math.round(top) + 0.5)
+  ctx.moveTo(left, Math.round(bottom) + 0.5)
+  ctx.lineTo(right, Math.round(bottom) + 0.5)
+  ctx.stroke()
+}
+
 /** Тип функції мапінгу реального часу (epoch ms) у X-піксель. */
 type TimeToX = (t: number) => number
 
@@ -110,7 +133,7 @@ const drawTimeLabels = (
 
   // Зліва — перша видима точка часу (ліва межа вікна).
   ctx.textAlign = 'left'
-  ctx.fillText(`< ${formatDateTime(leftTime, state.locale)}`, 4, 4)
+  ctx.fillText(`← ${formatDateTime(leftTime, state.locale)}`, 4, 4)
 
   // Мітка на межі betClose.
   ctx.textAlign = 'center'
@@ -153,6 +176,27 @@ const drawLine = (
     ctx.lineTo(timeToX(now), priceToY(state.currentPrice, priceRange, top, bottom))
   }
   ctx.stroke()
+}
+
+/**
+ * Кліпає малювання кривої/свічок межами тіла графіка (A6): без кліпу крива
+ * могла виїжджати по вертикалі на сусідні блоки (хедер міток часу зверху,
+ * легенду знизу) при екстремальних значеннях поза видимим priceRange.
+ */
+const withPlotClip = (
+  ctx: CanvasRenderingContext2D,
+  left: number,
+  right: number,
+  top: number,
+  bottom: number,
+  draw: () => void,
+): void => {
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(left, top, right - left, bottom - top)
+  ctx.clip()
+  draw()
+  ctx.restore()
 }
 
 /** Малює свічки (candles mode) за реальним часом свічок. */
@@ -354,7 +398,10 @@ const drawBetMarkers = (
   }
 }
 
-/** Малює білий Y-контролер (лінія + glow) — бокс значення малює DOM-оверлей. */
+/** Малює білий Y-контролер (лінія + glow) — бокс значення малює DOM-оверлей.
+ * Не показуємо, доки контролер не поставлений тапом (A1). Якщо ціна поза
+ * видимим діапазоном — лінія прилипає до верху/низу зони (A8) з невеликим
+ * трикутником-індикатором напрямку. */
 const drawController = (
   ctx: CanvasRenderingContext2D,
   state: ChartDrawState,
@@ -363,10 +410,10 @@ const drawController = (
   top: number,
   bottom: number,
 ): void => {
-  const y = priceToY(state.selectedPrice, state.priceRange, top, bottom)
-  if (y < top - 2 || y > bottom + 2) {
+  if (!state.controllerVisible) {
     return
   }
+  const { y, edge } = resolveControllerPosition(state.selectedPrice, state.priceRange, top, bottom)
   // Колір за станом: своя ставка — оранжевий, чужа — червоний, інакше білий.
   const color =
     state.controllerState === 'mine'
@@ -384,6 +431,23 @@ const drawController = (
   ctx.moveTo(left, Math.round(y) + 0.5)
   ctx.lineTo(state.width, Math.round(y) + 0.5)
   ctx.stroke()
+
+  // Прилипання до краю (A8): трикутник-індикатор напрямку біля лівого краю лінії
+  // (▲ ціна вища за видимий діапазон, ▼ нижча).
+  if (edge !== 'in') {
+    const up = edge === 'above'
+    const cx = left + 10
+    const cy = up ? y - 7 : y + 7
+    const tipY = up ? cy - 5 : cy + 5
+    const baseY = up ? cy + 5 : cy - 5
+    ctx.fillStyle = color
+    ctx.beginPath()
+    ctx.moveTo(cx - 5, baseY)
+    ctx.lineTo(cx + 5, baseY)
+    ctx.lineTo(cx, tipY)
+    ctx.closePath()
+    ctx.fill()
+  }
   ctx.restore()
   void right
 }
@@ -426,11 +490,19 @@ export const drawChart = (ctx: CanvasRenderingContext2D, state: ChartDrawState):
   drawPriceAxis(ctx, state.priceRange, top, bottom, right, width)
   drawGameColumns(ctx, betOpenX, betCloseX, endX, nowX, right, top, bottom)
 
-  if (state.mode === 'line') {
-    drawLine(ctx, state, timeToX, leftTime, now, top, bottom)
-  } else {
-    drawCandles(ctx, state, timeToX, leftTime, now, interval, top, bottom)
-  }
+  // Кліп кривої/свічок межами тіла графіка (A6) — за екстремального зуму/пану
+  // ціна не мусить «виїжджати» на сусідні блоки (мітки часу зверху, легенду знизу).
+  withPlotClip(ctx, left, right, top, bottom, () => {
+    if (state.mode === 'line') {
+      drawLine(ctx, state, timeToX, leftTime, now, top, bottom)
+    } else {
+      drawCandles(ctx, state, timeToX, leftTime, now, interval, top, bottom)
+    }
+  })
+
+  // Верхня і нижня межові лінії зони графіка (A4) — малюємо ПІСЛЯ кривої,
+  // щоб чітко відділяли зону навіть якщо крива торкається краю.
+  drawPlotBounds(ctx, left, right, top, bottom)
 
   drawBetMarkers(ctx, state, right, top, bottom)
   drawCurrentPrice(ctx, state, left, right, top, bottom)

@@ -2,7 +2,7 @@ import type { CSSProperties, FC } from 'react'
 import { HintIcon } from './HintIcon'
 import {
   getPlotRect,
-  priceToY,
+  resolveControllerPosition,
   type ChartMode,
   type ControllerState,
   type PriceRange,
@@ -31,6 +31,8 @@ interface ChartOverlaysProps {
   size: { width: number; height: number }
   /** Інтерактивний режим: false для завершеної гри (без Choose і боксу контролера). */
   interactive: boolean
+  /** Контролер вже поставлений тапом (A1) — доки false, бокс значення не показуємо. */
+  controllerVisible: boolean
 }
 
 /** Класи боксу значення контролера за станом (фон + текст). */
@@ -60,10 +62,13 @@ export const ChartOverlays: FC<ChartOverlaysProps> = ({
   priceRange,
   size,
   interactive,
+  controllerVisible,
 }) => {
   const hints = interactive ? [HINT_CHOOSE, ...HINTS_BASE] : HINTS_BASE
   const { top, bottom } = getPlotRect(size.width, size.height)
-  const controllerY = priceToY(selectedPrice, priceRange, top, bottom)
+  // Прилипання до краю (A8): якщо ціна поза видимим діапазоном — бокс
+  // клампиться до top/bottom з індикатором напрямку (▲/▼).
+  const { y: controllerY, edge } = resolveControllerPosition(selectedPrice, priceRange, top, bottom)
   // Бокс значення контролера — поверх осі цін (праворуч), як цінник.
   const boxStyle: CSSProperties = {
     top: controllerY,
@@ -94,8 +99,8 @@ export const ChartOverlays: FC<ChartOverlaysProps> = ({
         <img src={candlestickIcon} alt="" aria-hidden="true" className="h-6 w-6" />
       </button>
 
-      {/* Легенда жестів */}
-      <div className="pointer-events-none absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-8">
+      {/* Легенда жестів — зменшений відступ зверху (A3): ближче до тіла графіка */}
+      <div className="pointer-events-none absolute bottom-8 left-1/2 flex -translate-x-1/2 items-center gap-8">
         {hints.map((hint) => (
           <span key={hint.label} className="flex items-center gap-1.5">
             <HintIcon overlay={hint.overlay} />
@@ -106,12 +111,15 @@ export const ChartOverlays: FC<ChartOverlaysProps> = ({
         ))}
       </div>
 
-      {/* Бокс значення Y-контролера (лише в інтерактивному режимі) */}
-      {interactive && controllerY >= top && controllerY <= bottom && (
+      {/* Бокс значення Y-контролера: лише в інтерактивному режимі і лише після
+          першого тапу (A1 — прихований, доки контролер не поставлений).
+          Поза видимим діапазоном — прилипає до краю з індикатором напрямку (A8). */}
+      {interactive && controllerVisible && (
         <span
           className={`pointer-events-none absolute px-1.5 py-0.5 font-mono text-[11px] font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] ${BOX_CLASS[controllerState]}`}
           style={boxStyle}
         >
+          {edge === 'above' ? '▲ ' : edge === 'below' ? '▼ ' : ''}
           ${selectedPrice.toFixed(2)}
         </span>
       )}

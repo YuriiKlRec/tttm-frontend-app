@@ -75,6 +75,8 @@ export interface ChartDrawState {
   selectedPrice: number
   /** Стан контролера (default/mine/others) — для кольору лінії. */
   controllerState: ControllerState
+  /** Контролер вже поставлений тапом (A1) — доки false, лінію/бокс не малюємо. */
+  controllerVisible: boolean
   /** Завантажені іконки (готові до малювання) або null. */
   icons: ChartIcons | null
   /** Інтерактивний режим: false для завершеної гри (без Y-контролера). */
@@ -187,6 +189,38 @@ export const resolveControllerState = (
     }
   }
   return others
+}
+
+/** Чи контролер прилип до краю зони графіка (ціна поза видимим діапазоном). */
+export type ControllerEdge = 'in' | 'above' | 'below'
+
+/** Y-позиція контролера з прилипанням (A8): поза діапазоном — кламп до краю + напрямок. */
+export interface ControllerPosition {
+  /** Y-піксель (кламплений у межах [top, bottom]). */
+  y: number
+  /** 'in' — у видимому діапазоні; 'above'/'below' — прилип до верху/низу. */
+  edge: ControllerEdge
+}
+
+/**
+ * Обчислює позицію Y-контролера з прилипанням до краю: якщо ціна вища за
+ * верхню межу видимого діапазону — контролер малюється прилиплим до top з
+ * індикатором 'above'; нижча за нижню межу — прилип до bottom, 'below'.
+ */
+export const resolveControllerPosition = (
+  price: number,
+  range: PriceRange,
+  top: number,
+  bottom: number,
+): ControllerPosition => {
+  const y = priceToY(price, range, top, bottom)
+  if (y < top) {
+    return { y: top, edge: 'above' }
+  }
+  if (y > bottom) {
+    return { y: bottom, edge: 'below' }
+  }
+  return { y, edge: 'in' }
 }
 
 /** Найближча ціна СВОЄЇ ставки в межах магніту (px) або null. */

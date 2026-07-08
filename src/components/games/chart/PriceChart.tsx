@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FC } from 'react'
-import type { Candle, Timeframe } from '../../../services/binance'
+import { TIMEFRAME_MS, type Candle, type Timeframe } from '../../../services/binance'
 import {
   computeInitialRange,
   getPlotRect,
@@ -12,7 +12,7 @@ import {
 import { drawChart } from './drawChart'
 import { ChartOverlays } from './ChartOverlays'
 import { useChartIcons } from './useChartIcons'
-import { useChartGestures } from './useChartGestures'
+import { useChartGestures, MIN_VISIBLE } from './useChartGestures'
 import { useLocale } from '../../../i18n/locale'
 
 /** Пропси інтерактивного графіка ціни. */
@@ -88,17 +88,61 @@ export const PriceChart: FC<PriceChartProps> = ({
   const [mode, setMode] = useState<ChartMode>('line')
   const [priceRange, setPriceRange] = useState<PriceRange>({ min: 0, max: 1 })
   const [selectedPrice, setSelectedPrice] = useState<number>(0)
+  // A1: контролер прихований, доки користувач не поставив його тапом
+  // (або доки не прийшла реальна зовнішня ціна — напр. Edit заброньованої ставки).
+  const [controllerVisible, setControllerVisible] = useState(
+    externalPrice !== undefined && Number.isFinite(externalPrice),
+  )
   // Кількість видимих свічок (горизонтальний зум часу).
   const [visibleCount, setVisibleCount] = useState<number>(0)
+  // A7: за перемикання таймфрейму (свайп-зум) зберігає видиму ЧАСОВУ тривалість
+  // (мс) вікна, щоб після приходу нових даних відновити еквівалентний visibleCount
+  // замість дефолтного — інакше вікно різко «стрибає» (1m→5m ×5 свічок замість span).
+  const pendingSpanMs = useRef<number | null>(null)
 
   // Нова історія (зміна таймфрейму/перезавантаження) — дефолтне вікно зуму,
-  // щоб вікно ставок (хвилини) було видно поряд з історією.
+  // щоб вікно ставок (хвилини) було видно поряд з історією. Якщо це перехід
+  // після свайп-перемикання таймфрейму (pendingSpanMs) — відновлюємо еквівалентний
+  // видимий діапазон замість скидання, щоб не було стрибка (A7).
   useEffect(() => {
+    if (candles.length === 0) {
+      return
+    }
+    if (pendingSpanMs.current !== null) {
+      const interval = candles.length >= 2 ? candles[1].time - candles[0].time : TIMEFRAME_MS[timeframe]
+      const preserved = Math.round(pendingSpanMs.current / (interval || 1))
+      const next = Math.max(MIN_VISIBLE, Math.min(candles.length, preserved))
+      if (import.meta.env.DEV) {
+        // Покадровий лог позиції для верифікації A7 (безшовне перемикання таймфрейму).
+        console.debug('[chart:A7] viewport restored after timeframe switch', {
+          timeframe,
+          preservedSpanMs: pendingSpanMs.current,
+          intervalMs: interval,
+          visibleCount: next,
+        })
+      }
+      setVisibleCount(next)
+      pendingSpanMs.current = null
+      return
+    }
     setVisibleCount(Math.min(candles.length, DEFAULT_VISIBLE))
+    // Залежність навмисно лише [candles] (без timeframe): PriceChart — нащадок
+    // GamePage, тож цей ефект комітиться РАНІШЕ за ефект useChartData, який
+    // власне міняє candles. Якби ефект залежав і від timeframe, він спрацював
+    // би одразу на зміну timeframe (ще зі СТАРИМИ candles/interval минулого
+    // таймфрейму) і передчасно «спожив» би pendingSpanMs неправильним
+    // інтервалом — вікно відновилося б один кадр із хибним числом, а тоді
+    // мовчки перескочило на DEFAULT_VISIBLE, коли реальні дані нарешті
+    // прийдуть (видимий «стрибок», якого A7 і мав позбутися). Читаємо
+    // timeframe із замикання лише як фолбек-інтервал для <2 свічок.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [candles])
-  // Чи користувач уже рухав діапазон/контролер — щоб не перебивати ручні дії.
+  // Чи користувач уже рухав діапазон — щоб не перебивати ручний зум/пан.
   const touchedRange = useRef(false)
-  const touchedController = useRef(false)
+  // Чи контролер уже мав реальне значення (тап або зовнішня ціна) — окремо від
+  // controllerVisible, бо controllerVisible — це React state (для рендеру),
+  // а тут потрібне синхронне читання в тому ж ефекті нижче.
+  const touchedController = useRef(controllerVisible)
 
   // Перерахунок діапазону при новій історії (поки користувач не зумив вручну).
   useEffect(() => {
@@ -108,7 +152,8 @@ export const PriceChart: FC<PriceChartProps> = ({
     const range = computeInitialRange(candles, currentPrice)
     setPriceRange(range)
     if (!touchedController.current) {
-      // Контролер спершу внизу.
+      // Внутрішній базовий орієнтир для контролера — НЕ показується (controllerVisible=false),
+      // це лише стартова точка на випадок майбутнього drag одразу після першого тапу.
       setSelectedPrice(Number((range.min + (range.max - range.min) * 0.1).toFixed(2)))
     }
   }, [candles, currentPrice])
@@ -131,12 +176,15 @@ export const PriceChart: FC<PriceChartProps> = ({
     }
     setSelectedPrice(externalPrice)
     touchedController.current = true
+    setControllerVisible(true)
     // Реагуємо лише на externalPrice; selectedPrice читаємо для звірки точності.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalPrice])
 
+  /** Викликається тапом/драгом контролера (A1: перший тап ставить і показує його). */
   const handlePriceSelect = (price: number): void => {
     touchedController.current = true
+    setControllerVisible(true)
     setSelectedPrice(price)
     onPriceSelect(price)
   }
@@ -146,6 +194,27 @@ export const PriceChart: FC<PriceChartProps> = ({
     setPriceRange(next)
   }
 
+  /** Обгортка над onTimeframeChange (A7): фіксує поточну видиму тривалість
+   * ПЕРЕД перемиканням, щоб ефект вище відновив еквівалентний visibleCount
+   * і швидка зміна гранулярності виглядала безшовно, без стрибка вікна. */
+  const handleTimeframeChange = (tf: Timeframe): void => {
+    if (tf !== timeframe) {
+      const interval = candles.length >= 2 ? candles[1].time - candles[0].time : TIMEFRAME_MS[timeframe]
+      const count = visibleCount || candles.length || 1
+      pendingSpanMs.current = count * interval
+      if (import.meta.env.DEV) {
+        console.debug('[chart:A7] timeframe switch requested', {
+          from: timeframe,
+          to: tf,
+          visibleCountBefore: count,
+          intervalMsBefore: interval,
+          preservedSpanMs: pendingSpanMs.current,
+        })
+      }
+    }
+    onTimeframeChange(tf)
+  }
+
   // Стан контролера (default/mine/others) за близькістю до ставок.
   const { top: plotTop, bottom: plotBottom } = getPlotRect(size.width, size.height)
   const controllerState = resolveControllerState(selectedPrice, bets, priceRange, plotTop, plotBottom)
@@ -153,7 +222,7 @@ export const PriceChart: FC<PriceChartProps> = ({
   useChartGestures({
     ref: canvasRef,
     timeframe,
-    onTimeframeChange,
+    onTimeframeChange: handleTimeframeChange,
     priceRange,
     setPriceRange: handleSetRange,
     selectedPrice,
@@ -164,6 +233,7 @@ export const PriceChart: FC<PriceChartProps> = ({
     bets,
     size,
     interactive,
+    controllerVisible,
   })
 
   // Малювання у DPR-масштабованому контексті при зміні стану/розміру.
@@ -192,16 +262,20 @@ export const PriceChart: FC<PriceChartProps> = ({
       bets,
       selectedPrice,
       controllerState,
+      controllerVisible,
       icons,
       interactive,
       locale,
     })
-  }, [size, candles, visibleCount, currentPrice, priceRange, mode, game, bets, selectedPrice, controllerState, icons, interactive, locale])
+  }, [size, candles, visibleCount, currentPrice, priceRange, mode, game, bets, selectedPrice, controllerState, controllerVisible, icons, interactive, locale])
 
   const loading = candles.length === 0
 
   return (
-    <div ref={containerRef} className="relative h-full w-full touch-none overflow-hidden bg-background">
+    <div
+      ref={containerRef}
+      className="relative h-full min-h-[300px] w-full touch-none overflow-hidden bg-background"
+    >
       <canvas ref={canvasRef} className="block h-full w-full" />
       {loading && (
         <p className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-[14px] text-text-secondary">
@@ -218,6 +292,7 @@ export const PriceChart: FC<PriceChartProps> = ({
           priceRange={priceRange}
           size={size}
           interactive={interactive}
+          controllerVisible={controllerVisible}
         />
       )}
     </div>

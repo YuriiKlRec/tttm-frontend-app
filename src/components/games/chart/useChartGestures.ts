@@ -38,13 +38,15 @@ interface UseChartGesturesArgs {
   size: { width: number; height: number }
   /** Інтерактивний режим: false вимикає перетягування Y-контролера (zoom/scroll лишаються). */
   interactive: boolean
+  /** Контролер вже поставлений тапом (A1): доки false — перший тап у тілі графіка ставить його. */
+  controllerVisible: boolean
 }
 
 /** Поріг (px) для визначення домінантної осі та активації свайпу. */
 const AXIS_DOMINANCE = 8
 
 /** Мінімум видимих свічок при зумі. */
-const MIN_VISIBLE = 12
+export const MIN_VISIBLE = 12
 
 /** Скільки свічок змінює 1px горизонтального драгу. */
 const XZOOM_PER_PX = 0.7
@@ -80,6 +82,7 @@ export const useChartGestures = ({
   bets,
   size,
   interactive,
+  controllerVisible,
 }: UseChartGesturesArgs): void => {
   // Свіжі значення в ref, щоб слухачі не перевішувались щокадру.
   const state = useRef({
@@ -91,6 +94,7 @@ export const useChartGestures = ({
     bets,
     size,
     interactive,
+    controllerVisible,
     onTimeframeChange,
     setPriceRange,
     setSelectedPrice,
@@ -106,6 +110,7 @@ export const useChartGestures = ({
       bets,
       size,
       interactive,
+      controllerVisible,
       onTimeframeChange,
       setPriceRange,
       setSelectedPrice,
@@ -141,9 +146,9 @@ export const useChartGestures = ({
       return
     }
 
-    /** Чи близько до лінії контролера за поточної ціни (лише в інтерактивному режимі). */
+    /** Чи близько до лінії контролера (лише в інтерактивному режимі, і лише коли він уже поставлений — A1). */
     const nearController = (y: number): boolean => {
-      if (!state.current.interactive) {
+      if (!state.current.interactive || !state.current.controllerVisible) {
         return false
       }
       const { width, height } = state.current.size
@@ -163,6 +168,15 @@ export const useChartGestures = ({
       state.current.setSelectedPrice(Number(price.toFixed(2)))
     }
 
+    /** Кламп нижньої межі діапазону до 0 (A5): зсуває вікно вгору, зберігаючи span
+     * (розмір зуму), замість того щоб просто обрізати його знизу. */
+    const clampRangeNonNegative = (r: PriceRange): PriceRange => {
+      if (r.min >= 0) {
+        return r
+      }
+      return { min: 0, max: r.max - r.min }
+    }
+
     /** Зум по ціні навколо опорного Y (для wheel/pinch). */
     const zoomPrice = (factor: number, centerY: number): void => {
       const { width, height } = state.current.size
@@ -172,7 +186,7 @@ export const useChartGestures = ({
       const newMin = center - (center - range.min) * factor
       const newMax = center + (range.max - center) * factor
       if (newMax - newMin > 0.01) {
-        state.current.setPriceRange({ min: newMin, max: newMax })
+        state.current.setPriceRange(clampRangeNonNegative({ min: newMin, max: newMax }))
       }
     }
 
@@ -183,7 +197,9 @@ export const useChartGestures = ({
       const range = state.current.priceRange
       const span = range.max - range.min
       const delta = (dy / (bottom - top || 1)) * span
-      state.current.setPriceRange({ min: range.min + delta, max: range.max + delta })
+      state.current.setPriceRange(
+        clampRangeNonNegative({ min: range.min + delta, max: range.max + delta }),
+      )
     }
 
     /** Горизонтальний зум часу: кламп кількості видимих свічок. */
@@ -212,6 +228,11 @@ export const useChartGestures = ({
 
       // Пріоритет контролеру: якщо натиск біля його лінії (за Y) — рухаємо лише його,
       // навіть коли це над віссю цін (бокс значення лежить поверх цін).
+      // ВАЖЛИВО (A1): доки контролер не поставлений, старт залишається 'undecided' —
+      // так само як завжди, щоб горизонтальний свайп-зум (гранулярність/таймфрейм)
+      // не перехоплювався на самому початку жесту. Власне ПОСТАНОВКА тапом
+      // (без свайпу) обробляється в onPointerUp нижче; вертикальний драг і без того
+      // резолвиться у 'controller' через гілку 'undecided' в onPointerMove.
       gesture.current = {
         kind: nearController(e.offsetY) ? 'controller' : onAxis ? 'axisPan' : 'undecided',
         startX: e.offsetX,
@@ -303,6 +324,15 @@ export const useChartGestures = ({
     }
 
     const onPointerUp = (e: PointerEvent): void => {
+      const g = gesture.current
+      // A1: чистий тап (без свайпу — жест лишився 'undecided' до відпускання, тобто
+      // рух не перевищив AXIS_DOMINANCE в жодному напрямку) у тілі графіка, доки
+      // контролер не поставлений, — ставить його саме в цю точку.
+      const isPlacingTap =
+        g.kind === 'undecided' &&
+        !g.onAxis &&
+        state.current.interactive &&
+        !state.current.controllerVisible
       pointers.current.delete(e.pointerId)
       if (pointers.current.size < 2) {
         gesture.current.pinchDist = 0
@@ -312,6 +342,9 @@ export const useChartGestures = ({
       }
       if (el.hasPointerCapture(e.pointerId)) {
         el.releasePointerCapture(e.pointerId)
+      }
+      if (isPlacingTap) {
+        moveController(e.offsetY)
       }
     }
 
