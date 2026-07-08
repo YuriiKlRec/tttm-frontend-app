@@ -3,6 +3,7 @@
 /* Шрифти (font-display: swap у @fontsource за замовчуванням) */
 /* body — Geist */
 @import "@fontsource/geist-sans/400.css";
+@import "@fontsource/geist-sans/600.css";
 @import "@fontsource/geist-sans/700.css";
 /* mono — Anonymous Pro Bold */
 @import "@fontsource/anonymous-pro/700.css";
