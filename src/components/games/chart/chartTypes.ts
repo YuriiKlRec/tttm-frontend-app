@@ -1,4 +1,4 @@
-import type { Candle } from '../../../services/binance'
+import type { Candle, Timeframe } from '../../../services/binance'
 
 /** Геймовий контекст для відображення колонок та маркерів на таймлайні. */
 export interface ChartGame {
@@ -20,6 +20,42 @@ export interface ChartBet {
   mine: boolean
   /** Заброньована, але ще не оплачена ставка — маркер на білому фоні. */
   booked?: boolean
+}
+
+/** Одна година в мілісекундах — база для порогів вибору таймфрейму нижче. */
+const HOUR_MS = 60 * 60_000
+
+/**
+ * Пороги тривалості гри (мс) → фіксований таймфрейм (round15, п.1 брифу):
+ * ОДИН таймфрейм на всю гру, без перемикання гранулярності при зумі/свайпі.
+ * Обґрунтування порогів (candles = (endTime−startTime) / interval):
+ *  ≤2год  → 1m  — до 120 свічок на вікно гри; найдетальніша гранулярність
+ *                  Binance, комфортна кількість для короткої гри.
+ *  ≤8год  → 5m  — 24-96 свічок; вище 2год 1m дав би 121-480 свічок (забагато
+ *                  для комфортного огляду вікна гри одразу).
+ *  ≤48год → 30m — 16-96 свічок; проміжна гранулярність для ігор на добу-дві.
+ *  більше → 1h  — найгрубіша; тижнева гра ≈168 свічок, місячна ≈720 — все ще
+ *                  далеко в межах ліміту Binance REST klines (1000/запит),
+ *                  тож перший великий фетч (до 1000 свічок) покриває вікно
+ *                  гри повністю навіть для довгих ігор.
+ */
+const TIMEFRAME_THRESHOLDS: readonly { maxDurationMs: number; timeframe: Timeframe }[] = [
+  { maxDurationMs: 2 * HOUR_MS, timeframe: '1m' },
+  { maxDurationMs: 8 * HOUR_MS, timeframe: '5m' },
+  { maxDurationMs: 48 * HOUR_MS, timeframe: '30m' },
+]
+
+/** Найгрубіший таймфрейм — для ігор довших за останній поріг вище. */
+const LONGEST_TIMEFRAME: Timeframe = '1h'
+
+/**
+ * Обирає ОДИН фіксований таймфрейм для гри за її тривалістю (round15):
+ * жодного перемикання гранулярності під час зуму/свайпу — клас ривків з
+ * попередніх раундів (A7/13A/14B) зникає за побудовою.
+ */
+export const selectTimeframe = (durationMs: number): Timeframe => {
+  const found = TIMEFRAME_THRESHOLDS.find((t) => durationMs <= t.maxDurationMs)
+  return found ? found.timeframe : LONGEST_TIMEFRAME
 }
 
 /** Режим відображення графіка. */
@@ -83,9 +119,6 @@ export interface ChartDrawState {
   interactive: boolean
   /** BCP-47 локаль для підписів дат на осі (напр. «uk-UA»). */
   locale: string
-  /** Поточний таймфрейм — лише для DEV-логу піксельного зсуву кривої при переході
-   * гранулярності (14B), на малювання не впливає. */
-  timeframe?: string
 }
 
 /** Передзавантажені растрові іконки для canvas. */

@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { TIMEFRAMES, type Timeframe } from '../../../services/binance'
 import {
   AXIS_WIDTH,
   getPlotRect,
@@ -14,10 +13,6 @@ import {
 interface UseChartGesturesArgs {
   /** Елемент-ціль pointer-подій (canvas) — щоб кліки оверлеїв-кнопок не крались. */
   ref: React.RefObject<HTMLElement | null>
-  /** Поточний таймфрейм. */
-  timeframe: Timeframe
-  /** Колбек зміни таймфрейму (горизонтальний свайп). */
-  onTimeframeChange: (tf: Timeframe) => void
   /** Поточний діапазон цін (для зуму/пану по осі). */
   priceRange: PriceRange
   /** Оновлення діапазону цін. */
@@ -46,32 +41,26 @@ interface UseChartGesturesArgs {
 const AXIS_DOMINANCE = 8
 
 /** Мінімум видимих свічок при зумі. */
-export const MIN_VISIBLE = 12
+const MIN_VISIBLE = 12
 
 /** Скільки свічок змінює 1px горизонтального драгу. */
 const XZOOM_PER_PX = 0.7
 
-/** Зсуває таймфрейм: dir<0 (свайп вліво) — детальніший, dir>0 — довший. */
-const shiftTimeframe = (current: Timeframe, dir: number): Timeframe => {
-  const idx = TIMEFRAMES.indexOf(current)
-  const next = Math.min(TIMEFRAMES.length - 1, Math.max(0, idx + (dir > 0 ? 1 : -1)))
-  return TIMEFRAMES[next]
-}
-
-/** Тип активного жесту. */
-type GestureKind = 'none' | 'undecided' | 'timeframe' | 'controller' | 'axisPan'
+/** Тип активного жесту. `xzoom` — горизонтальний драг, що змінює кількість
+ * видимих свічок (зум часу) в межах фіксованого таймфрейму гри (round15) —
+ * ніякого перемикання гранулярності, лише масштаб. */
+type GestureKind = 'none' | 'undecided' | 'xzoom' | 'controller' | 'axisPan'
 
 /**
  * Керування жестами графіка через pointer events (миша + тач):
- * 1. Горизонтальний драг по тілу → зміна таймфрейму.
+ * 1. Горизонтальний драг по тілу → горизонтальний зум часу (в межах
+ *    фіксованого таймфрейму гри — round15, без перемикання гранулярності).
  * 2. Вертикальний драг по тілу або по Y-контролеру → рух контролера.
  * 3. На правій осі цін: вертик. драг → пан по ціні, pinch / wheel → зум Y.
  * Конфлікти розводяться зоною старту (вісь vs тіло) та домінантною віссю.
  */
 export const useChartGestures = ({
   ref,
-  timeframe,
-  onTimeframeChange,
   priceRange,
   setPriceRange,
   selectedPrice,
@@ -86,7 +75,6 @@ export const useChartGestures = ({
 }: UseChartGesturesArgs): void => {
   // Свіжі значення в ref, щоб слухачі не перевішувались щокадру.
   const state = useRef({
-    timeframe,
     priceRange,
     selectedPrice,
     visibleCount,
@@ -95,14 +83,12 @@ export const useChartGestures = ({
     size,
     interactive,
     controllerVisible,
-    onTimeframeChange,
     setPriceRange,
     setSelectedPrice,
     setVisibleCount,
   })
   useEffect(() => {
     state.current = {
-      timeframe,
       priceRange,
       selectedPrice,
       visibleCount,
@@ -111,7 +97,6 @@ export const useChartGestures = ({
       size,
       interactive,
       controllerVisible,
-      onTimeframeChange,
       setPriceRange,
       setSelectedPrice,
       setVisibleCount,
@@ -127,7 +112,6 @@ export const useChartGestures = ({
     onAxis: boolean
     pinchDist: number
     pinchCenterY: number
-    tfFired: boolean
     startVisible: number
   }>({
     kind: 'none',
@@ -136,7 +120,6 @@ export const useChartGestures = ({
     onAxis: false,
     pinchDist: 0,
     pinchCenterY: 0,
-    tfFired: false,
     startVisible: 0,
   })
 
@@ -229,10 +212,10 @@ export const useChartGestures = ({
       // Пріоритет контролеру: якщо натиск біля його лінії (за Y) — рухаємо лише його,
       // навіть коли це над віссю цін (бокс значення лежить поверх цін).
       // ВАЖЛИВО (A1): доки контролер не поставлений, старт залишається 'undecided' —
-      // так само як завжди, щоб горизонтальний свайп-зум (гранулярність/таймфрейм)
-      // не перехоплювався на самому початку жесту. Власне ПОСТАНОВКА тапом
-      // (без свайпу) обробляється в onPointerUp нижче; вертикальний драг і без того
-      // резолвиться у 'controller' через гілку 'undecided' в onPointerMove.
+      // так само як завжди, щоб горизонтальний свайп-зум не перехоплювався на
+      // самому початку жесту. Власне ПОСТАНОВКА тапом (без свайпу) обробляється в
+      // onPointerUp нижче; вертикальний драг і без того резолвиться у 'controller'
+      // через гілку 'undecided' в onPointerMove.
       gesture.current = {
         kind: nearController(e.offsetY) ? 'controller' : onAxis ? 'axisPan' : 'undecided',
         startX: e.offsetX,
@@ -240,7 +223,6 @@ export const useChartGestures = ({
         onAxis,
         pinchDist: 0,
         pinchCenterY: e.offsetY,
-        tfFired: false,
         startVisible: state.current.visibleCount || state.current.candlesLength,
       }
       if (gesture.current.kind === 'controller') {
@@ -290,35 +272,22 @@ export const useChartGestures = ({
         if (Math.abs(dx) > AXIS_DOMINANCE || Math.abs(dy) > AXIS_DOMINANCE) {
           // Вертикальний драг рухає контролер лише в інтерактивному режимі.
           const vertical = state.current.interactive ? 'controller' : 'none'
-          g.kind = Math.abs(dx) > Math.abs(dy) ? 'timeframe' : vertical
+          g.kind = Math.abs(dx) > Math.abs(dy) ? 'xzoom' : vertical
         }
       }
 
       if (g.kind === 'controller') {
         moveController(e.offsetY)
         e.preventDefault()
-      } else if (g.kind === 'timeframe') {
-        // Горизонтальний зум часу: драг ліворуч — менше свічок (деталізація),
-        // праворуч — більше (ширший період). Напрямок свайпу інвертований (+dx).
+      } else if (g.kind === 'xzoom') {
+        // Горизонтальний зум часу (в межах фіксованого таймфрейму гри — round15):
+        // драг ліворуч — менше свічок (наближення), праворуч — більше (віддалення,
+        // за потреби доступна історія довантажується фоном — useChartData). Напрямок
+        // свайпу інвертований (+dx). Кламп до [MIN_VISIBLE, candlesLength] — в
+        // applyXZoom; наближення до candlesLength саме й тригерить фоновий префетч
+        // (сигнал зі стану visibleCount у PriceChart.tsx → useChartData).
         const target = g.startVisible + dx * XZOOM_PER_PX
         applyXZoom(target)
-        // На краях зуму — раз за жест перемикаємо granularity таймфрейму.
-        const max = state.current.candlesLength
-        if (!g.tfFired) {
-          if (target > max + 40) {
-            const next = shiftTimeframe(state.current.timeframe, 1)
-            if (next !== state.current.timeframe) {
-              g.tfFired = true
-              state.current.onTimeframeChange(next)
-            }
-          } else if (target < MIN_VISIBLE - 40) {
-            const next = shiftTimeframe(state.current.timeframe, -1)
-            if (next !== state.current.timeframe) {
-              g.tfFired = true
-              state.current.onTimeframeChange(next)
-            }
-          }
-        }
         e.preventDefault()
       }
     }

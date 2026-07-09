@@ -4,6 +4,7 @@ import {
   computeInitialRange,
   getPlotRect,
   resolveControllerState,
+  selectTimeframe,
   type ChartBet,
   type ChartGame,
   type ChartMode,
@@ -12,18 +13,22 @@ import {
 import { drawChart } from './drawChart'
 import { ChartOverlays } from './ChartOverlays'
 import { useChartIcons } from './useChartIcons'
-import { useChartGestures, MIN_VISIBLE } from './useChartGestures'
+import { useChartGestures } from './useChartGestures'
 import { useLocale } from '../../../i18n/locale'
+import { reportChartViewport } from '../../../hooks/useChartData'
 
 /** Пропси інтерактивного графіка ціни. */
 interface PriceChartProps {
-  /** Історія свічок для поточного таймфрейму. */
+  /** Історія свічок для поточного (фіксованого — round15) таймфрейму. */
   candles: Candle[]
   /** Жива ціна або null. */
   currentPrice: number | null
-  /** Поточний таймфрейм. */
+  /** Поточний таймфрейм, яким useChartData (у GamePage) завантажив candles. */
   timeframe: Timeframe
-  /** Колбек зміни таймфрейму (горизонтальний свайп). */
+  /** Колбек виправлення таймфрейму (round15): PriceChart сам обчислює ОДИН
+   * фіксований таймфрейм від тривалості гри (selectTimeframe) і викликає це
+   * рівно один раз, якщо він відрізняється від переданого `timeframe` —
+   * ніякого перемикання гранулярності при зумі/свайпі більше немає. */
   onTimeframeChange: (tf: Timeframe) => void
   /** Геймовий контекст для колонок/маркерів. */
   game: ChartGame
@@ -112,21 +117,6 @@ export const PriceChart: FC<PriceChartProps> = ({
   )
   // Кількість видимих свічок (горизонтальний зум часу).
   const [visibleCount, setVisibleCount] = useState<number>(0)
-  // A7: за перемикання таймфрейму (свайп-зум) зберігає видиму ЧАСОВУ тривалість
-  // (мс) вікна, щоб після приходу нових даних відновити еквівалентний visibleCount
-  // замість дефолтного — інакше вікно різко «стрибає» (1m→5m ×5 свічок замість span).
-  // 14B: стан (а не ref) — читається СИНХРОННО в блоці рендеру нижче (офіційний
-  // React-патерн «adjusting state when a prop changes», react.dev), а не в
-  // useEffect. Спроба з useEffect/useLayoutEffect емпірично НЕ рятує від ривка:
-  // ефект (навіть layout) виконується ПІСЛЯ того, як РЕАКТ уже закомітив кадр із
-  // новими candles, а конкурентні pointermove-задачі (окремі DOM-події жесту,
-  // useChartGestures) встигають примусово вставити СВІЙ commit+paint із своїм
-  // (ще не відновленим) visibleCount МІЖ цим комітом і запуском ефекту — виміряно
-  // покадровим логом (round14b-report.md): з useLayoutEffect зсув кривої лишався
-  // ~900-2300px, з синхронним блоком у рендері — впав до рівня звичайного шуму
-  // зуму. Синхронний блок рендеру не лишає такого вікна: він виконується в ТІЙ
-  // САМІЙ функції рендеру, що вперше отримує нові candles, до будь-якого коміту.
-  const [pendingSpanMs, setPendingSpanMs] = useState<number | null>(null)
   // Чи користувач уже рухав діапазон — щоб не перебивати ручний зум/пан.
   const [touchedRange, setTouchedRange] = useState(false)
   // Чи контролер уже мав реальне значення (тап або зовнішня ціна) — окремо від
@@ -134,48 +124,38 @@ export const PriceChart: FC<PriceChartProps> = ({
   // а тут потрібне синхронне читання нижче.
   const [touchedController, setTouchedController] = useState(controllerVisible)
 
-  // 14B: попередній `candles`, з яким уже узгоджено visibleCount/priceRange —
+  // Попередній `candles`, з яким уже узгоджено visibleCount/priceRange —
   // стан (не ref), щоб порівняння коректно працювало під StrictMode.
   const [syncedCandles, setSyncedCandles] = useState<Candle[]>(candles)
 
-  // Нова історія (зміна таймфрейму/перезавантаження): visibleCount І priceRange
-  // рахуємо СИНХРОННО в ТОМУ Ж рендері, що й новий `candles` (а не в useEffect,
-  // як було в 13A) — див. пояснення механізму вище. Покадровим логом
-  // (round14b-report.md) підтверджено: неузгоджений «стик» старого
-  // visibleCount/priceRange із НОВИМИ candles давав піксельний зсув кривої
-  // ~950-1050px (звичайний кадр зуму — 20-90px) — видимий «ривок» на переході
-  // таймфрейму.
   if (candles !== syncedCandles) {
+    // round15: доклеювання старшої історії (фоновий префетч useChartData при
+    // наближенні зуму до краю) дає НОВИЙ масив candles з ТИМ САМИМ хвостом —
+    // розпізнаємо це структурно (останній елемент не змінився) і НЕ чіпаємо
+    // visibleCount/priceRange: видиме ЧАСОВЕ вікно прив'язане до `now`, а не
+    // до індексу масиву, тож рендер не зрушиться (0px) — зростає лише запас
+    // candlesLength для майбутнього зуму. Це відрізняється від СПРАВЖНЬОЇ
+    // заміни датасету (перший фетч гри / одноразове виправлення таймфрейму —
+    // див. ефект нижче), коли треба порахувати дефолтні visibleCount/priceRange
+    // синхронно в ТОМУ Ж рендері, що й нові candles (а не в useEffect — інакше
+    // конкурентні pointermove-задачі жесту встигають вставити свій commit+paint
+    // із ще не узгодженим visibleCount між комітом і запуском ефекту).
+    const isSeamlessPrepend =
+      syncedCandles.length > 0 &&
+      candles.length > syncedCandles.length &&
+      candles[candles.length - 1] === syncedCandles[syncedCandles.length - 1]
+
     setSyncedCandles(candles)
-    if (candles.length > 0) {
+
+    if (!isSeamlessPrepend && candles.length > 0) {
       const interval = candles.length >= 2 ? candles[1].time - candles[0].time : TIMEFRAME_MS[timeframe]
-      let nextVisible: number
-      if (pendingSpanMs !== null) {
-        const preserved = Math.round(pendingSpanMs / (interval || 1))
-        nextVisible = Math.max(MIN_VISIBLE, Math.min(candles.length, preserved))
-        if (import.meta.env.DEV) {
-          // Покадровий лог позиції для верифікації A7 (безшовне перемикання таймфрейму).
-          console.debug('[chart:A7] viewport restored after timeframe switch', {
-            timeframe,
-            preservedSpanMs: pendingSpanMs,
-            intervalMs: interval,
-            visibleCount: nextVisible,
-          })
-        }
-        setPendingSpanMs(null)
-      } else {
-        nextVisible = Math.min(candles.length, DEFAULT_VISIBLE)
-      }
+      const nextVisible = Math.min(candles.length, DEFAULT_VISIBLE)
       setVisibleCount(nextVisible)
 
       // Діапазон цін — з ВИДИМОГО ЧАСОВОГО вікна (той самий розрахунок, що й
       // сама крива в drawChart.ts — sliceVisibleByTime), а не з усього
-      // завантаженого масиву (до 500 свічок): інакше на грубшій гранулярності
-      // (напр. 1h→4h) той самий масив довжини 500 покриває вже МІСЯЦІ історії
-      // замість годин — авто-діапазон ціни різко «роздувається» (виміряно:
-      // 61035–64971 → 55796–84854 саме на переході 1h→4h), крива стискається
-      // у вузьку смужку — ще одне (не race-based) джерело ривка на переході
-      // гранулярності.
+      // завантаженого масиву (до 1000 свічок): інакше авто-діапазон ціни
+      // рахувався б по місяцях історії замість вікна гри.
       if (!touchedRange) {
         const visibleSlice = sliceVisibleByTime(candles, nextVisible, interval)
         const range = computeInitialRange(visibleSlice, currentPrice)
@@ -249,27 +229,25 @@ export const PriceChart: FC<PriceChartProps> = ({
     setPriceRange(next)
   }
 
-  /** Обгортка над onTimeframeChange (A7): фіксує поточну видиму тривалість
-   * ПЕРЕД перемиканням, щоб блок рендеру вище відновив еквівалентний visibleCount
-   * і швидка зміна гранулярності виглядала безшовно, без стрибка вікна. */
-  const handleTimeframeChange = (tf: Timeframe): void => {
-    if (tf !== timeframe) {
-      const interval = candles.length >= 2 ? candles[1].time - candles[0].time : TIMEFRAME_MS[timeframe]
-      const count = visibleCount || candles.length || 1
-      const span = count * interval
-      setPendingSpanMs(span)
-      if (import.meta.env.DEV) {
-        console.debug('[chart:A7] timeframe switch requested', {
-          from: timeframe,
-          to: tf,
-          visibleCountBefore: count,
-          intervalMsBefore: interval,
-          preservedSpanMs: span,
-        })
-      }
+  // round15: ОДИН фіксований таймфрейм на всю гру, обраний від її тривалості —
+  // виправляє зовнішній `timeframe` (стартове значення в GamePage) рівно один
+  // раз, якщо він відрізняється від обчисленого. useChartData (де живе symbol)
+  // підхопить новий timeframe своїм ефектом на [symbol, timeframe] і перезавантажить
+  // candles — жодного подальшого перемикання гранулярності по ходу сесії.
+  useEffect(() => {
+    const fixed = selectTimeframe(game.endTime - game.startTime)
+    if (fixed !== timeframe) {
+      onTimeframeChange(fixed)
     }
-    onTimeframeChange(tf)
-  }
+  }, [game.startTime, game.endTime, timeframe, onTimeframeChange])
+
+  // round15: сигналізує useChartData про наближення видимого вікна до краю
+  // завантаженої історії (для фонового префетчу старшої сторінки). Прямого
+  // пропс-каналу немає — GamePage/GameContent, де живе useChartData, поза
+  // зоною файлів round15 — тож міст reportChartViewport (useChartData.ts).
+  useEffect(() => {
+    reportChartViewport(visibleCount || candles.length)
+  }, [visibleCount, candles.length])
 
   // Стан контролера (default/mine/others) за близькістю до ставок.
   const { top: plotTop, bottom: plotBottom } = getPlotRect(size.width, size.height)
@@ -277,8 +255,6 @@ export const PriceChart: FC<PriceChartProps> = ({
 
   useChartGestures({
     ref: canvasRef,
-    timeframe,
-    onTimeframeChange: handleTimeframeChange,
     priceRange,
     setPriceRange: handleSetRange,
     selectedPrice,
@@ -322,9 +298,8 @@ export const PriceChart: FC<PriceChartProps> = ({
       icons,
       interactive,
       locale,
-      timeframe,
     })
-  }, [size, candles, visibleCount, currentPrice, priceRange, mode, game, bets, selectedPrice, controllerState, controllerVisible, icons, interactive, locale, timeframe])
+  }, [size, candles, visibleCount, currentPrice, priceRange, mode, game, bets, selectedPrice, controllerState, controllerVisible, icons, interactive, locale])
 
   const loading = candles.length === 0
 

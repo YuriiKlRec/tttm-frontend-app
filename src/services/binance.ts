@@ -18,21 +18,21 @@ export interface Candle {
   close: number
 }
 
-/** Підтримувані таймфрейми (від детального до грубого) для свайп-зуму. */
-export const TIMEFRAMES = ['1m', '5m', '15m', '1h', '4h', '1d'] as const
+/** Таймфрейми, з яких обирається ОДИН фіксований на всю гру (round15) —
+ * від детального до грубого. Ніякого перемикання під час зуму/свайпу:
+ * вибір відбувається один раз від тривалості гри (chartTypes.selectTimeframe). */
+export const TIMEFRAMES = ['1m', '5m', '30m', '1h'] as const
 
 /** Тип одного таймфрейму. */
 export type Timeframe = (typeof TIMEFRAMES)[number]
 
-/** Тривалість одного таймфрейму в мілісекундах — для перерахунку видимого
- * вікна (кількість свічок) при перемиканні гранулярності без стрибка (A7). */
+/** Тривалість одного таймфрейму в мілісекундах — для розрахунку інтервалу
+ * між свічками, коли їх завантажено < 2. */
 export const TIMEFRAME_MS: Record<Timeframe, number> = {
   '1m': 60_000,
   '5m': 5 * 60_000,
-  '15m': 15 * 60_000,
+  '30m': 30 * 60_000,
   '1h': 60 * 60_000,
-  '4h': 4 * 60 * 60_000,
-  '1d': 24 * 60 * 60_000,
 }
 
 /** Базовий REST-ендпоінт Binance. */
@@ -49,14 +49,22 @@ type RawKline = [number, string, string, string, string, ...unknown[]]
  * @param symbol торгова пара, напр. "BTCUSDT"
  * @param interval інтервал Binance, напр. "15m"
  * @param limit кількість свічок (макс. 1000)
+ * @param endTime якщо задано — повертає `limit` свічок ДО цього моменту
+ *   (epoch ms, включно): використовується для фонового префетчу старшої
+ *   сторінки історії (round15) — `endTime = найстаріша_завантажена.time - 1`.
  * @throws Error при HTTP-помилці або некоректній відповіді
  */
 export const fetchKlines = async (
   symbol: string,
   interval: string,
   limit: number,
+  endTime?: number,
 ): Promise<Candle[]> => {
-  const url = `${REST_BASE}/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
+  const params = new URLSearchParams({ symbol, interval, limit: String(limit) })
+  if (endTime !== undefined) {
+    params.set('endTime', String(endTime))
+  }
+  const url = `${REST_BASE}/klines?${params.toString()}`
 
   const response = await fetch(url)
   if (!response.ok) {

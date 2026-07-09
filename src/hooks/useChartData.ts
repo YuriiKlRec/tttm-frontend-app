@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  fetchKlines,
-  subscribeTradePrice,
-  TIMEFRAMES,
-  type Candle,
-  type Timeframe,
-} from '../services/binance'
+import { fetchKlines, subscribeTradePrice, type Candle, type Timeframe } from '../services/binance'
 
 /** Результат хука даних графіка. */
 interface UseChartDataResult {
@@ -15,27 +9,60 @@ interface UseChartDataResult {
   currentPrice: number | null
 }
 
-/** Кількість свічок історії на запит (запас для горизонтального зуму). */
-const KLINES_LIMIT = 500
+/** Перший фетч історії — великий шмат (round15, п.2 брифу), щоб типові
+ * свайпи-зуми в минуле не чекали мережі. 1000 — максимум, який Binance REST
+ * klines віддає за один запит. */
+const INITIAL_KLINES_LIMIT = 1000
+
+/** Розмір однієї сторінки фонового префетчу старшої історії (round15, п.3) —
+ * менший за перший фетч, щоб окремий доклеювальний запит лишався легким. */
+const PREFETCH_PAGE_LIMIT = 500
+
+/** Поріг наближення до найстарішої завантаженої свічки (у кількості свічок
+ * запасу), за яким стартує фоновий префетч наступної сторінки — приблизно
+ * 1-2 "екрани" видимого вікна за замовчуванням (DEFAULT_VISIBLE=120 у
+ * PriceChart.tsx). */
+const PREFETCH_MARGIN = 240
 
 /** Період застосування живої ціни (мс): тротлить потік угод Binance. */
 const PRICE_FLUSH_MS = 250
 
 /**
- * Завантажує історію свічок при зміні таймфрейму та підписується на живу
- * ціну через WebSocket. Чистить підписку при розмонтуванні.
+ * Міст сигналу "видиме вікно наближається до краю історії" між PriceChart
+ * (де живе visibleCount — стан зуму) і цим хуком (де живе symbol/timeframe і
+ * мережевий фетч): пряме прокидання пропсами тут неможливе — спільний рівень
+ * дерева (GamePage/GameContent) поза зоною файлів round15. reportChartViewport
+ * викликається з PriceChart при кожній зміні видимого вікна; хук підписується
+ * через мутований реф на час свого життя — без зайвих ре-рендерів жодної зі
+ * сторін мосту.
+ */
+type ViewportHandler = (visibleCount: number) => void
+let viewportHandler: ViewportHandler | null = null
+
+/** Сигналізує хуку про поточну кількість видимих свічок (див. коментар вище). */
+export const reportChartViewport = (visibleCount: number): void => {
+  viewportHandler?.(visibleCount)
+}
+
+/**
+ * Завантажує історію свічок ОДНОГО фіксованого таймфрейму гри (обирається в
+ * PriceChart від тривалості гри — chartTypes.selectTimeframe, round15) та
+ * підписується на живу ціну через WebSocket. Чистить підписку при
+ * розмонтуванні.
  *
- * Кешує історію по кожному таймфрейму символу і передзавантажує решту
- * таймфреймів у фоні (як bitcoin-price-widget: `fetchAllOHLCTimeranges`) —
- * перемикання гранулярності при горизонтальному свайпі (A7) бере готові дані
- * з кешу миттєво, ОДНИМ `setCandles` (без повторного фетчу того самого
- * таймфрейму — інакше другий сеттер одразу після switch спричинив би зайвий
- * скид вікна зуму в PriceChart), без порожнього "Loading…" і без стрибка:
- * на кеш-міс `candles` НЕ скидається в [] — попередній таймфрейм лишається
- * на екрані, поки фетч не підмінить дані.
+ * Стратегія даних (round15, замінює мульти-таймфрейм-кеш 13A/14B):
+ * 1. Один великий перший фетч (до 1000 свічок) при зміні symbol/timeframe —
+ *    попередні candles НЕ скидаються в [] на час запиту, стара крива лишається
+ *    на екрані до заміни (без порожнього "Loading…" при повторному фетчі).
+ * 2. Фоновий префетч старшої сторінки, коли видиме вікно наближається до
+ *    найстарішої завантаженої свічки (сигнал — reportChartViewport):
+ *    доклеюється на початок масиву БЕЗ лоадера й без скидання visibleCount —
+ *    сам масив зростає, а видиме вікно (прив'язане до часу, не до індексу)
+ *    лишається на місці (0px зсув, PriceChart.tsx розпізнає доклеювання
+ *    структурно — той самий хвіст масиву).
  *
  * @param symbol торгова пара, напр. "BTCUSDT"
- * @param timeframe інтервал Binance
+ * @param timeframe фіксований таймфрейм гри
  */
 export const useChartData = (symbol: string, timeframe: Timeframe): UseChartDataResult => {
   const [candles, setCandles] = useState<Candle[]>([])
@@ -43,36 +70,25 @@ export const useChartData = (symbol: string, timeframe: Timeframe): UseChartData
   const requestId = useRef(0)
   // Остання отримана ціна (накопичується між тротл-флешами).
   const latestPrice = useRef<number | null>(null)
-  // Кеш історії по таймфрейму для ПОТОЧНОГО символу.
-  const cache = useRef<Map<Timeframe, Candle[]>>(new Map())
-  const cachedSymbol = useRef<string>(symbol)
-
-  // Новий символ (нова гра/пара) — стара кешована історія невалідна.
+  // Завжди свіжий знімок candles для колбеків поза React-рендером (fetch-колбеки, міст).
+  const candlesRef = useRef<Candle[]>(candles)
   useEffect(() => {
-    if (cachedSymbol.current !== symbol) {
-      cache.current.clear()
-      cachedSymbol.current = symbol
-    }
-  }, [symbol])
+    candlesRef.current = candles
+  }, [candles])
+  // In-flight guard префетчу старшої сторінки — уникає дубль-фетчів (п.3 брифу).
+  const loadingOlder = useRef(false)
+  // true, коли Binance повернула порожню сторінку — початок історії символу досягнуто.
+  const exhausted = useRef(false)
 
-  // Історія активного таймфрейму: з кешу — миттєво і БЕЗ повторного фетчу
-  // (щоб не було другого `setCandles` одразу після безшовного switch, який
-  // спричинив би зайвий скид вікна зуму в PriceChart). Кеш-міс — звичайний
-  // фетч, попередні `candles` НЕ скидаються в [] на час запиту (той самий
-  // таймфрейм і далі показує свої дані до заміни).
+  // Великий перший фетч історії при зміні символу/таймфрейму.
   useEffect(() => {
-    const cached = cache.current.get(timeframe)
-    if (cached) {
-      setCandles(cached)
-      return
-    }
     const id = ++requestId.current
-    fetchKlines(symbol, timeframe, KLINES_LIMIT)
+    exhausted.current = false
+    fetchKlines(symbol, timeframe, INITIAL_KLINES_LIMIT)
       .then((data) => {
         if (id !== requestId.current) {
           return
         }
-        cache.current.set(timeframe, data)
         setCandles(data)
       })
       .catch((error) => {
@@ -83,31 +99,54 @@ export const useChartData = (symbol: string, timeframe: Timeframe): UseChartData
       })
   }, [symbol, timeframe])
 
-  // Фонове передзавантаження РЕШТИ таймфреймів того ж символу — щоб
-  // авто-перемикання гранулярності при зумі (useChartGestures.shiftTimeframe)
-  // майже завжди влучало в теплий кеш і не чекало мережі.
+  // Фоновий префетч старшої історії на сигнал наближення до краю (міст із PriceChart).
   useEffect(() => {
-    let cancelled = false
-    TIMEFRAMES.forEach((tf) => {
-      if (cache.current.has(tf)) {
+    const loadOlderPage = (): void => {
+      if (loadingOlder.current || exhausted.current) {
         return
       }
-      fetchKlines(symbol, tf, KLINES_LIMIT)
-        .then((data) => {
-          if (cancelled) {
+      const current = candlesRef.current
+      if (current.length === 0) {
+        return
+      }
+      const oldest = current[0].time
+      const id = requestId.current
+      loadingOlder.current = true
+      fetchKlines(symbol, timeframe, PREFETCH_PAGE_LIMIT, oldest - 1)
+        .then((older) => {
+          if (id !== requestId.current) {
             return
           }
-          cache.current.set(tf, data)
+          if (older.length === 0) {
+            exhausted.current = true
+            return
+          }
+          // Доклеюємо лише якщо база не змінилась між стартом і відповіддю запиту
+          // (уникає дублів/розривів при рідкісному перегоні з іншим префетчем).
+          setCandles((prev) => (prev.length > 0 && prev[0].time === oldest ? [...older, ...prev] : prev))
         })
         .catch(() => {
-          // Тихо ігноруємо — це лише прогрів кешу; активний таймфрейм має
-          // власний фетч (з retry на наступному switch) у ефекті вище.
+          // Тихо ігноруємо — наступне наближення до краю спробує ще раз.
         })
-    })
-    return () => {
-      cancelled = true
+        .finally(() => {
+          loadingOlder.current = false
+        })
     }
-  }, [symbol])
+
+    viewportHandler = (visibleCount: number): void => {
+      const total = candlesRef.current.length
+      if (total === 0) {
+        return
+      }
+      const remaining = total - visibleCount
+      if (remaining <= PREFETCH_MARGIN) {
+        loadOlderPage()
+      }
+    }
+    return () => {
+      viewportHandler = null
+    }
+  }, [symbol, timeframe])
 
   // Жива ціна: потік угод накопичуємо у ref, а в state застосовуємо лише раз на
   // PRICE_FLUSH_MS — інакше десятки угод/сек спричиняли б стільки ж
