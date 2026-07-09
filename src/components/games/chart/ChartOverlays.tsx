@@ -99,8 +99,8 @@ export const ChartOverlays: FC<ChartOverlaysProps> = ({
         <img src={candlestickIcon} alt="" aria-hidden="true" className="h-6 w-6" />
       </button>
 
-      {/* Легенда жестів — зменшений відступ зверху (A3): ближче до тіла графіка */}
-      <div className="pointer-events-none absolute bottom-8 left-1/2 flex -translate-x-1/2 items-center gap-8">
+      {/* Легенда жестів — компактні відступи: ближче до тіла графіка і до низу */}
+      <div className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-8">
         {hints.map((hint) => (
           <span key={hint.label} className="flex items-center gap-1.5">
             <HintIcon overlay={hint.overlay} />
