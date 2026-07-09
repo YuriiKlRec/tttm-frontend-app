@@ -70,8 +70,8 @@ export const CONTROLLER_SNAP_PX = 7
 /** Ширина правої осі цін (px). */
 export const AXIS_WIDTH = 76
 
-/** Висота зони під легендою знизу (px). */
-export const LEGEND_HEIGHT = 68
+/** Висота зони під легендою знизу (px): ~24px рядок підказок + 12px зверху і знизу. */
+export const LEGEND_HEIGHT = 48
 
 /** Відступ зверху для міток часу (px). */
 export const TOP_PADDING = 22
