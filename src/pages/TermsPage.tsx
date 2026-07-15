@@ -1,5 +1,5 @@
-import { useEffect, useRef, type FC } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useEffect, useRef, useState, type FC } from 'react'
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { TermsActions } from '../components/onboarding/TermsActions'
 import { useScrollToEnd } from '../hooks/useScrollToEnd'
 import { useAuth } from '../hooks/useAuth'
@@ -10,15 +10,31 @@ import iconTimes from '../assets/icon-times.svg'
 /**
  * Повноекранна угода `/terms`: шапка з заголовком і ✕, прокручуване тіло
  * з текстом EULA та панель дій. Кнопки залежать від прогресу прокрутки
- * (див. useScrollToEnd + TermsActions). Прийняття веде на `/profile`.
+ * (див. useScrollToEnd + TermsActions). Прийняття веде на `/onboarding`.
  * Якщо користувач вже прийняв умови — одразу редирект на головну.
+ *
+ * Режим перегляду (`?view=1`, лінк "Terms of use" зі слайда 3 онбордингу):
+ * умови вже прийняті, тож редиректу на "/" немає, ✕ веде назад (navigate(-1)),
+ * а панель дій показує лише кнопки прокрутки (без "Accept and Continue").
+ *
+ * Захист від redirect-гонки: після acceptTerms() → refreshUser() контекст
+ * оновлює user.termsAccepted, компонент ре-рендериться і — без прапорця
+ * `accepting` — умова редиректу нижче спрацювала б РАНІШЕ за navigate('/onboarding'),
+ * кидаючи користувача на "/" замість онбордингу. `accepting` вмикається одразу
+ * на початку onAccept (до await) і блокує редирект-на-головну, поки не відбудеться
+ * явний navigate('/onboarding').
  */
 const TermsPage: FC = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const isViewMode = searchParams.get('view') === '1'
   const { user, refreshUser } = useAuth()
   const { t, content } = useT()
   const paragraphs = content('terms').split(/\n\s*\n/).filter(Boolean)
   const bodyRef = useRef<HTMLDivElement>(null)
+  // Чи триває прийняття угоди (acceptTerms → refreshUser → navigate) — блокує
+  // редирект на "/", доки не виконано явний navigate('/onboarding').
+  const [accepting, setAccepting] = useState(false)
   // Всі хуки — безумовно, до будь-яких умовних return
   const { atBottom, reachedEnd, scrollToBottom, scrollToTop } = useScrollToEnd(bodyRef)
 
@@ -31,8 +47,11 @@ const TermsPage: FC = () => {
     }
   }, [reachedEnd, scrollToBottom])
 
-  // Якщо умови вже прийнято — не показуємо цю сторінку (після всіх хуків)
-  if (user?.termsAccepted) {
+  // Якщо умови вже прийнято — не показуємо цю сторінку (після всіх хуків),
+  // окрім режиму перегляду (?view=1) — там термінально прийняті умови й очікувані,
+  // і окрім моменту самого прийняття (accepting) — інакше ререндер з
+  // termsAccepted=true редиректить на "/" раніше, ніж спрацює navigate('/onboarding').
+  if (user?.termsAccepted && !accepting && !isViewMode) {
     return <Navigate to="/" replace />
   }
 
@@ -45,7 +64,7 @@ const TermsPage: FC = () => {
         </h1>
         <button
           type="button"
-          onClick={() => navigate('/welcome')}
+          onClick={() => (isViewMode ? navigate(-1) : navigate('/welcome'))}
           aria-label={t('terms.closeAria')}
           className="absolute right-5 top-[calc(var(--app-safe-top)+1rem)] flex h-6 w-6 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
@@ -68,16 +87,21 @@ const TermsPage: FC = () => {
         <TermsActions
           atBottom={atBottom}
           reachedEnd={reachedEnd}
+          viewOnly={isViewMode}
           onAccept={() => {
-            // acceptTerms → refreshUser (оновлює termsAccepted у контексті) → /profile.
-            // Якщо виникає помилка — логуємо і не переходимо (користувач може повторити).
+            // accepting=true ДО await — блокує redirect-гонку (див. коментар над компонентом).
+            setAccepting(true)
+            // acceptTerms → refreshUser (оновлює termsAccepted у контексті) → /onboarding.
+            // Якщо виникає помилка — логуємо, знімаємо accepting і не переходимо
+            // (користувач може повторити спробу з тієї ж сторінки).
             void (async () => {
               try {
                 await acceptTerms();
                 await refreshUser();
-                navigate('/edit-profile', { state: { from: 'onboarding' } });
+                navigate('/onboarding');
               } catch (err: unknown) {
                 console.error('[TermsPage] acceptTerms or refreshUser failed:', err);
+                setAccepting(false)
               }
             })();
           }}

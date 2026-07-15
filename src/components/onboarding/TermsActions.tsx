@@ -14,12 +14,18 @@ interface TermsActionsProps {
   onScrollBottom: () => void
   /** Прокрутити догори. */
   onScrollTop: () => void
+  /**
+   * Режим перегляду вже прийнятих умов (`/terms?view=1`): показує лише
+   * кнопку-перемикач прокрутки, без "Accept and Continue" — умови вже прийняті.
+   */
+  viewOnly?: boolean
 }
 
 /**
  * Панель дій під текстом угоди. До першого досягнення низу показує лише
  * білу кнопку прокрутки; після — оранжеву «Accept and Continue» плюс білу
  * кнопку-перемикач (Scroll top/bottom залежно від поточної позиції).
+ * У режимі перегляду (`viewOnly`) — завжди лише кнопка-перемикач прокрутки.
  */
 export const TermsActions: FC<TermsActionsProps> = ({
   atBottom,
@@ -27,8 +33,17 @@ export const TermsActions: FC<TermsActionsProps> = ({
   onAccept,
   onScrollBottom,
   onScrollTop,
+  viewOnly = false,
 }) => {
   const { t } = useT()
+
+  if (viewOnly) {
+    return atBottom ? (
+      <PredictionButton variant="inverse" label={t('terms.scrollTop')} onClick={onScrollTop} />
+    ) : (
+      <PredictionButton variant="inverse" label={t('terms.scrollBottom')} onClick={onScrollBottom} />
+    )
+  }
 
   if (!reachedEnd) {
     return <PredictionButton variant="inverse" label={t('terms.scrollBottom')} onClick={onScrollBottom} />

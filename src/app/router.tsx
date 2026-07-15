@@ -11,6 +11,7 @@ import ResultsPage from '../pages/ResultsPage'
 import GamePage from '../pages/GamePage'
 import WelcomePage from '../pages/WelcomePage'
 import TermsPage from '../pages/TermsPage'
+import OnboardingPage from '../pages/OnboardingPage'
 import ProfilePage from '../pages/ProfilePage'
 import EditProfilePage from '../pages/EditProfilePage'
 import BuyTicketsPage from '../pages/BuyTicketsPage'
@@ -44,6 +45,7 @@ export const AppRoutes: FC = () => {
       {/* Онбординг: окремі fullscreen-екрани поза OnboardingGate */}
       <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/edit-profile" element={<EditProfilePage />} />
 
       {/* Захищені маршрути: OnboardingGate перевіряє ready + termsAccepted */}
