@@ -72,9 +72,9 @@ const ProfilePage: FC = () => {
         </div>
       </div>
 
-      {/* Фіксований футер: патерн гравця + кнопка «Go back» */}
+      {/* Фіксований футер: кнопка «Go back» (патерн гравця тимчасово прихований) */}
       <div className="shrink-0">
-        <PlayerPatternPanel pattern={profile.pattern} onGoBack={handleGoBack} />
+        <PlayerPatternPanel onGoBack={handleGoBack} />
       </div>
     </div>
   )

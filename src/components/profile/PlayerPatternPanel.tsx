@@ -1,22 +1,22 @@
 import type { FC } from 'react'
-import type { PlayerPattern } from '../../types/profile'
-import { PlayerPatternBar } from './PlayerPatternBar'
 import { useT } from '../../i18n/useT'
 
-/** Пропси фіксованого футера патерну гравця. */
+/** Пропси фіксованого футера профілю. */
 interface PlayerPatternPanelProps {
-  pattern: PlayerPattern
   /** Колбек для кнопки «Go back». */
   onGoBack: () => void
 }
 
 /**
- * Фіксований футер сторінки профілю: показує тип патерну гравця
- * (текст + вертикальний gauge) та кнопку повернення назад.
+ * Фіксований футер сторінки профілю з кнопкою повернення назад.
+ *
+ * TODO: блок «Патерн гравця» (назва + вертикальний gauge PlayerPatternBar)
+ * тимчасово прихований — фіча ще не реалізована на бекенді. Повернути рядок
+ * з патерном (проп `pattern: PlayerPattern`), коли зʼявиться реалізація.
  *
  * Враховує безпечну зону знизу через CSS-змінну `--app-safe-bottom`.
  */
-export const PlayerPatternPanel: FC<PlayerPatternPanelProps> = ({ pattern, onGoBack }) => {
+export const PlayerPatternPanel: FC<PlayerPatternPanelProps> = ({ onGoBack }) => {
   const { t } = useT()
 
   return (
@@ -24,20 +24,6 @@ export const PlayerPatternPanel: FC<PlayerPatternPanelProps> = ({ pattern, onGoB
       className="flex flex-col gap-4 border-t border-border-dashed bg-surface py-4"
       style={{ paddingBottom: 'calc(var(--app-safe-bottom) + 1rem)' }}
     >
-      {/* Рядок: назва патерну зліва + gauge справа */}
-      <div className="flex items-center justify-between px-7">
-        <div className="flex flex-col gap-1">
-          <span className="font-mono text-[13px] font-bold text-text-primary">
-            {t('profile.playerPattern')}
-          </span>
-          <span className="font-display text-[24px] text-text-primary">
-            {pattern.type.toUpperCase()}
-          </span>
-        </div>
-
-        <PlayerPatternBar type={pattern.type} level={pattern.level} />
-      </div>
-
       {/* Кнопка повернення */}
       <div className="flex justify-center">
         <button
