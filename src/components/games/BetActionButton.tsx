@@ -28,7 +28,7 @@ const BG: Record<BetActionVariant, string> = {
 export const BetActionButton: FC<BetActionButtonProps> = ({ variant, onClick }) => {
   const disabled = variant === 'disabled'
   const bg = BG[variant]
-  const iconColor = variant === 'remove' ? 'text-white' : 'text-[#323232]'
+  const iconColor = variant === 'remove' ? 'text-white' : 'text-surface'
   const { t } = useT()
 
   return (

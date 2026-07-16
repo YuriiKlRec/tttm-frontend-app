@@ -78,7 +78,7 @@ export const GameHeader: FC<GameHeaderProps> = ({
               onClick={onToggleMine}
               className={`flex h-7 w-7 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
                 mineOnly
-                  ? 'bg-[#ef9723] text-[#323232]'
+                  ? 'bg-[#ef9723] text-surface'
                   : 'border border-white/50 bg-surface text-text-primary'
               }`}
             >

@@ -22,10 +22,10 @@ interface PredictionButtonProps {
 const baseClass =
   'relative flex h-11 w-full items-center justify-center font-mono text-[16px] font-bold outline-none'
 
-/** Класи фону/тіні/тексту за варіантом (активний стан). */
+/** Класи фону/тіні/тексту за варіантом (активний стан). Текст — action/primary/on-action, збігається з --color-surface. */
 const variantClass: Record<PredictionButtonVariant, string> = {
-  primary: 'bg-[#ef9723] text-[#323232] shadow-[0_4px_24px_0_rgba(239,151,35,0.5)]',
-  inverse: 'bg-white text-[#323232] shadow-[0_4px_24px_0_rgba(255,255,255,0.5)]',
+  primary: 'bg-[#ef9723] text-surface shadow-[0_4px_24px_0_rgba(239,151,35,0.5)]',
+  inverse: 'bg-white text-surface shadow-[0_4px_24px_0_rgba(255,255,255,0.5)]',
 }
 
 /** Колір піксельних боків за варіантом (активний стан). */
@@ -34,10 +34,10 @@ const sideColorClass: Record<PredictionButtonVariant, string> = {
   inverse: 'bg-white',
 }
 
-/** Сіра схема вимкненої кнопки (фон + текст), без світіння. */
-const DISABLED_CLASS = 'bg-[#3f3f3f] text-[#6e6e6e]'
+/** Сіра схема вимкненої кнопки (фон + текст), без світіння. Фон — grey/700 (#323232, новий тон з палітри), окремого токена нема (єдине використання, не hover). */
+const DISABLED_CLASS = 'bg-[#323232] text-[#6e6e6e]'
 /** Колір боків вимкненої кнопки. */
-const DISABLED_SIDE = 'bg-[#3f3f3f]'
+const DISABLED_SIDE = 'bg-[#323232]'
 
 /** Піксельні боки (виступ по горизонталі 4px) + підпис поверх. */
 const Inner: FC<{ label: string; sideColor: string }> = ({ label, sideColor }) => (

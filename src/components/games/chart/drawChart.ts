@@ -8,9 +8,9 @@ import {
 } from './chartTypes'
 import { formatDateTime } from '../../../utils/time'
 
-/** Палітра графіка (вирівняна з темою проєкту). */
+/** Палітра графіка (вирівняна з темою проєкту). Canvas — без CSS-змінних, тому дублюємо hex. */
 const COLORS = {
-  bg: '#212121',
+  bg: '#080603', // = --color-background (фон канви)
   grid: 'rgba(255,255,255,0.1)',
   line: '#ef9723',
   up: '#54b566',
@@ -18,7 +18,7 @@ const COLORS = {
   textPrimary: '#ffffff',
   textSecondary: '#adadad',
   focus: '#ef9723',
-  currentLabelBg: '#212121',
+  currentLabelBg: '#080603', // = --color-background (плашка ціни того ж стилю, що CurrencyPricePlate)
   currentDash: 'rgba(255,153,0,0.25)',
   betting: 'rgba(255,153,0,0.15)',
   passive: 'rgba(255,255,255,0.15)',

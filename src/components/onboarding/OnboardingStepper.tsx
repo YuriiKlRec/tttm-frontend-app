@@ -13,13 +13,14 @@ interface OnboardingStepperProps {
 /**
  * Прогрес-бар онбордингу: `total` сегментів шириною `flex: 1 0 0`, gap 7px, h-4px.
  * Сегменти з індексом < current — пройдені (суцільний білий). Сегмент == current —
- * база #212121 + білий fill шириною `progress * 100%` (без CSS-анімації: ширина
- * керується пропсом, плавність дає rAF-таймер у useStoryPlayer). Сегменти > current — сірі.
+ * база bg-background (фон сторінки) + білий fill шириною `progress * 100%` (без
+ * CSS-анімації: ширина керується пропсом, плавність дає rAF-таймер у useStoryPlayer).
+ * Сегменти > current — той самий фон сторінки (візуально «сірі» на фоні білих смуг).
  */
 export const OnboardingStepper: FC<OnboardingStepperProps> = ({ total, current, progress }) => (
   <div className="flex w-full gap-[7px]">
     {Array.from({ length: total }, (_, i) => (
-      <div key={i} className="relative h-1 flex-1 overflow-hidden bg-[#212121]">
+      <div key={i} className="relative h-1 flex-1 overflow-hidden bg-background">
         {i < current && <div className="absolute inset-0 bg-white" />}
         {i === current && (
           <div

@@ -73,7 +73,7 @@ export const ViewSelector: FC<ViewSelectorProps> = ({ value, onChange, options =
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-7 items-center gap-2 bg-[#ef9723] px-2 text-[#323232] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        className="flex h-7 items-center gap-2 bg-[#ef9723] px-2 text-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
       >
         <Glyph name={ICONS[value]} className="h-4 w-4" />
         <span className="font-mono text-[13px] font-bold">{labels[value]}</span>

@@ -19,7 +19,7 @@ interface PredictionStatsProps {
 
 /** Обгортка значення статистики (темний бокс із вмістом). */
 const StatBox: FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="bg-[rgba(50,50,50,0.75)] px-2 py-2.5">
+  <span className="bg-surface/75 px-2 py-2.5">
     <span className="flex items-center gap-2">{children}</span>
   </span>
 )

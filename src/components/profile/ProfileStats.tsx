@@ -40,7 +40,7 @@ export const ProfileStats: FC<ProfileStatsProps> = ({
         {/* Ігри */}
         <div className="flex flex-col gap-3">
           <span className="font-mono text-[11px] font-bold text-text-secondary">{t('profile.statsGames')}</span>
-          <div className="flex items-center gap-2 bg-[rgba(50,50,50,0.75)] px-2 py-2.5">
+          <div className="flex items-center gap-2 bg-surface/75 px-2 py-2.5">
             <img src={gamesIcon} alt="" aria-hidden="true" className="h-4 w-4" />
             <span className="font-mono text-[15px] text-text-primary">{gamesCount}</span>
           </div>
@@ -49,7 +49,7 @@ export const ProfileStats: FC<ProfileStatsProps> = ({
         {/* Перемоги */}
         <div className="flex flex-col gap-3">
           <span className="font-mono text-[11px] font-bold text-text-secondary">{t('profile.statsWin')}</span>
-          <div className="flex items-center gap-2 bg-[rgba(50,50,50,0.75)] px-2 py-2.5">
+          <div className="flex items-center gap-2 bg-surface/75 px-2 py-2.5">
             <img src={trophyIcon} alt="" aria-hidden="true" className="h-4 w-4" />
             <span className="font-mono text-[15px] text-text-primary">{winCount}</span>
           </div>
@@ -58,7 +58,7 @@ export const ProfileStats: FC<ProfileStatsProps> = ({
         {/* Тікети */}
         <div className="flex flex-col gap-3">
           <span className="font-mono text-[11px] font-bold text-text-secondary">{t('profile.statsTickets')}</span>
-          <div className="flex items-center gap-2 bg-[rgba(50,50,50,0.75)] px-2 py-2.5">
+          <div className="flex items-center gap-2 bg-surface/75 px-2 py-2.5">
             <img src={ticketIcon} alt="" aria-hidden="true" className="h-4 w-4" />
             <span className="font-mono text-[15px] text-text-primary">{ticketsCount}</span>
           </div>

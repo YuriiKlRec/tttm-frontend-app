@@ -37,8 +37,8 @@ interface ChartOverlaysProps {
 
 /** Класи боксу значення контролера за станом (фон + текст). */
 const BOX_CLASS: Record<ControllerState, string> = {
-  default: 'bg-white text-[#323232]',
-  mine: 'bg-[#ef9723] text-[#323232]',
+  default: 'bg-white text-surface',
+  mine: 'bg-[#ef9723] text-surface',
   others: 'bg-[#e5484d] text-white',
 }
 
@@ -80,7 +80,7 @@ export const ChartOverlays: FC<ChartOverlaysProps> = ({
     <>
       {/* Пул — показуємо лише коли він є (інакше плейсхолдер "—" не виводимо) */}
       {winningPool && winningPool !== '—' ? (
-        <div className="pointer-events-none absolute top-7 left-6 flex items-center gap-1.5 bg-[rgba(50,50,50,0.75)] px-2 py-2.5">
+        <div className="pointer-events-none absolute top-7 left-6 flex items-center gap-1.5 bg-surface/75 px-2 py-2.5">
           <img src={trophyIcon} alt="" aria-hidden="true" className="h-4 w-4" />
           <span className="font-mono text-[15px] text-text-primary">{winningPool}</span>
         </div>

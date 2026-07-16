@@ -47,7 +47,7 @@ const OnboardingPage: FC = () => {
 
   // Авторизація ще вантажиться — не приймаємо рішень про редирект, чекаємо ready
   if (!ready) {
-    return <div className="h-[100dvh] bg-[#080603]" />
+    return <div className="h-[100dvh] bg-background" />
   }
 
   // Умови ще не прийнято — онбординг недоступний (той самий патерн, що в OnboardingGate/WelcomePage)
@@ -98,7 +98,7 @@ const OnboardingPage: FC = () => {
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto h-[100dvh] max-w-[430px] touch-none overflow-hidden bg-[#080603] outline-none"
+      className="relative mx-auto h-[100dvh] max-w-[430px] touch-none overflow-hidden bg-background outline-none"
       role="group"
       aria-roledescription="story"
       aria-label={t('onboarding.storyAriaLabel', { current: index + 1, total: ONBOARDING_SLIDES.length })}
