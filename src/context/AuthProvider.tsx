@@ -165,9 +165,13 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setUser(freshUser);
   }, []);
 
-  /** Синхронно замінює user у контексті (без запиту до бекенду). */
+  /**
+   * Синхронно замінює user у контексті (без запиту до бекенду) і синхронізує
+   * myUserId + nickname у liveStore — для підпису своїх live-ставок.
+   */
   const updateUser = useCallback((u: UserDto): void => {
     setUser(u);
+    useLiveStore.getState().setMyUserId(u.id, u.nickname);
   }, []);
 
   useEffect(() => {

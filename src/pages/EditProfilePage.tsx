@@ -22,7 +22,7 @@ import { ValidationError } from '../services/http'
 const EditProfilePage: FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const { t, lang, setLang, languages } = useT()
   const nickname = useNicknameInput(user?.nickname)
   const [submitting, setSubmitting] = useState(false)
@@ -40,7 +40,8 @@ const EditProfilePage: FC = () => {
     setServerError('')
 
     try {
-      await updateNickname(nickname.nick)
+      const updatedUser = await updateNickname(nickname.nick)
+      updateUser(updatedUser)
       navigate(fromOnboarding ? '/' : '/profile')
     } catch (err) {
       if (err instanceof ValidationError) {
