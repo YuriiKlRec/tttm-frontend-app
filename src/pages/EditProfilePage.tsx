@@ -1,13 +1,15 @@
-import { useState, type FC } from 'react'
+import { useState, useCallback, type FC } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { PredictionButton } from '../components/ui/PredictionButton'
 import { NicknameField } from '../components/onboarding/NicknameField'
 import { LanguageList } from '../components/onboarding/LanguageList'
 import { useNicknameInput } from '../hooks/useNicknameInput'
 import { useAuth } from '../hooks/useAuth'
+import { useTelegramBackButton } from '../hooks/useTelegramBackButton'
 import { useT } from '../i18n/useT'
 import { updateNickname } from '../services/meApi'
 import { ValidationError } from '../services/http'
+import { goBackOrFallback } from '../utils/navigation'
 
 /**
  * Сторінка редагування нікнейму `/edit-profile`.
@@ -32,6 +34,19 @@ const EditProfilePage: FC = () => {
   const fromOnboarding = (location.state as { from?: string } | null)?.from === 'onboarding'
   // Заголовок за макетом: крок онбордингу лишає свій текст, редагування з профілю — «Edit Profile»
   const title = fromOnboarding ? t('onboarding.enterNickname') : t('profile.editTitle')
+
+  // Обробник кнопки «назад»: з онбордингу йде на головну без повернення в історію,
+  // інакше повертається назад або на профіль, якщо історія порожня
+  const handleBack = useCallback(() => {
+    if (fromOnboarding) {
+      navigate('/', { replace: true })
+    } else {
+      goBackOrFallback(navigate, '/profile')
+    }
+  }, [navigate, fromOnboarding])
+
+  // Використовуємо кнопку «назад» Telegram з власним handler'ом
+  useTelegramBackButton(handleBack)
 
   const handleContinue = async (): Promise<void> => {
     if (!nickname.valid || submitting) return

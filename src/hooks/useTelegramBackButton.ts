@@ -8,9 +8,11 @@ import { goBackOrFallback } from '../utils/navigation'
  * (власна логіка виходу — попередження, детермінована ціль тощо).
  * Глобальний виклик (без customHandler) на цих маршрутах ховає кнопку і
  * нічого не робить — інакше буде подвійне керування (два onClick-хендлери).
+ *
+ * Маршрути: `/buy`, `/game/:id`, `/edit-profile`
  */
 const hasOwnBackHandler = (pathname: string): boolean =>
-  pathname === '/buy' || pathname.startsWith('/game/')
+  pathname === '/buy' || pathname.startsWith('/game/') || pathname === '/edit-profile'
 
 /**
  * Керує нативною кнопкою «назад» Telegram Mini App.
