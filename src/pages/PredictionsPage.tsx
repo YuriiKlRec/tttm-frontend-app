@@ -18,8 +18,10 @@ const PredictionsPage: FC = () => {
     [myUserId],
   )
 
-  // enabled=ready — не стартуємо запит до завершення ініціалізації auth
-  const { items, loading, hasMore, sentinelRef } = useInfiniteGames(fetchPage, ready)
+  // enabled=ready — не стартуємо запит до завершення ініціалізації auth.
+  // refreshMs=30с — помірний фоновий refetch (лічильники ставок/призи ростуть
+  // без ручного оновлення сторінки); WS-кімнати lobby на бекенді немає.
+  const { items, loading, hasMore, sentinelRef } = useInfiniteGames(fetchPage, ready, 30_000)
 
   // Чекаємо ініціалізації AuthProvider — уникаємо помилкового EmptyState
   if (!ready) {

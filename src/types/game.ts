@@ -10,7 +10,7 @@ export interface Game {
   ticketPrice: string
   /** Призовий фонд у TON (напр. "2.4"). */
   prize: string
-  /** Кількість квитків користувача в цій грі. */
+  /** Кількість ставок (квитків) у грі загалом — усіх гравців, не лише поточного. */
   ticketsCount: number
   /** Початок гри (epoch ms) — точка старту таймлайну. */
   startTime: number

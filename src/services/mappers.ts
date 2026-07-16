@@ -77,10 +77,9 @@ export function toGameCard(dto: GameDto, myUserId?: string | null): Game {
     author: `@${dto.owner.nickname}`,
     ticketPrice: nanoToTon(dto.ticketAmount),
     prize: nanoToTon(totalNano),
-    // Кількість тікетів поточного користувача; 0 якщо користувач анонімний (myUserId невизначено)
-    ticketsCount: dto.tickets.filter(
-      (t) => myUserId !== undefined && myUserId !== null && t.ownerId === myUserId,
-    ).length,
+    // Кількість ставок у грі загалом (усіх гравців), не лише поточного користувача —
+    // бейдж на іконці квитка показує загальну активність гри у списку
+    ticketsCount: dto.tickets.length,
     startTime,
     betCloseTime,
     endTime,

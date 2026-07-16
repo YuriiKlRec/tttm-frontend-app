@@ -122,7 +122,7 @@ export const GameCard: FC<Game> = ({
         <div className="flex items-center gap-[9px]">
           <span className="relative shrink-0">
             <img src={ticketIcon} alt="" aria-hidden="true" className="w-6" />
-            {/* кількість квитків користувача в цій грі — індикатор поруч ціни */}
+            {/* кількість усіх ставок у грі (не лише поточного користувача) — індикатор поруч ціни */}
             {hasTickets ? (
               <span
                 aria-hidden="true"

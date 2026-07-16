@@ -21,8 +21,10 @@ const WaitingPage: FC = () => {
     [myUserId],
   )
 
-  // enabled=ready — не стартуємо запит до завершення ініціалізації auth
-  const { items, loading, hasMore, sentinelRef } = useInfiniteGames(fetchPage, ready)
+  // enabled=ready — не стартуємо запит до завершення ініціалізації auth.
+  // refreshMs=30с — помірний фоновий refetch (лідер/ставки можуть змінюватись
+  // під час очікування фіналізації); WS-кімнати lobby на бекенді немає.
+  const { items, loading, hasMore, sentinelRef } = useInfiniteGames(fetchPage, ready, 30_000)
 
   // Жива ціна BTC з Binance WebSocket; null — до першого тіку
   const livePrice = useBinancePrice()
