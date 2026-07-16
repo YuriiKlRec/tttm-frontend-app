@@ -32,6 +32,7 @@ import {
 import type { UserDto } from '../services/dto/user.dto';
 import { useLiveStore } from '../store/liveStore';
 import { connectRealtime, disconnectRealtime } from '../services/realtime';
+import { identifyPlayer, resetAnalytics, trackEvent } from '../services/analytics';
 
 /** Контракт контексту автентифікації. */
 export interface AuthContextValue {
@@ -127,6 +128,10 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
       useLiveStore.getState().setMyUserId(dto.user.id, dto.user.nickname);
       // Підключаємо WebSocket app-wide після успішної автентифікації
       connectRealtime(dto.accessToken);
+      // Аналітика: identify + подія лише для СПРАВЖНЬОЇ (нової) автентифікації —
+      // на відміну від тихого відновлення сесії за токеном нижче.
+      identifyPlayer(dto.user);
+      trackEvent('player_authorized');
     },
     [],
   );
@@ -190,6 +195,10 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             setToken(null);
             disconnectRealtime();
             useLiveStore.getState().resetSession();
+            // Повний wipe аналітичної сесії — попередній tg-акаунт більше не
+            // повинен асоціюватись із подіями наступного (login() нижче
+            // одразу зробить identify під новий акаунт).
+            resetAnalytics();
             // Повна реавторизація по СВІЖОМУ initData поточного акаунта.
             // Бекенд поверне termsAccepted=false для нового користувача —
             // OnboardingGate сам поведе на /welcome.
@@ -209,6 +218,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             useLiveStore.getState().setMyUserId(currentUser.id, currentUser.nickname);
             // Підключаємо WebSocket з відновленим access-токеном
             connectRealtime(storedAccess);
+            // Відновлення сесії — не нова авторизація: identify без player_authorized
+            identifyPlayer(currentUser);
             return;
           } catch {
             // Токен протух або відкликаний — продовжуємо нижче
@@ -232,6 +243,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             // Токен міг оновитись у http.ts; читаємо актуальний зі сховища
             const refreshedAccess = getStoredAccessToken();
             connectRealtime(refreshedAccess);
+            // Відновлення сесії — не нова авторизація: identify без player_authorized
+            identifyPlayer(currentUser);
             return;
           } catch {
             // refresh також не вдався — повна реавторизація

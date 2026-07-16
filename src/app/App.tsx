@@ -1,4 +1,4 @@
-import type { FC } from 'react'
+import { useEffect, useRef, type FC } from 'react'
 import { TonConnectUIProvider } from '@tonconnect/ui-react'
 import { BrowserRouter } from 'react-router-dom'
 import { AppRoutes } from './router'
@@ -8,6 +8,7 @@ import { BookedCartProvider } from '../context/BookedCartProvider'
 import { useSafeArea } from '../hooks/useSafeArea'
 import { useTelegramSetup } from '../hooks/useTelegramSetup'
 import { env } from '../config/env'
+import { initAnalytics, trackEvent } from '../services/analytics'
 
 const MANIFEST_URL = 'https://dns.ton.org/tonconnect-manifest.json'
 
@@ -16,6 +17,16 @@ const App: FC = () => {
   useSafeArea()
   // Розгортання вʼюпорта + вимкнення вертикальних свайпів (свайп вниз не згортає апку)
   useTelegramSetup()
+
+  // Захист від повторного запуску (StrictMode подвійний mount) — initAnalytics
+  // і так ідемпотентний, але подія app_opened не повинна дублюватись.
+  const analyticsStartedRef = useRef(false)
+  useEffect(() => {
+    if (analyticsStartedRef.current) return
+    analyticsStartedRef.current = true
+    initAnalytics()
+    trackEvent('app_opened')
+  }, [])
 
   return (
     <TonConnectUIProvider

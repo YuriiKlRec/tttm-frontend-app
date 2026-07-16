@@ -10,6 +10,7 @@ import { isUserRejection } from '../utils/isUserRejection'
 import { chunk } from '../utils/chunk'
 import { goBackOrFallback } from '../utils/navigation'
 import { useT } from '../i18n/useT'
+import { trackEvent } from '../services/analytics'
 import type { CheckCta } from '../components/buy/CheckActionPanel'
 
 /** Тип відкритої модалки на сторінці оплати. */
@@ -167,6 +168,17 @@ export const useBuyTicketsFlow = (
           throw postErr
         }
 
+        // Аналітика: одна подія на кожен успішно оплачений чанк (createTickets
+        // підтвердив збереження у БД) — чек може містити кілька чанків по
+        // CHUNK_SIZE (8) цін, тож саме чанк, а не весь ордер, є природною
+        // одиницею "успішної покупки" в наявному коді.
+        const amountGram = Number(ticketPrice) * group.length
+        trackEvent('bet_placed', {
+          game_id: gameId,
+          tickets_count: group.length,
+          amount_gram: Number.isFinite(amountGram) ? amountGram : null,
+        })
+
         // Захист від гонки/кешу (див. liveStore.ts:mergeConfirmedMine): щойно
         // createTickets підтвердив оплату — позначаємо кожну ціну групи як
         // "мою" в liveStore. Це гарантує, що жоден майбутній REST-рефетч чи
@@ -201,7 +213,7 @@ export const useBuyTicketsFlow = (
     } finally {
       setPaying(false)
     }
-  }, [activeCheck, summary, paying, cart, tonConnectUI, checks, t])
+  }, [activeCheck, summary, paying, cart, tonConnectUI, checks, t, ticketPrice])
 
   const openTakenModal = useCallback(() => setActiveModal('taken'), [])
   const openUncompleted = useCallback(() => setActiveModal('uncompleted'), [])

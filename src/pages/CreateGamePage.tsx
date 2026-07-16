@@ -17,6 +17,7 @@ import { saveWallet } from '../services/walletApi'
 import { env } from '../config/env'
 import { ValidationError } from '../services/http'
 import { isUserRejection } from '../utils/isUserRejection'
+import { trackEvent } from '../services/analytics'
 import thinkingBadge from '../assets/badge-face-thinking.svg'
 
 /** nanoTON в одному TON. */
@@ -43,6 +44,15 @@ const CreateGamePage: FC = () => {
   const { t } = useT()
   const [tonConnectUI] = useTonConnectUI()
   const address = useTonAddress()
+
+  // Аналітика: одна подія на відкриття форми створення гри (захист від
+  // StrictMode подвійного mount тим самим патерном, що й у App.tsx).
+  const createStartedRef = useRef(false)
+  useEffect(() => {
+    if (createStartedRef.current) return
+    createStartedRef.current = true
+    trackEvent('game_create_started')
+  }, [])
 
   // Чи показано модалку підтвердження виходу.
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -162,6 +172,9 @@ const CreateGamePage: FC = () => {
             contractAddress: txResp.contractAddress,
           },
         })
+
+        // Аналітика: гру справді збережено в БД (не лише підписано транзакцію)
+        trackEvent('game_created', { game_id: gameResp.id })
 
         // Крок 5: навігація до нової гри. replace: true — прибирає форму
         // створення з історії, щоб Back з екрана гри вів одразу в лобі,

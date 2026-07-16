@@ -18,6 +18,7 @@ import {
   type LanguagesResponse,
   type TranslationsResponse,
 } from '../services/i18nApi';
+import { setSuperProperty } from '../services/analytics';
 import { I18nContext } from './context';
 
 // ── Локальні типи кешу ────────────────────────────────────────────────────────
@@ -349,6 +350,12 @@ export const I18nProvider: FC<{ children: ReactNode }> = ({ children }) => {
       mountedRef.current = false;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Аналітична super property app_language — синхронізуємо з активною мовою
+  // (початкове визначення + кожне подальше перемикання через setLang).
+  useEffect(() => {
+    if (lang) setSuperProperty('app_language', lang);
+  }, [lang]);
 
   // ── setLang: переключення мови ────────────────────────────────────────────
 

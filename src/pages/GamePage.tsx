@@ -19,6 +19,7 @@ import { centsToUsd } from '../utils/units'
 import { formatInTz } from '../utils/datetime'
 import { goBackOrFallback } from '../utils/navigation'
 import { confirmViaTelegram } from '../utils/telegramPopup'
+import { trackEvent } from '../services/analytics'
 import type { Timeframe } from '../services/binance'
 import type { ViewMode, DetailGroup, Bet } from '../types/game'
 import type { WaitBet } from '../types/wait'
@@ -151,6 +152,12 @@ const GamePage: FC = () => {
   const myUserId = user?.id ?? null
 
   const { game, ready } = useGameLive(id, myUserId)
+
+  // Аналітика: одна подія на відкриття гри (реагує лише на зміну id, не на
+  // кожен ре-рендер сторінки).
+  useEffect(() => {
+    if (id) trackEvent('game_viewed', { game_id: id })
+  }, [id])
 
   const [searchParams] = useSearchParams()
   // Початковий вид: ?view=predictions відкриває список ставок
