@@ -10,6 +10,7 @@ import { isUserRejection } from '../utils/isUserRejection'
 import { chunk } from '../utils/chunk'
 import { goBackOrFallback } from '../utils/navigation'
 import { useT } from '../i18n/useT'
+import { useAuth } from './useAuth'
 import { trackEvent } from '../services/analytics'
 import type { CheckCta } from '../components/buy/CheckActionPanel'
 
@@ -61,6 +62,7 @@ export const useBuyTicketsFlow = (
   takenPrices: number[],
 ): BuyTicketsFlow => {
   const { t } = useT()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const cart = useBookedCart()
   const checks = useTicketChecks(prices, ticketPrice, takenPrices)
@@ -161,6 +163,12 @@ export const useBuyTicketsFlow = (
         } catch (postErr) {
           if (postErr instanceof ValidationError) {
             // Транзакція пішла в мережу, але ціна вже зайнята — ті самі дії.
+            trackEvent('validation_error', {
+              context: 'bet_payment',
+              field: 'ticket_price',
+              error_type: 'price_taken',
+              user_id: user?.id,
+            })
             setActiveModal('taken')
             checks.payCheck(checks.activeIndex, true)
             return
@@ -168,16 +176,8 @@ export const useBuyTicketsFlow = (
           throw postErr
         }
 
-        // Аналітика: одна подія на кожен успішно оплачений чанк (createTickets
-        // підтвердив збереження у БД) — чек може містити кілька чанків по
-        // CHUNK_SIZE (8) цін, тож саме чанк, а не весь ордер, є природною
-        // одиницею "успішної покупки" в наявному коді.
-        const amountGram = Number(ticketPrice) * group.length
-        trackEvent('bet_placed', {
-          game_id: gameId,
-          tickets_count: group.length,
-          amount_gram: Number.isFinite(amountGram) ? amountGram : null,
-        })
+        // bet_placed більше не шлеться з клієнта — подія переїхала на бекенд
+        // (ticket.service.createTickets), де факт оплати підтверджений БД.
 
         // Захист від гонки/кешу (див. liveStore.ts:mergeConfirmedMine): щойно
         // createTickets підтвердив оплату — позначаємо кожну ціну групи як
@@ -199,11 +199,18 @@ export const useBuyTicketsFlow = (
     } catch (err) {
       // Відмова користувача від транзакції — тихо виходимо, без повідомлення.
       if (isUserRejection(err)) {
+        trackEvent('action_cancelled', { context: 'bet_payment', user_id: user?.id })
         return
       }
 
       // 422 від prepareTicketTx — ціна вже зайнята (до відправки).
       if (err instanceof ValidationError) {
+        trackEvent('validation_error', {
+          context: 'bet_payment',
+          field: 'ticket_price',
+          error_type: 'price_taken',
+          user_id: user?.id,
+        })
         setActiveModal('taken')
         checks.payCheck(checks.activeIndex, true)
         return
@@ -213,7 +220,7 @@ export const useBuyTicketsFlow = (
     } finally {
       setPaying(false)
     }
-  }, [activeCheck, summary, paying, cart, tonConnectUI, checks, t, ticketPrice])
+  }, [activeCheck, summary, paying, cart, tonConnectUI, checks, t, user])
 
   const openTakenModal = useCallback(() => setActiveModal('taken'), [])
   const openUncompleted = useCallback(() => setActiveModal('uncompleted'), [])

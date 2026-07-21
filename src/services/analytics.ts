@@ -26,13 +26,23 @@ export interface AnalyticsUser {
   id: string;
   nickname: string;
   language?: string;
+  /** Роль користувача ('player' | 'partner' | 'admin') — підмішується у super property 'role'. */
+  role?: string;
+  /** Telegram user.id (не БД-id) — підмішується у super property 'telegram_user_id'. */
+  tgUserId?: string;
 }
 
 /** Тип динамічно завантаженого модуля SDK (лише для внутрішнього використання). */
 type AmplitudeModule = typeof import('@amplitude/unified');
 
 /** Ключі «super properties», що підмішуються до кожної події. */
-type SuperPropertyKey = 'app_language' | 'platform' | 'app_env';
+type SuperPropertyKey =
+  | 'app_language'
+  | 'platform'
+  | 'app_env'
+  | 'telegram_user_id'
+  | 'role'
+  | 'app_version';
 
 /** Одна подія, відкладена до завершення ініціалізації SDK. */
 interface BufferedEvent {
@@ -72,11 +82,18 @@ function detectPlatform(): 'telegram-webapp' | 'browser' {
   }
 }
 
-/** Super properties, що підмішуються до кожної події (app_language оновлюється сеттером). */
+/**
+ * Super properties, що підмішуються до кожної події. telegram_user_id/role
+ * заповнюються в identifyPlayer (єдине місце, де відомий поточний user —
+ * AuthProvider), app_version — статично з env.appVersion при старті.
+ */
 let superProperties: Record<SuperPropertyKey, string> = {
   app_language: '',
   platform: detectPlatform(),
   app_env: env.tonNetwork,
+  telegram_user_id: '',
+  role: '',
+  app_version: env.appVersion,
 };
 
 /** Оновлює одну з super properties (напр. app_language при зміні мови в I18nProvider). */
@@ -191,8 +208,15 @@ export function trackEvent(name: string, props?: Record<string, unknown>): void 
  * language, tg_user_id — якщо є в token-storage). Без ключа — no-op.
  * До завершення init запам'ятовує лише ОСТАННІЙ виклик і застосовує його
  * одразу після ready.
+ *
+ * Окремо (незалежно від disabled/ready — це лише оновлення локального
+ * стану, SDK не чіпаємо) оновлює super properties telegram_user_id/role,
+ * щоб вони підмішувались у всі наступні trackEvent, а не лише в identify.
  */
 export function identifyPlayer(user: AnalyticsUser): void {
+  if (user.tgUserId) setSuperProperty('telegram_user_id', user.tgUserId);
+  if (user.role) setSuperProperty('role', user.role);
+
   if (disabled) return;
   if (!ready) {
     pendingIdentify = user;

@@ -1,10 +1,12 @@
-import { useCallback, useRef, type FC, type KeyboardEvent, type PointerEvent, type SyntheticEvent } from 'react'
+import { useCallback, useEffect, useRef, type FC, type KeyboardEvent, type PointerEvent, type SyntheticEvent } from 'react'
 import { Navigate, useNavigate, Link } from 'react-router-dom'
 import { OnboardingSlide } from '../components/onboarding/OnboardingSlide'
 import { OnboardingStepper } from '../components/onboarding/OnboardingStepper'
 import { useStoryPlayer } from '../hooks/useStoryPlayer'
 import { useAuth } from '../hooks/useAuth'
 import { useT } from '../i18n/useT'
+import { trackEvent } from '../services/analytics'
+import { getStoredTgUserId } from '../services/token-storage'
 import { ONBOARDING_SLIDES, ONBOARDING_SLIDE_DURATIONS } from '../constants/onboardingSlides'
 
 /** Тап у лівих/правих 33%/67% контейнера — навігація по слайдах, центр — нічого. */
@@ -32,7 +34,26 @@ const OnboardingPage: FC = () => {
   const navigate = useNavigate()
 
   // Всі хуки — безумовно, до умовного return нижче (правило хуків)
+
+  // Момент показу 1-го слайда — точка відліку для onboarding_finished.duration_sec.
+  const startTimeRef = useRef(Date.now())
+
+  // Захист від повторної відправки onboarding_started (StrictMode double-mount,
+  // ре-рендери до того, як ready/termsAccepted стануть true).
+  const startedTrackedRef = useRef(false)
+  useEffect(() => {
+    if (startedTrackedRef.current) return
+    if (!ready || !user?.termsAccepted) return
+    startedTrackedRef.current = true
+    trackEvent('onboarding_started', { telegram_user_id: getStoredTgUserId() ?? undefined })
+  }, [ready, user])
+
   const handleFinish = useCallback((): void => {
+    const durationSec = Math.round((Date.now() - startTimeRef.current) / 1000)
+    trackEvent('onboarding_finished', {
+      telegram_user_id: getStoredTgUserId() ?? undefined,
+      duration_sec: durationSec,
+    })
     navigate('/edit-profile', { state: { from: 'onboarding' } })
   }, [navigate])
 
@@ -92,6 +113,14 @@ const OnboardingPage: FC = () => {
 
   // Клік/поінтер по лінках не має тригерити тап-навігацію контейнера
   const stopLinkPropagation = (e: SyntheticEvent): void => e.stopPropagation()
+  // Пропуск онбордингу: screen_number 1-based (той самий індекс, що й у aria-label вище).
+  const handleSkip = (e: SyntheticEvent): void => {
+    stopLinkPropagation(e)
+    trackEvent('onboarding_skipped', {
+      telegram_user_id: getStoredTgUserId() ?? undefined,
+      screen_number: index + 1,
+    })
+  }
   const linkClass =
     'font-mono text-[14px] font-bold text-text-secondary outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white'
 
@@ -130,7 +159,7 @@ const OnboardingPage: FC = () => {
               to="/edit-profile"
               state={{ from: 'onboarding' }}
               onPointerDown={stopLinkPropagation}
-              onClick={stopLinkPropagation}
+              onClick={handleSkip}
               className={linkClass}
             >
               {t('onboarding.skipLink')}

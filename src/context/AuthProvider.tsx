@@ -52,6 +52,16 @@ export interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 /**
+ * tg user.id для аналітики (super property telegram_user_id): свіжий з launch
+ * params, якщо доступний (Telegram-контекст саме зараз), інакше — збережений
+ * під час минулого логіну. undefined поза Telegram і без попередньої сесії
+ * (dev-bypass) — ok, аналітика лишає super property порожнім.
+ */
+function resolveAnalyticsTgUserId(): string | undefined {
+  return readTelegramUserId() ?? getStoredTgUserId() ?? undefined;
+}
+
+/**
  * Спробувати отримати raw Telegram initData.
  * Повертає рядок або undefined — ніколи не кидає.
  */
@@ -130,7 +140,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
       connectRealtime(dto.accessToken);
       // Аналітика: identify + подія лише для СПРАВЖНЬОЇ (нової) автентифікації —
       // на відміну від тихого відновлення сесії за токеном нижче.
-      identifyPlayer(dto.user);
+      identifyPlayer({ ...dto.user, tgUserId: resolveAnalyticsTgUserId() });
       trackEvent('player_authorized');
     },
     [],
@@ -223,7 +233,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             // Підключаємо WebSocket з відновленим access-токеном
             connectRealtime(storedAccess);
             // Відновлення сесії — не нова авторизація: identify без player_authorized
-            identifyPlayer(currentUser);
+            identifyPlayer({ ...currentUser, tgUserId: resolveAnalyticsTgUserId() });
             return;
           } catch {
             // Токен протух або відкликаний — продовжуємо нижче
@@ -248,7 +258,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             const refreshedAccess = getStoredAccessToken();
             connectRealtime(refreshedAccess);
             // Відновлення сесії — не нова авторизація: identify без player_authorized
-            identifyPlayer(currentUser);
+            identifyPlayer({ ...currentUser, tgUserId: resolveAnalyticsTgUserId() });
             return;
           } catch {
             // refresh також не вдався — повна реавторизація

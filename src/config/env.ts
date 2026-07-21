@@ -13,6 +13,13 @@ export interface Env {
    * у цьому разі SDK аналітики взагалі не вантажиться (див. services/analytics.ts).
    */
   amplitudeApiKey: string | null;
+  /**
+   * Версія застосунку для super property 'app_version' в аналітиці.
+   * Джерело — VITE_APP_VERSION (виставляється деплой-пайплайном), fallback —
+   * версія з package.json на момент написання (не читається динамічно, щоб
+   * не тягнути resolveJsonModule лише заради цього).
+   */
+  appVersion: string;
 }
 
 const apiBaseUrl =
@@ -37,4 +44,5 @@ export const env: Env = {
     import.meta.env.VITE_TG_MINI_APP_URL ?? 'https://t.me/tothemoon_dev_bot/tothemoondev',
   // Порожній рядок/undefined → null (аналітика вимкнена)
   amplitudeApiKey: rawAmplitudeApiKey ? rawAmplitudeApiKey : null,
+  appVersion: import.meta.env.VITE_APP_VERSION ?? '0.0.0',
 };

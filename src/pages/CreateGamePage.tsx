@@ -10,7 +10,8 @@ import { TicketPriceField } from '../components/create-game/TicketPriceField'
 import { PrizePoolControl } from '../components/create-game/PrizePoolControl'
 import { CreateFooter } from '../components/create-game/CreateFooter'
 import { ConfirmModal } from '../components/buy/ConfirmModal'
-import { useCreateGameForm } from '../hooks/useCreateGameForm'
+import { useCreateGameForm, type CreateGameForm } from '../hooks/useCreateGameForm'
+import { useAuth } from '../hooks/useAuth'
 import { useT } from '../i18n/useT'
 import { createGameTransaction, createGame } from '../services/gameApi'
 import { saveWallet } from '../services/walletApi'
@@ -33,6 +34,18 @@ const TX_VALID_SECONDS = 600
 const FOCUS_BLUR_DEBOUNCE_MS = 150
 
 /**
+ * Формує game_config для аналітичної події game_param_filled з поточного
+ * стану форми. bet_size/commission — токен-суми напряму (GRAM), без
+ * nanoTON-перетворення (те перетворення потрібне лише для транзакції).
+ */
+const buildGameConfigProps = (form: CreateGameForm): Record<string, unknown> => ({
+  bet_size: Number(form.ticketPrice),
+  end_time: new Date(form.predictionTime).toISOString(),
+  commission: form.pool,
+  accept_until: new Date(form.deadline).toISOString(),
+})
+
+/**
  * Сторінка «New prediction game» — окремий fullscreen-лайаут (поза AppLayout):
  * фіксована шапка та підвал, скрол-тіло з полями форми. Логіка винесена у
  * useCreateGameForm; вихід зі змінами підтверджується модалкою.
@@ -42,6 +55,7 @@ const CreateGamePage: FC = () => {
   const navigate = useNavigate()
   const form = useCreateGameForm()
   const { t } = useT()
+  const { user } = useAuth()
   const [tonConnectUI] = useTonConnectUI()
   const address = useTonAddress()
 
@@ -116,6 +130,12 @@ const CreateGamePage: FC = () => {
       setTxError(null)
       setSubmitting(true)
 
+      // Аналітика: параметри гри на момент натискання «Pay for contract creation».
+      trackEvent('game_param_filled', {
+        organizer_id: user?.id,
+        game_config: buildGameConfigProps(form),
+      })
+
       try {
         // Крок 1: зберегти гаманець на бекенді (ігноруємо помилку — не критично).
         try {
@@ -173,9 +193,6 @@ const CreateGamePage: FC = () => {
           },
         })
 
-        // Аналітика: гру справді збережено в БД (не лише підписано транзакцію)
-        trackEvent('game_created', { game_id: gameResp.id })
-
         // Крок 5: навігація до нової гри. replace: true — прибирає форму
         // створення з історії, щоб Back з екрана гри вів одразу в лобі,
         // а не крутив по колу назад у щойно заповнену форму (див. B1).
@@ -183,10 +200,17 @@ const CreateGamePage: FC = () => {
       } catch (err) {
         // Відмова користувача від транзакції — тихо виходимо, без повідомлення.
         if (isUserRejection(err)) {
+          trackEvent('action_cancelled', { context: 'game_creation_payment', user_id: user?.id })
           return
         }
 
         if (err instanceof ValidationError) {
+          trackEvent('validation_error', {
+            context: 'game_creation_payment',
+            field: err.errors[0] ?? 'unknown',
+            error_type: 'validation_error',
+            user_id: user?.id,
+          })
           setTxError(err.errors.join('; '))
           return
         }
@@ -198,7 +222,7 @@ const CreateGamePage: FC = () => {
     }
 
     void run()
-  }, [address, form, tonConnectUI, submitting, navigate, t])
+  }, [address, form, tonConnectUI, submitting, navigate, t, user])
 
   // Скасування виходу: лишитись на сторінці.
   const cancelLeave = useCallback((): void => setConfirmOpen(false), [])
