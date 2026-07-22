@@ -1,21 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { useBuyTicketsFlow } from '../useBuyTicketsFlow'
-import { trackEvent } from '../../services/analytics'
-import { prepareTicketTx, createTickets } from '../../services/ticketApi'
-import { ValidationError } from '../../services/http'
+import { useBuyTicketsFlow } from '@/hooks/useBuyTicketsFlow'
+import { trackEvent } from '@/services/analytics'
+import { prepareTicketTx, createTickets } from '@/services/ticketApi'
+import { ValidationError } from '@/services/http'
 
-vi.mock('../../services/analytics', () => ({ trackEvent: vi.fn() }))
-vi.mock('../../services/ticketApi', () => ({
+vi.mock('@/services/analytics', () => ({ trackEvent: vi.fn() }))
+vi.mock('@/services/ticketApi', () => ({
   prepareTicketTx: vi.fn(),
   createTickets: vi.fn(),
 }))
-vi.mock('../useAuth', () => ({
+vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'player-1' } }),
 }))
 
 const removeManyMock = vi.fn()
-vi.mock('../../context/BookedCartProvider', () => ({
+vi.mock('@/context/BookedCartProvider', () => ({
   useBookedCart: () => ({
     gameId: 'game-1',
     prices: [10],
@@ -39,7 +39,7 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }))
 
-vi.mock('../../i18n/useT', () => ({
+vi.mock('@/i18n/useT', () => ({
   useT: () => ({ t: (key: string) => key }),
 }))
 

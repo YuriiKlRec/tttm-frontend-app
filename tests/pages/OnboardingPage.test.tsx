@@ -1,20 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import OnboardingPage from '../OnboardingPage'
-import { trackEvent } from '../../services/analytics'
+import OnboardingPage from '@/pages/OnboardingPage'
+import { trackEvent } from '@/services/analytics'
 
-vi.mock('../../services/analytics', () => ({ trackEvent: vi.fn() }))
-vi.mock('../../services/token-storage', () => ({ getStoredTgUserId: () => 'tg-42' }))
-vi.mock('../../i18n/useT', () => ({
+vi.mock('@/services/analytics', () => ({ trackEvent: vi.fn() }))
+vi.mock('@/services/token-storage', () => ({ getStoredTgUserId: () => 'tg-42' }))
+vi.mock('@/i18n/useT', () => ({
   useT: () => ({ t: (key: string) => key }),
 }))
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { termsAccepted: true, id: 'u1' }, ready: true }),
 }))
 
 let capturedOnFinish: (() => void) | null = null
-vi.mock('../../hooks/useStoryPlayer', () => ({
+vi.mock('@/hooks/useStoryPlayer', () => ({
   useStoryPlayer: (opts: { onFinish: () => void }) => {
     capturedOnFinish = opts.onFinish
     return { index: 0, progress: 0, paused: false, goNext: vi.fn(), goPrev: vi.fn(), pause: vi.fn(), resume: vi.fn() }

@@ -1,22 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import CreateGamePage from '../CreateGamePage'
-import { trackEvent } from '../../services/analytics'
-import { createGameTransaction, createGame } from '../../services/gameApi'
-import { ValidationError } from '../../services/http'
-import type { CreateGameForm } from '../../hooks/useCreateGameForm'
+import CreateGamePage from '@/pages/CreateGamePage'
+import { trackEvent } from '@/services/analytics'
+import { createGameTransaction, createGame } from '@/services/gameApi'
+import { ValidationError } from '@/services/http'
+import type { CreateGameForm } from '@/hooks/useCreateGameForm'
 
-vi.mock('../../services/analytics', () => ({ trackEvent: vi.fn() }))
-vi.mock('../../services/walletApi', () => ({ saveWallet: vi.fn().mockResolvedValue(undefined) }))
-vi.mock('../../services/gameApi', () => ({
+vi.mock('@/services/analytics', () => ({ trackEvent: vi.fn() }))
+vi.mock('@/services/walletApi', () => ({ saveWallet: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('@/services/gameApi', () => ({
   createGameTransaction: vi.fn(),
   createGame: vi.fn(),
 }))
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'org-1', nickname: 'organizer' } }),
 }))
-vi.mock('../../i18n/useT', () => ({
+vi.mock('@/i18n/useT', () => ({
   useT: () => ({ t: (key: string) => key }),
 }))
 
@@ -57,7 +57,7 @@ const validForm: CreateGameForm = {
   isDirty: false,
 }
 
-vi.mock('../../hooks/useCreateGameForm', () => ({
+vi.mock('@/hooks/useCreateGameForm', () => ({
   useCreateGameForm: () => validForm,
 }))
 
