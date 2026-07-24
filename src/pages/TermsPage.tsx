@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FC } from 'react'
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { TermsActions } from '../components/onboarding/TermsActions'
+import { Markdown } from '../components/ui/Markdown'
 import { useScrollToEnd } from '../hooks/useScrollToEnd'
 import { useAuth } from '../hooks/useAuth'
 import { useT } from '../i18n/useT'
@@ -30,7 +31,6 @@ const TermsPage: FC = () => {
   const isViewMode = searchParams.get('view') === '1'
   const { user, refreshUser } = useAuth()
   const { t, content } = useT()
-  const paragraphs = content('terms').split(/\n\s*\n/).filter(Boolean)
   const bodyRef = useRef<HTMLDivElement>(null)
   // Чи триває прийняття угоди (acceptTerms → refreshUser → navigate) — блокує
   // редирект на "/", доки не виконано явний navigate('/onboarding').
@@ -77,9 +77,7 @@ const TermsPage: FC = () => {
         ref={bodyRef}
         className="scrollbar-hide flex-1 space-y-4 overflow-y-auto px-7 py-6 font-body text-[15px] text-text-secondary"
       >
-        {paragraphs.map((paragraph, index) => (
-          <p key={index}>{paragraph}</p>
-        ))}
+        <Markdown source={content('terms')} />
       </div>
 
       {/* Панель дій. */}
